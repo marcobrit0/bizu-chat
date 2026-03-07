@@ -184,7 +184,9 @@ export function SearchResults({ results, localize, searchValue }: SearchResultsP
                           Upgrade
                         </span>
                       )}
-                      {!isLocked && isGlobal && <EarthIcon className="ml-auto size-4 text-green-400" />}
+                      {!isLocked && isGlobal && (
+                        <EarthIcon className="ml-auto size-4 text-green-400" />
+                      )}
                       {selectedEndpoint === endpoint.value && selectedModel === modelId && (
                         <svg
                           width="16"

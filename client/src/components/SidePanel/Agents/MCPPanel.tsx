@@ -1,11 +1,7 @@
 import { useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
-import {
-  AuthTypeEnum,
-  AuthorizationTypeEnum,
-  TokenExchangeMethodEnum,
-} from 'bizu-data-provider';
+import { AuthTypeEnum, AuthorizationTypeEnum, TokenExchangeMethodEnum } from 'bizu-data-provider';
 import {
   Label,
   OGDialog,

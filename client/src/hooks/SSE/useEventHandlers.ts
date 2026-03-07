@@ -13,12 +13,7 @@ import {
   tConvoUpdateSchema,
   isAssistantsEndpoint,
 } from 'bizu-data-provider';
-import type {
-  TMessage,
-  TConversation,
-  EventSubmission,
-  TStartupConfig,
-} from 'bizu-data-provider';
+import type { TMessage, TConversation, EventSubmission, TStartupConfig } from 'bizu-data-provider';
 import type { TResData, TFinalResData, ConvoGenerator } from '~/common';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { TGenTitleMutation } from '~/data-provider';

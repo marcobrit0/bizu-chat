@@ -420,8 +420,7 @@ describe('OpenID Token Utilities', () => {
       expect(isValid).toBe(true);
 
       // Step 3: Process placeholders
-      const input =
-        'Authorization: Bearer {{BIZU_OPENID_TOKEN}}, User: {{BIZU_OPENID_USER_ID}}';
+      const input = 'Authorization: Bearer {{BIZU_OPENID_TOKEN}}, User: {{BIZU_OPENID_USER_ID}}';
       const result = processOpenIDPlaceholders(input, tokenInfo!);
       expect(result).toContain('Authorization: Bearer access-token-value');
       expect(result).toContain('User:');

@@ -1,10 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import {
-  Permissions,
-  PermissionTypes,
-  EModelEndpoint,
-  EndpointURLs,
-} from 'bizu-data-provider';
+import { Permissions, PermissionTypes, EModelEndpoint, EndpointURLs } from 'bizu-data-provider';
 import type { IRole, IUser } from '@bizu/data-schemas';
 import { checkAccess, generateCheckAccess, skipAgentCheck } from './access';
 

@@ -1,13 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ArrowUpDown, Database } from 'lucide-react';
 import { FileSources, FileContext } from 'bizu-data-provider';
-import {
-  Button,
-  Checkbox,
-  OpenAIMinimalIcon,
-  AzureMinimalIcon,
-  useMediaQuery,
-} from '@bizu/client';
+import { Button, Checkbox, OpenAIMinimalIcon, AzureMinimalIcon, useMediaQuery } from '@bizu/client';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { TFile } from 'bizu-data-provider';
 import ImagePreview from '~/components/Chat/Input/Files/ImagePreview';

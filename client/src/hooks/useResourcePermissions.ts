@@ -1,7 +1,4 @@
-import {
-  hasPermissions,
-  useGetEffectivePermissionsQuery,
-} from 'bizu-data-provider/react-query';
+import { hasPermissions, useGetEffectivePermissionsQuery } from 'bizu-data-provider/react-query';
 import type { ResourceType } from 'bizu-data-provider';
 
 /**

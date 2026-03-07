@@ -1,12 +1,6 @@
 import React from 'react';
 import { KeyRound, PlugZap, AlertTriangle } from 'lucide-react';
-import {
-  Spinner,
-  OGDialog,
-  OGDialogTitle,
-  OGDialogHeader,
-  OGDialogContent,
-} from '@bizu/client';
+import { Spinner, OGDialog, OGDialogTitle, OGDialogHeader, OGDialogContent } from '@bizu/client';
 import type { MCPServerStatus } from 'bizu-data-provider';
 import type { ConfigFieldDetail } from '~/common';
 import ServerInitializationSection from './ServerInitializationSection';

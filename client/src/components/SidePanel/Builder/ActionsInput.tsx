@@ -2,11 +2,7 @@ import debounce from 'lodash/debounce';
 import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Spinner, useToastContext } from '@bizu/client';
-import {
-  validateAndParseOpenAPISpec,
-  openapiToFunction,
-  AuthTypeEnum,
-} from 'bizu-data-provider';
+import { validateAndParseOpenAPISpec, openapiToFunction, AuthTypeEnum } from 'bizu-data-provider';
 import type {
   Action,
   FunctionTool,

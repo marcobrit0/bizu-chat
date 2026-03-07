@@ -136,9 +136,7 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
     if (!searchValue) {
       return null;
     }
-    const allItems = enforceSpecs
-      ? [...modelSpecs]
-      : [...modelSpecs, ...mappedEndpoints];
+    const allItems = enforceSpecs ? [...modelSpecs] : [...modelSpecs, ...mappedEndpoints];
     return filterItems(allItems, searchValue, agentsMap, assistantsMap || {});
   }, [searchValue, modelSpecs, mappedEndpoints, agentsMap, assistantsMap, enforceSpecs]);
 

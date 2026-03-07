@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { EModelEndpoint, ImageDetail } from 'bizu-data-provider';
 import type { ConversationData } from 'bizu-data-provider';
@@ -98,7 +97,7 @@ export const convoData: ConversationData = {
           promptPrefix: null,
           resendFiles: false,
           temperature: 1,
-          title: 'Write Einstein\'s Famous Equation in LaTeX',
+          title: "Write Einstein's Famous Equation in LaTeX",
           top_p: 1,
           updatedAt,
         },

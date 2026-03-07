@@ -1,8 +1,4 @@
-import {
-  isAgentsEndpoint,
-  tQueryParamsSchema,
-  isAssistantsEndpoint,
-} from 'bizu-data-provider';
+import { isAgentsEndpoint, tQueryParamsSchema, isAssistantsEndpoint } from 'bizu-data-provider';
 import type { TConversation, TPreset } from 'bizu-data-provider';
 import { isEphemeralAgent } from '~/common';
 

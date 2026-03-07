@@ -1,11 +1,4 @@
-import {
-  TextPaths,
-  FilePaths,
-  CodePaths,
-  AudioPaths,
-  VideoPaths,
-  SheetPaths,
-} from '@bizu/client';
+import { TextPaths, FilePaths, CodePaths, AudioPaths, VideoPaths, SheetPaths } from '@bizu/client';
 import {
   megabyte,
   QueryKeys,

@@ -2,17 +2,8 @@ import { useState, useEffect } from 'react';
 import debounce from 'lodash/debounce';
 import { useFormContext } from 'react-hook-form';
 import { Spinner, useToastContext } from '@bizu/client';
-import {
-  validateAndParseOpenAPISpec,
-  openapiToFunction,
-  AuthTypeEnum,
-} from 'bizu-data-provider';
-import type {
-  Action,
-  FunctionTool,
-  ActionMetadata,
-  ValidationResult,
-} from 'bizu-data-provider';
+import { validateAndParseOpenAPISpec, openapiToFunction, AuthTypeEnum } from 'bizu-data-provider';
+import type { Action, FunctionTool, ActionMetadata, ValidationResult } from 'bizu-data-provider';
 import type { ActionAuthForm } from '~/common';
 import type { Spec } from './ActionsTable';
 import ActionCallback from '~/components/SidePanel/Builder/ActionCallback';

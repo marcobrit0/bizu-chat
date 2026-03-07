@@ -33,9 +33,7 @@ const connect = require('./connect');
 
   const balanceConfig = getBalanceConfig();
   if (!balanceConfig?.enabled) {
-    console.red(
-      'Error: Balance is not enabled. Use bizu.yaml to enable it',
-    );
+    console.red('Error: Balance is not enabled. Use bizu.yaml to enable it');
     silentExit(1);
   }
 

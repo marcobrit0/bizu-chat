@@ -1,9 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  mergeFileConfig,
-  retrievalMimeTypes,
-  getEndpointFileConfig,
-} from 'bizu-data-provider';
+import { mergeFileConfig, retrievalMimeTypes, getEndpointFileConfig } from 'bizu-data-provider';
 import type { AssistantsEndpoint } from 'bizu-data-provider';
 import type { ExtendedFile } from '~/common';
 import FileRow from '~/components/Chat/Input/Files/FileRow';

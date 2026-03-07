@@ -4,12 +4,7 @@ const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const { createMethods } = require('@bizu/data-schemas');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const {
-  SystemRoles,
-  ResourceType,
-  AccessRoleIds,
-  PrincipalType,
-} = require('bizu-data-provider');
+const { SystemRoles, ResourceType, AccessRoleIds, PrincipalType } = require('bizu-data-provider');
 const { createAgent } = require('~/models/Agent');
 const { createFile } = require('~/models/File');
 

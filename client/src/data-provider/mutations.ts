@@ -1,8 +1,4 @@
-import {
-  Constants,
-  defaultAssistantsVersion,
-  ConversationListResponse,
-} from 'bizu-data-provider';
+import { Constants, defaultAssistantsVersion, ConversationListResponse } from 'bizu-data-provider';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { dataService, MutationKeys, QueryKeys, defaultOrderQuery } from 'bizu-data-provider';
 import type { InfiniteData, UseMutationResult } from '@tanstack/react-query';

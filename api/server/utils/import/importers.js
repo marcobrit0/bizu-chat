@@ -79,11 +79,7 @@ async function importChatBotUiConvo(
  * @param {Function} [builderFactory=createImportBatchBuilder] - The factory function to create an import batch builder.
  * @returns {Promise<void>} - A promise that resolves when the import is complete.
  */
-async function importBizuConvo(
-  jsonData,
-  requestUserId,
-  builderFactory = createImportBatchBuilder,
-) {
+async function importBizuConvo(jsonData, requestUserId, builderFactory = createImportBatchBuilder) {
   try {
     /** @type {ImportBatchBuilder} */
     const importBatchBuilder = builderFactory(requestUserId);

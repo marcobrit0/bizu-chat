@@ -4,12 +4,7 @@ import { Dialog, DialogPanel, DialogTitle, Description } from '@headlessui/react
 import { useFormContext } from 'react-hook-form';
 import { isAgentsEndpoint } from 'bizu-data-provider';
 import { useUpdateUserPluginsMutation } from 'bizu-data-provider/react-query';
-import type {
-  AssistantsEndpoint,
-  EModelEndpoint,
-  TPluginAction,
-  TError,
-} from 'bizu-data-provider';
+import type { AssistantsEndpoint, EModelEndpoint, TPluginAction, TError } from 'bizu-data-provider';
 import type { TPluginStoreDialogProps } from '~/common/types';
 import { PluginPagination, PluginAuthForm } from '~/components/Plugins/Store';
 import { useLocalize, usePluginDialogHelpers } from '~/hooks';

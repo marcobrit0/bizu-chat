@@ -1,12 +1,7 @@
 const { ObjectId } = require('mongodb');
 const { escapeRegExp } = require('@bizu/api');
 const { logger } = require('@bizu/data-schemas');
-const {
-  Constants,
-  SystemRoles,
-  ResourceType,
-  SystemCategories,
-} = require('bizu-data-provider');
+const { Constants, SystemRoles, ResourceType, SystemCategories } = require('bizu-data-provider');
 const {
   removeGroupFromAllProjects,
   removeGroupIdsFromProject,
