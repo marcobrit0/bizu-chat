@@ -205,7 +205,8 @@ const registerUser = async (user, additionalData = {}) => {
     //determine if this is the first registered user (not counting anonymous_user)
     const isFirstRegisteredUser = (await countUsers()) === 0;
 
-    const salt = bcrypt.genSaltSync(10);
+    // Use async bcrypt to avoid blocking the event loop under concurrent registrations
+    const salt = await bcrypt.genSalt(10);
     const newUserData = {
       provider: provider ?? 'local',
       email,
@@ -213,7 +214,7 @@ const registerUser = async (user, additionalData = {}) => {
       name,
       avatar: null,
       role: isFirstRegisteredUser ? SystemRoles.ADMIN : SystemRoles.USER,
-      password: bcrypt.hashSync(password, salt),
+      password: await bcrypt.hash(password, salt),
       ...additionalData,
     };
 
