@@ -62,6 +62,8 @@ balance:
   refillIntervalValue: 30
   refillIntervalUnit: 'days'
   refillAmount: 100000
+  # Cap total auto-refills per user to prevent unlimited free usage before Stripe
+  maxRefillCount: 3
 
 registration:
   socialLogins: []
