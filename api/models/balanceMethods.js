@@ -1,5 +1,5 @@
-const { logger } = require('@librechat/data-schemas');
-const { ViolationTypes } = require('librechat-data-provider');
+const { logger } = require('@bizu/data-schemas');
+const { ViolationTypes } = require('bizu-data-provider');
 const { createAutoRefillTransaction } = require('./Transaction');
 const { logViolation } = require('~/cache');
 const { getMultiplier } = require('./tx');

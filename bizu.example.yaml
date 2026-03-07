@@ -1,6 +1,6 @@
 # Bizu Chat Configuration
-# Copy this file to librechat.yaml and customize as needed
-# For more information, see: https://www.librechat.ai/docs/configuration/librechat_yaml
+# Copy this file to bizu.yaml and customize as needed
+# For more information, see: https://www.bizu.ai/docs/configuration/bizu_yaml
 
 version: 1.2.1
 
