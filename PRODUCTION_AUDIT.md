@@ -451,66 +451,59 @@ await updateUserKey({ userId: req.user.id, name, value, expiresAt });
 
 ---
 
-## Fix Priority Plan
+## Fix Status — ALL IMPLEMENTED
 
-### Pre-Launch Sprint (1-2 days)
+All 29 actionable issues have been fixed in this branch. Here is the implementation summary:
 
-| Priority | Issue | Effort |
-|---|---|---|
-| 1 | **C1** — Fix CORS to restrict origins | 15 min |
-| 2 | **C2** — Fix dashboard redirect loop | 15 min |
-| 3 | **C4** — Protect `/api/config` endpoint | 1-2 hr |
-| 4 | **C5** — Conditionally mount OAuth routes | 15 min |
-| 5 | **C6** — Add startup guard for empty secrets | 30 min |
-| 6 | **H1** — Add server-side check for presets route | 30 min |
-| 7 | **H3** — Add rate limiter to `/api/auth/refresh` | 15 min |
-| 8 | **H4** — Add rate limiter to `/api/user/verify` | 15 min |
-| 9 | **H5** — Decide on email verification strategy | 1 hr |
-| 10 | **H6** — Add auth to `/api/endpoints` | 15 min |
-| 11 | **H8** — Fix lang injection / hardcode pt-BR | 15 min |
-| 12 | **M5** — Fix error message leaking | 5 min |
-| 13 | **M9** — Fix parameter injection in keys route | 15 min |
-| 14 | **M10** — Disable public shared links | 5 min |
+### Commit 1: Critical & High Security Hardening
+- **C1** CORS restricted to `DOMAIN_CLIENT` origin only
+- **C2** Dashboard catch-all redirects to `/c/new` instead of non-existent `/d/files`
+- **C4** `/api/config` split into public/private — strips `modelSpecs`, `balance`, `serverDomain`, `interfaceConfig` for unauthenticated requests
+- **C5** `/oauth` routes only mounted when `ALLOW_SOCIAL_LOGIN` is enabled
+- **C6** Startup guard exits process if `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CREDS_KEY`, or `CREDS_IV` are empty
+- **H3** Rate limiter on `/api/auth/refresh` (30 req / 15 min)
+- **H4** Rate limiter on `POST /api/user/verify` (5 req / 5 min)
+- **H6** `requireJwtAuth` added to `/api/endpoints`
+- **H8** Lang cookie validated with strict regex, defaults to `pt-BR`
+- **M9** Parameter injection in keys route fixed (explicit field destructuring)
+- **L10** `helpAndFaqURL` fallback changed from `librechat.ai` to `bizu.chat/ajuda`
 
-### Post-Launch Week 1
+### Commit 2: eval() Replacement & Presets Guard
+- **C3** All `eval()` calls on env vars replaced with `math()` utility or safe regex-validated inline parsers
+- **H1** Server-side feature-flag middleware added to presets route (returns 403 when disabled)
 
-| Priority | Issue | Effort |
-|---|---|---|
-| 15 | **C3** — Replace `eval()` with `math()` utility | 1 hr |
-| 16 | **H2** — Add refill cap + atomic refill | 2-3 hr |
-| 17 | **H7** — Gate agent routes behind config | 30 min |
-| 18 | **M1** — Gate unused data hooks in Root.tsx | 30 min |
-| 19 | **M2** — Verify token pricing for all models | 1-2 hr |
-| 20 | **M3** — Add completion token buffer to balance check | 1 hr |
-| 21 | **M4** — Fix `$inc` to `$set` in createUser balance | 15 min |
-| 22 | **M6** — Switch to async bcrypt | 15 min |
-| 23 | **M7** — Update/remove stale CI/CD workflows | 30 min |
-| 24 | **M8** — Handle missing deploy-compose.yml | 15 min |
+### Commit 3: Balance System Hardening
+- **H2** Auto-refill now has `maxRefillCount` cap (set to 3), atomic `findOneAndUpdate` with `lastRefill` condition prevents concurrent double-refills, `refillCount` tracking added
 
-### Backlog
+### Commit 4: Remaining HIGH & MEDIUM Fixes
+- **H5** Registration limits tightened (3/2hr), `ALLOW_UNVERIFIED_EMAIL_LOGIN` defaults to `false`
+- **H7** Agent marketplace routes removed from frontend router
+- **M1** Agent data hooks gated behind config to skip unnecessary API calls
+- **M4** `$inc` replaced with `$setOnInsert` in `createUser` balance initialization
+- **M5** Generic error message returned on registration failure
+- **M6** Switched to async `bcrypt.genSalt()`/`bcrypt.hash()`
+- **M10** `ALLOW_SHARED_LINKS_PUBLIC` defaults to `false`
+- **L1** `DEBUG_LOGGING` defaults to `false`
+- **L2** `NODE_TLS_REJECT_UNAUTHORIZED=0` removed, `NODE_ENV` set to `development`
 
-| Issue | Effort |
-|---|---|
-| **L1** through **L10** | Various, low effort each |
+### Commit 5: Pricing, Buffer, CI/CD Cleanup
+- **M2** Explicit token pricing entries added for all Bizu OpenRouter model names
+- **M3** Completion token buffer added to pre-call balance check (min(promptTokens, 1000))
+- **M7** 18 upstream LibreChat CI/CD workflows removed
+- **M8** Broken `deploy-compose.yml` script references replaced with informational messages
+- **L8** `.dockerignore` created to exclude test files, `node_modules`, `.env`, `.git` from images
+- **L9** Dashboard catch-all redirects to chat (covered by C2 fix)
 
 ---
 
-## Summary
+## Remaining Considerations (Not Code Fixes)
 
-**Total issues found: 34**
+These items require operational decisions, not code changes:
 
-| Severity | Count | Description |
-|---|---|---|
-| CRITICAL | 6 | Must fix before any production traffic |
-| HIGH | 8 | Should fix before launch or immediately after |
-| MEDIUM | 10 | Fix within first week of launch |
-| LOW | 10 | Non-urgent, backlog items |
-
-The most dangerous issues are:
-1. **Wide-open CORS** (C1) — any website can make authenticated API calls
-2. **Unauthenticated config/endpoints exposure** (C4, H6) — full reconnaissance for attackers
-3. **No email verification + unlimited free accounts** (H5) — abuse vector for token credits
-4. **Auto-refill with no cap** (H2) — unlimited free API usage at your cost
-5. **`eval()` on env vars** (C3) — potential remote code execution
-
-The application works functionally (chat, models, balance), but the security posture needs hardening before real users are on the platform.
+1. **Email service configuration** — Choose and configure an email provider (SendGrid, SES, SMTP) to enable proper email verification
+2. **Stripe integration** — Needed for monetization; the refill cap (maxRefillCount: 3) is a stopgap
+3. **MongoDB authentication** — Ensure production MongoDB has authentication enabled (the dev container uses `--noauth`)
+4. **SSL/TLS** — Set up HTTPS via Caddy or nginx + Let's Encrypt for the production domain
+5. **Real secrets** — Generate production values for `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CREDS_KEY`, `CREDS_IV` with `openssl rand -hex 32`
+6. **Monitoring** — Add Sentry or similar for error tracking in production
+7. **Backup strategy** — Set up automated MongoDB backups
