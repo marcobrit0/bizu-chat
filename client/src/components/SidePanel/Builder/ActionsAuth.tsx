@@ -5,7 +5,7 @@ import {
   AuthTypeEnum,
   AuthorizationTypeEnum,
   TokenExchangeMethodEnum,
-} from 'librechat-data-provider';
+} from 'bizu-data-provider';
 import {
   OGDialog,
   OGDialogClose,
@@ -13,7 +13,7 @@ import {
   OGDialogHeader,
   OGDialogContent,
   OGDialogTrigger,
-} from '@librechat/client';
+} from '@bizu/client';
 import { TranslationKeys, useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 

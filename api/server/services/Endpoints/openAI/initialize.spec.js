@@ -8,7 +8,7 @@ jest.mock('~/cache/getLogStores', () => ({
   }),
 }));
 
-const { EModelEndpoint, ErrorTypes, validateAzureGroups } = require('librechat-data-provider');
+const { EModelEndpoint, ErrorTypes, validateAzureGroups } = require('bizu-data-provider');
 const { getUserKey, getUserKeyValues } = require('~/server/services/UserService');
 const initializeClient = require('./initialize');
 const { OpenAIClient } = require('~/app');
@@ -30,15 +30,15 @@ const mockAppConfig = {
       modelNames: ['gpt-4-vision-preview', 'gpt-3.5-turbo', 'gpt-4'],
       modelGroupMap: {
         'gpt-4-vision-preview': {
-          group: 'librechat-westus',
+          group: 'bizu-westus',
           deploymentName: 'gpt-4-vision-preview',
           version: '2024-02-15-preview',
         },
       },
       groupMap: {
-        'librechat-westus': {
+        'bizu-westus': {
           apiKey: 'WESTUS_API_KEY',
-          instanceName: 'librechat-westus',
+          instanceName: 'bizu-westus',
           version: '2023-12-01-preview',
           models: {
             'gpt-4-vision-preview': {
@@ -61,9 +61,9 @@ describe('initializeClient', () => {
 
   const validAzureConfigs = [
     {
-      group: 'librechat-westus',
+      group: 'bizu-westus',
       apiKey: 'WESTUS_API_KEY',
-      instanceName: 'librechat-westus',
+      instanceName: 'bizu-westus',
       version: '2023-12-01-preview',
       models: {
         'gpt-4-vision-preview': {
@@ -85,9 +85,9 @@ describe('initializeClient', () => {
       },
     },
     {
-      group: 'librechat-eastus',
+      group: 'bizu-eastus',
       apiKey: 'EASTUS_API_KEY',
-      instanceName: 'librechat-eastus',
+      instanceName: 'bizu-eastus',
       deploymentName: 'gpt-4-turbo',
       version: '2024-02-15-preview',
       models: {

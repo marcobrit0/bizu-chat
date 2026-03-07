@@ -20,7 +20,7 @@ function ModelSelectorContent() {
   const enforceSpecs = startupConfig?.modelSpecs?.enforce === true;
 
   const {
-    // LibreChat
+    // Bizu
     agentsMap,
     modelSpecs,
     mappedEndpoints,

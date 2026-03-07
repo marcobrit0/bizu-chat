@@ -10,13 +10,13 @@ import {
   ToolCallTypes,
   imageGenTools,
   isImageVisionTool,
-} from 'librechat-data-provider';
+} from 'bizu-data-provider';
 import type {
   TMessageContentParts,
   TConversation,
   TMessage,
   TPreset,
-} from 'librechat-data-provider';
+} from 'bizu-data-provider';
 import useBuildMessageTree from '~/hooks/Messages/useBuildMessageTree';
 import { useScreenshot } from '~/hooks/ScreenshotContext';
 import { cleanupPreset } from '~/utils';

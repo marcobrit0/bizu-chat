@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { EarthIcon, LockIcon } from 'lucide-react';
-import { isAgentsEndpoint, isAssistantsEndpoint } from 'librechat-data-provider';
-import type { TModelSpec } from 'librechat-data-provider';
+import { isAgentsEndpoint, isAssistantsEndpoint } from 'bizu-data-provider';
+import type { TModelSpec } from 'bizu-data-provider';
 import type { Endpoint } from '~/common';
 import { useAuthContext } from '~/hooks';
 import { isModelAllowedForPlan } from '~/utils/planModels';

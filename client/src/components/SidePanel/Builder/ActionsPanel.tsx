@@ -5,7 +5,7 @@ import {
   AuthTypeEnum,
   AuthorizationTypeEnum,
   TokenExchangeMethodEnum,
-} from 'librechat-data-provider';
+} from 'bizu-data-provider';
 import {
   OGDialog,
   OGDialogTrigger,
@@ -13,7 +13,7 @@ import {
   OGDialogTemplate,
   useToastContext,
   TrashIcon,
-} from '@librechat/client';
+} from '@bizu/client';
 import type { AssistantPanelProps, ActionAuthForm } from '~/common';
 import { useAssistantsMapContext } from '~/Providers';
 import { useDeleteAction } from '~/data-provider';

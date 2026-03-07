@@ -1,7 +1,7 @@
 const path = require('path');
 const mongoose = require('mongoose');
-const { getBalanceConfig } = require('@librechat/api');
-const { User } = require('@librechat/data-schemas').createModels(mongoose);
+const { getBalanceConfig } = require('@bizu/api');
+const { User } = require('@bizu/data-schemas').createModels(mongoose);
 require('module-alias')({ base: path.resolve(__dirname, '..', 'api') });
 const { createTransaction } = require('~/models/Transaction');
 const { getAppConfig } = require('~/server/services/Config');
@@ -38,7 +38,7 @@ const connect = require('./connect');
 
   if (!balanceConfig?.enabled) {
     console.red(
-      'Error: Balance is not enabled. Use librechat.yaml to enable it',
+      'Error: Balance is not enabled. Use bizu.yaml to enable it',
     );
     silentExit(1);
   }

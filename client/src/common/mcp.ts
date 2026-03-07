@@ -2,7 +2,7 @@ import {
   AuthorizationTypeEnum,
   AuthTypeEnum,
   TokenExchangeMethodEnum,
-} from 'librechat-data-provider';
+} from 'bizu-data-provider';
 import { MCPForm } from '~/common/types';
 
 export const defaultMCPFormValues: MCPForm = {
