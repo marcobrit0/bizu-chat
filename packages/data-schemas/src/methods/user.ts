@@ -177,7 +177,8 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
       if (/^[+\-\d.\s*/%()]+$/.test(expiryStr)) {
         try {
           const evaluated = new Function(`return (${expiryStr})`)();
-          if (typeof evaluated === 'number' && !isNaN(evaluated)) {
+          // Preserve original behavior: falsy results (0, NaN) keep the default
+          if (evaluated) {
             expires = evaluated;
           }
         } catch (error) {
