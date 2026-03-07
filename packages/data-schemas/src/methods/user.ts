@@ -170,13 +170,19 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
     let expires = 1000 * 60 * 15;
 
     if (process.env.SESSION_EXPIRY !== undefined && process.env.SESSION_EXPIRY !== '') {
-      try {
-        const evaluated = eval(process.env.SESSION_EXPIRY);
-        if (evaluated) {
-          expires = evaluated;
+      // Safe math eval: only allows digits, operators, parens, and whitespace — no arbitrary code
+      const expiryStr = process.env.SESSION_EXPIRY;
+      if (/^[+\-\d.\s*/%()]+$/.test(expiryStr)) {
+        try {
+          const evaluated = new Function(`return (${expiryStr})`)();
+          if (typeof evaluated === 'number' && !isNaN(evaluated)) {
+            expires = evaluated;
+          }
+        } catch (error) {
+          console.warn('Invalid SESSION_EXPIRY expression, using default:', error);
         }
-      } catch (error) {
-        console.warn('Invalid SESSION_EXPIRY expression, using default:', error);
+      } else {
+        console.warn('SESSION_EXPIRY contains invalid characters, using default');
       }
     }
 
