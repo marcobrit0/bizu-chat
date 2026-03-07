@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 import React from 'react';
 import { EarthIcon, LockIcon } from 'lucide-react';
 import { isAgentsEndpoint, isAssistantsEndpoint } from 'bizu-data-provider';

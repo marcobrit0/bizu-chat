@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 import React from 'react';
 import { Button, TrashIcon } from '@bizu/client';
 import type { TFile } from 'bizu-data-provider';

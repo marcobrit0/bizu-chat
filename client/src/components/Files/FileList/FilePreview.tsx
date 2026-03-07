@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 import React, { useState } from 'react';
 import { TFile } from 'bizu-data-provider/dist/types';
 import { CheckMark, TrashIcon, Button } from '@bizu/client';

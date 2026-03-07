@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 import React, { useState, ChangeEvent } from 'react';
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@bizu/client';
 import { useLocalize } from '~/hooks';

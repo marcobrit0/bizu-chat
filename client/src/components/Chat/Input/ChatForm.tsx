@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 import { memo, useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useWatch } from 'react-hook-form';
 import { TextareaAutosize } from '@bizu/client';

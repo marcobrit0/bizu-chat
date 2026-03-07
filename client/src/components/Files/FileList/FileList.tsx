@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string */
 import type { TFile } from 'bizu-data-provider';
 import React from 'react';
 import FileListItem from './FileListItem';
