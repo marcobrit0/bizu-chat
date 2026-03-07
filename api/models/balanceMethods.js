@@ -55,7 +55,11 @@ const checkBalanceRecord = async function ({
     const refillCount = record.refillCount || 0;
     const maxRefillCount = record.maxRefillCount || 0;
     if (maxRefillCount > 0 && refillCount >= maxRefillCount) {
-      logger.debug('[Balance.check] Auto-refill cap reached', { user, refillCount, maxRefillCount });
+      logger.debug('[Balance.check] Auto-refill cap reached', {
+        user,
+        refillCount,
+        maxRefillCount,
+      });
     } else {
       const lastRefillDate = new Date(record.lastRefill);
       const now = new Date();
@@ -102,7 +106,9 @@ const checkBalanceRecord = async function ({
             if (freshRecord) {
               balance = freshRecord.tokenCredits;
             }
-            logger.debug('[Balance.check] Refill already performed by concurrent request', { user });
+            logger.debug('[Balance.check] Refill already performed by concurrent request', {
+              user,
+            });
           }
         } catch (error) {
           logger.error('[Balance.check] Failed to perform auto-refill', error);

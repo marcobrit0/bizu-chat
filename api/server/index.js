@@ -52,7 +52,7 @@ const startServer = async () => {
   if (missingSecrets.length > 0) {
     logger.error(
       `[FATAL] Missing required secrets: ${missingSecrets.join(', ')}. ` +
-      'Generate them with: openssl rand -hex 32',
+        'Generate them with: openssl rand -hex 32',
     );
     process.exit(1);
   }
@@ -96,10 +96,12 @@ const startServer = async () => {
   app.use(handleJsonParseError);
   app.use(mongoSanitize());
   // Restrict CORS to only allow requests from our own client domain
-  app.use(cors({
-    origin: process.env.DOMAIN_CLIENT || 'http://localhost:3080',
-    credentials: true,
-  }));
+  app.use(
+    cors({
+      origin: process.env.DOMAIN_CLIENT || 'http://localhost:3080',
+      credentials: true,
+    }),
+  );
   app.use(cookieParser());
 
   if (!isEnabled(DISABLE_COMPRESSION)) {
