@@ -419,7 +419,7 @@ const setOpenIDAuthTokens = (tokenset, res, userId, existingRefreshToken) => {
       logger.error('[setOpenIDAuthTokens] No tokenset found in request');
       return;
     }
-    const { math } = require('@librechat/api');
+    const { math } = require('@bizu/api');
     const { REFRESH_TOKEN_EXPIRY } = process.env ?? {};
     // Use safe math parser instead of eval to prevent code injection
     const expiryInMilliseconds = math(REFRESH_TOKEN_EXPIRY, 1000 * 60 * 60 * 24 * 7);

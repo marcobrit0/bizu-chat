@@ -1,5 +1,5 @@
 const rateLimit = require('express-rate-limit');
-const { limiterCache } = require('@librechat/api');
+const { limiterCache } = require('@bizu/api');
 const { removePorts } = require('~/server/utils');
 
 // Allow 30 refresh attempts per 15-minute window per IP.
