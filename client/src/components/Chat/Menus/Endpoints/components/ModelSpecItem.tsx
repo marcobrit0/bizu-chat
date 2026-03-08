@@ -1,7 +1,10 @@
 import React from 'react';
+import { LockIcon } from 'lucide-react';
 import type { TModelSpec } from 'bizu-data-provider';
+import { useAuthContext } from '~/hooks';
 import { CustomMenuItem as MenuItem } from '../CustomMenu';
 import { useModelSelectorContext } from '../ModelSelectorContext';
+import { isModelSpecLocked } from '../selection';
 import SpecIcon from './SpecIcon';
 import { cn } from '~/utils';
 
@@ -12,13 +15,16 @@ interface ModelSpecItemProps {
 
 export function ModelSpecItem({ spec, isSelected }: ModelSpecItemProps) {
   const { handleSelectSpec, endpointsConfig } = useModelSelectorContext();
+  const { user } = useAuthContext();
   const { showIconInMenu = true } = spec;
+  const isLocked = isModelSpecLocked(spec, user?.plan);
   return (
     <MenuItem
       key={spec.name}
-      onClick={() => handleSelectSpec(spec)}
+      onClick={() => !isLocked && handleSelectSpec(spec)}
       className={cn(
-        'flex w-full cursor-pointer items-center justify-between rounded-lg px-2 text-sm',
+        'flex w-full items-center justify-between rounded-lg px-2 text-sm',
+        isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
       )}
     >
       <div
@@ -39,6 +45,12 @@ export function ModelSpecItem({ spec, isSelected }: ModelSpecItemProps) {
           )}
         </div>
       </div>
+      {isLocked && (
+        <span className="ml-auto mr-2 flex flex-shrink-0 items-center gap-1 rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-400">
+          <LockIcon className="size-3" />
+          Premium
+        </span>
+      )}
       {isSelected && (
         <div className="flex-shrink-0 self-center">
           <svg

@@ -1,10 +1,11 @@
 import debounce from 'lodash/debounce';
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { EModelEndpoint, isAgentsEndpoint, isAssistantsEndpoint } from 'bizu-data-provider';
 import type * as t from 'bizu-data-provider';
 import type { Endpoint, SelectedValues } from '~/common';
 import {
   useAgentDefaultPermissionLevel,
+  useAuthContext,
   useSelectorEffects,
   useKeyDialog,
   useEndpoints,
@@ -14,6 +15,7 @@ import { useGetEndpointsQuery, useListAgentsQuery } from '~/data-provider';
 import { useModelSelectorChatContext } from './ModelSelectorChatContext';
 import useSelectMention from '~/hooks/Input/useSelectMention';
 import { filterItems } from './utils';
+import { getAutoSelection } from './selection';
 
 type ModelSelectorContextType = {
   // State
@@ -56,6 +58,7 @@ interface ModelSelectorProviderProps {
 export function ModelSelectorProvider({ children, startupConfig }: ModelSelectorProviderProps) {
   const agentsMap = useAgentsMapContext();
   const assistantsMap = useAssistantsMapContext();
+  const { user } = useAuthContext();
   const { data: endpointsConfig } = useGetEndpointsQuery();
   const { endpoint, model, spec, agent_id, assistant_id, conversation, newConversation } =
     useModelSelectorChatContext();
@@ -202,6 +205,41 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
       modelSpec: '',
     });
   };
+
+  useEffect(() => {
+    const autoSelection = getAutoSelection({
+      conversationId: conversation?.conversationId,
+      mappedEndpoints,
+      modelSpecs,
+      plan: user?.plan,
+      selectedValues,
+    });
+
+    if (!autoSelection) {
+      return;
+    }
+
+    if (autoSelection.type === 'spec') {
+      handleSelectSpec(autoSelection.spec);
+      return;
+    }
+
+    if (autoSelection.type === 'endpoint') {
+      handleSelectEndpoint(autoSelection.endpoint);
+      return;
+    }
+
+    handleSelectModel(autoSelection.endpoint, autoSelection.model);
+  }, [
+    conversation?.conversationId,
+    handleSelectSpec,
+    handleSelectEndpoint,
+    handleSelectModel,
+    mappedEndpoints,
+    modelSpecs,
+    selectedValues,
+    user?.plan,
+  ]);
 
   const value = {
     // State

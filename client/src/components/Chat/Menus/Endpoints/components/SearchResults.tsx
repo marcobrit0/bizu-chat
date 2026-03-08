@@ -5,11 +5,11 @@ import { isAgentsEndpoint, isAssistantsEndpoint } from 'bizu-data-provider';
 import type { TModelSpec } from 'bizu-data-provider';
 import type { Endpoint } from '~/common';
 import { useAuthContext } from '~/hooks';
-import { isModelAllowedForPlan } from '~/utils/planModels';
 import { useModelSelectorContext } from '../ModelSelectorContext';
 import { CustomMenuItem as MenuItem } from '../CustomMenu';
 import SpecIcon from './SpecIcon';
 import { cn } from '~/utils';
+import { isEndpointModelLocked } from '../selection';
 
 interface SearchResultsProps {
   results: (TModelSpec | Endpoint)[] | null;
@@ -139,7 +139,7 @@ export function SearchResults({ results, localize, searchValue }: SearchResultsP
                 </div>
                 {filteredModels.map((model) => {
                   const modelId = model.name;
-                  const isLocked = !isModelAllowedForPlan(user?.plan, modelId);
+                  const isLocked = isEndpointModelLocked(endpoint.value, modelId, user?.plan);
 
                   let isGlobal = false;
                   let modelName = modelId;
@@ -180,9 +180,9 @@ export function SearchResults({ results, localize, searchValue }: SearchResultsP
                         <span>{modelName}</span>
                       </div>
                       {isLocked && (
-                        <span className="ml-auto flex flex-shrink-0 items-center gap-1 text-xs text-yellow-500">
+                        <span className="ml-auto flex flex-shrink-0 items-center gap-1 rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-400">
                           <LockIcon className="size-3" />
-                          Upgrade
+                          Premium
                         </span>
                       )}
                       {!isLocked && isGlobal && (

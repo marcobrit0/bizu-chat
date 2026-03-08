@@ -4,9 +4,9 @@ import { EarthIcon, LockIcon } from 'lucide-react';
 import { isAgentsEndpoint, isAssistantsEndpoint } from 'bizu-data-provider';
 import type { Endpoint } from '~/common';
 import { useAuthContext } from '~/hooks';
-import { isModelAllowedForPlan } from '~/utils/planModels';
 import { useModelSelectorContext } from '../ModelSelectorContext';
 import { CustomMenuItem as MenuItem } from '../CustomMenu';
+import { isEndpointModelLocked } from '../selection';
 
 interface EndpointModelItemProps {
   modelId: string | null;
@@ -17,7 +17,7 @@ interface EndpointModelItemProps {
 export function EndpointModelItem({ modelId, endpoint, isSelected }: EndpointModelItemProps) {
   const { handleSelectModel } = useModelSelectorContext();
   const { user } = useAuthContext();
-  const isLocked = modelId ? !isModelAllowedForPlan(user?.plan, modelId) : false;
+  const isLocked = isEndpointModelLocked(endpoint.value, modelId, user?.plan);
   let isGlobal = false;
   let modelName = modelId;
   const avatarUrl = endpoint?.modelIcons?.[modelId ?? ''] || null;
@@ -58,9 +58,9 @@ export function EndpointModelItem({ modelId, endpoint, isSelected }: EndpointMod
         ) : null}
         <span className="truncate text-left">{modelName}</span>
         {isLocked && (
-          <span className="ml-auto flex flex-shrink-0 items-center gap-1 self-center text-xs text-yellow-500">
+          <span className="ml-auto flex flex-shrink-0 items-center gap-1 rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-400">
             <LockIcon className="size-3" />
-            Upgrade
+            Premium
           </span>
         )}
         {!isLocked && isGlobal && (
