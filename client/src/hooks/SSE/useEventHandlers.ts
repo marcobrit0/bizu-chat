@@ -16,7 +16,6 @@ import {
 import type { TMessage, TConversation, EventSubmission, TStartupConfig } from 'bizu-data-provider';
 import type { TResData, TFinalResData, ConvoGenerator } from '~/common';
 import type { InfiniteData } from '@tanstack/react-query';
-import type { TGenTitleMutation } from '~/data-provider';
 import type { SetterOrUpdater, Resetter } from 'recoil';
 import type { ConversationCursorData } from '~/utils';
 import {
@@ -29,6 +28,7 @@ import {
   removeConvoFromAllQueries,
   findConversationInInfinite,
 } from '~/utils';
+import { queueTitleGeneration } from '~/data-provider/SSE/queries';
 import useAttachmentHandler from '~/hooks/SSE/useAttachmentHandler';
 import useContentHandler from '~/hooks/SSE/useContentHandler';
 import useStepHandler from '~/hooks/SSE/useStepHandler';
@@ -49,7 +49,6 @@ type TSyncData = {
 
 export type EventHandlerParams = {
   isAddedRequest?: boolean;
-  genTitle?: TGenTitleMutation;
   setCompleted: React.Dispatch<React.SetStateAction<Set<unknown>>>;
   setMessages: (messages: TMessage[]) => void;
   getMessages: () => TMessage[] | undefined;
@@ -162,7 +161,6 @@ export const getConvoTitle = ({
 };
 
 export default function useEventHandlers({
-  genTitle,
   setMessages,
   getMessages,
   setCompleted,
@@ -184,8 +182,8 @@ export default function useEventHandlers({
   const { conversationId: paramId } = useParams();
   const { token } = useAuthContext();
 
-  const contentHandler = useContentHandler({ setMessages, getMessages });
-  const { stepHandler, clearStepMaps } = useStepHandler({
+  const { contentHandler, resetContentHandler } = useContentHandler({ setMessages, getMessages });
+  const { stepHandler, clearStepMaps, syncStepMessage } = useStepHandler({
     setMessages,
     getMessages,
     announcePolite,
@@ -196,14 +194,7 @@ export default function useEventHandlers({
 
   const messageHandler = useCallback(
     (data: string | undefined, submission: EventSubmission) => {
-      const {
-        messages,
-        userMessage,
-        plugin,
-        plugins,
-        initialResponse,
-        isRegenerate = false,
-      } = submission;
+      const { messages, userMessage, initialResponse, isRegenerate = false } = submission;
       const text = data ?? '';
       setIsSubmitting(true);
 
@@ -219,8 +210,6 @@ export default function useEventHandlers({
           {
             ...initialResponse,
             text,
-            plugin: plugin ?? null,
-            plugins: plugins ?? [],
           },
         ]);
       } else {
@@ -230,8 +219,6 @@ export default function useEventHandlers({
           {
             ...initialResponse,
             text,
-            plugin: plugin ?? null,
-            plugins: plugins ?? [],
           },
         ]);
       }
@@ -264,13 +251,6 @@ export default function useEventHandlers({
         removeConvoFromAllQueries(queryClient, submission.conversation.conversationId as string);
       }
 
-      // refresh title
-      if (genTitle && isNewConvo && requestMessage.parentMessageId === Constants.NO_PARENT) {
-        setTimeout(() => {
-          genTitle.mutate({ conversationId: convoUpdate.conversationId as string });
-        }, 2500);
-      }
-
       if (setConversation && !isAddedRequest) {
         setConversation((prevState) => {
           const update = { ...prevState, ...convoUpdate };
@@ -280,7 +260,7 @@ export default function useEventHandlers({
 
       setIsSubmitting(false);
     },
-    [setMessages, setConversation, genTitle, isAddedRequest, queryClient, setIsSubmitting],
+    [setMessages, setConversation, isAddedRequest, queryClient, setIsSubmitting],
   );
 
   const syncHandler = useCallback(
@@ -326,7 +306,7 @@ export default function useEventHandlers({
         if (requestMessage.parentMessageId === Constants.NO_PARENT) {
           addConvoToAllQueries(queryClient, update);
         } else {
-          updateConvoInAllQueries(queryClient, update.conversationId!, (_c) => update);
+          updateConvoInAllQueries(queryClient, update.conversationId!, (_c) => update, true);
         }
       } else if (setConversation) {
         setConversation((prevState) => {
@@ -360,6 +340,7 @@ export default function useEventHandlers({
   const createdHandler = useCallback(
     (data: TResData, submission: EventSubmission) => {
       queryClient.invalidateQueries([QueryKeys.mcpConnectionStatus]);
+      queryClient.invalidateQueries([QueryKeys.mcpTools]);
       const { messages, userMessage, isRegenerate = false, isTemporary = false } = submission;
       const initialResponse = {
         ...submission.initialResponse,
@@ -401,7 +382,7 @@ export default function useEventHandlers({
           if (parentMessageId === Constants.NO_PARENT) {
             addConvoToAllQueries(queryClient, update);
           } else {
-            updateConvoInAllQueries(queryClient, update.conversationId!, (_c) => update);
+            updateConvoInAllQueries(queryClient, update.conversationId!, (_c) => update, true);
           }
         }
       } else if (setConversation) {
@@ -449,10 +430,25 @@ export default function useEventHandlers({
         messages,
         conversation: submissionConvo,
         isRegenerate = false,
-        isTemporary = false,
+        isTemporary: _isTemporary = false,
       } = submission;
 
       try {
+        // Handle early abort - aborted during tool loading before any messages saved
+        // Don't update conversation state, just reset UI and stay on new chat
+        if ((data as Record<string, unknown>).earlyAbort) {
+          console.log(
+            '[finalHandler] Early abort detected - no messages saved, staying on new chat',
+          );
+          setShowStopButton(false);
+          setIsSubmitting(false);
+          // Navigate to new chat if not already there
+          if (location.pathname !== `/c/${Constants.NEW_CONVO}`) {
+            navigate(`/c/${Constants.NEW_CONVO}`, { replace: true });
+          }
+          return;
+        }
+
         if (responseMessage?.attachments && responseMessage.attachments.length > 0) {
           // Process each attachment through the attachmentHandler
           responseMessage.attachments.forEach((attachment) => {
@@ -481,6 +477,10 @@ export default function useEventHandlers({
         announcePolite({ message: getAllContentText(responseMessage) });
 
         const isNewConvo = conversation.conversationId !== submissionConvo.conversationId;
+
+        if (isNewConvo && conversation.conversationId) {
+          queueTitleGeneration(conversation.conversationId);
+        }
 
         const setFinalMessages = (id: string | null, _messages: TMessage[]) => {
           setMessages(_messages);
@@ -538,19 +538,6 @@ export default function useEventHandlers({
           removeConvoFromAllQueries(queryClient, submissionConvo.conversationId);
         }
 
-        /* Refresh title */
-        if (
-          genTitle &&
-          isNewConvo &&
-          !isTemporary &&
-          requestMessage &&
-          requestMessage.parentMessageId === Constants.NO_PARENT
-        ) {
-          setTimeout(() => {
-            genTitle.mutate({ conversationId: conversation.conversationId as string });
-          }, 2500);
-        }
-
         if (setConversation && isAddedRequest !== true) {
           setConversation((prevState) => {
             const update = {
@@ -594,7 +581,6 @@ export default function useEventHandlers({
     },
     [
       navigate,
-      genTitle,
       getMessages,
       setMessages,
       queryClient,
@@ -833,15 +819,17 @@ export default function useEventHandlers({
   );
 
   return {
-    clearStepMaps,
     stepHandler,
     syncHandler,
     finalHandler,
     errorHandler,
+    clearStepMaps,
     messageHandler,
     contentHandler,
     createdHandler,
+    syncStepMessage,
     attachmentHandler,
     abortConversation,
+    resetContentHandler,
   };
 }

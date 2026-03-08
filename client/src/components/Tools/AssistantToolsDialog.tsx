@@ -2,10 +2,15 @@ import { useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { Dialog, DialogPanel, DialogTitle, Description } from '@headlessui/react';
 import { useFormContext } from 'react-hook-form';
-import { isAgentsEndpoint } from 'bizu-data-provider';
-import { useUpdateUserPluginsMutation } from 'bizu-data-provider/react-query';
-import type { AssistantsEndpoint, EModelEndpoint, TPluginAction, TError } from 'bizu-data-provider';
-import type { TPluginStoreDialogProps } from '~/common/types';
+import { isAgentsEndpoint } from 'librechat-data-provider';
+import { useUpdateUserPluginsMutation } from 'librechat-data-provider/react-query';
+import type {
+  AssistantsEndpoint,
+  EModelEndpoint,
+  TPluginAction,
+  TError,
+} from 'librechat-data-provider';
+import type { ToolDialogProps } from '~/common/types';
 import { PluginPagination, PluginAuthForm } from '~/components/Plugins/Store';
 import { useLocalize, usePluginDialogHelpers } from '~/hooks';
 import { useAvailableToolsQuery } from '~/data-provider';
@@ -15,7 +20,7 @@ function AssistantToolsDialog({
   isOpen,
   endpoint,
   setIsOpen,
-}: TPluginStoreDialogProps & {
+}: ToolDialogProps & {
   endpoint: AssistantsEndpoint | EModelEndpoint.agents;
 }) {
   const localize = useLocalize();

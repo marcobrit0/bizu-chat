@@ -13,7 +13,7 @@ jest.mock('@bizu/data-schemas', () => ({
   },
 }));
 
-jest.mock('~/models/File', () => ({
+jest.mock('~/models', () => ({
   getFiles: jest.fn().mockResolvedValue([]),
 }));
 

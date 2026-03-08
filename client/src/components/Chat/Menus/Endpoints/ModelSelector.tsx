@@ -1,13 +1,15 @@
 import React, { useMemo } from 'react';
+import { TooltipAnchor } from '@librechat/client';
+import { getConfigDefaults } from 'librechat-data-provider';
 import type { ModelSelectorProps } from '~/common';
-import { ModelSelectorProvider, useModelSelectorContext } from './ModelSelectorContext';
-import { ModelSelectorChatProvider } from './ModelSelectorChatContext';
 import {
   renderModelSpecs,
   renderEndpoints,
   renderSearchResults,
   renderCustomGroups,
 } from './components';
+import { ModelSelectorProvider, useModelSelectorContext } from './ModelSelectorContext';
+import { ModelSelectorChatProvider } from './ModelSelectorChatContext';
 import { getSelectedIcon, getDisplayValue } from './utils';
 import { CustomMenu as Menu } from './CustomMenu';
 import { useGetStartupConfig } from '~/data-provider';
@@ -29,7 +31,6 @@ function ModelSelectorContent() {
     searchValue,
     searchResults,
     selectedValues,
-
     // Functions
     setSearchValue,
     setSelectedValues,
@@ -62,28 +63,23 @@ function ModelSelectorContent() {
   );
 
   const trigger = (
-    <button
-      className="my-1 flex h-8 items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+    <TooltipAnchor
       aria-label={localize('com_ui_select_model')}
-    >
-      <span className="max-w-[150px] truncate">{selectedDisplayValue}</span>
-      <svg
-        width="10"
-        height="10"
-        viewBox="0 0 10 10"
-        fill="currentColor"
-        className="flex-shrink-0 opacity-60"
-      >
-        <path
-          d="M2.5 4L5 6.5L7.5 4"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </button>
+      description={localize('com_ui_select_model')}
+      render={
+        <button
+          className="my-1 flex h-10 w-full max-w-[70vw] items-center justify-center gap-2 rounded-xl border border-border-light bg-presentation px-3 py-2 text-sm text-text-primary hover:bg-surface-active-alt"
+          aria-label={localize('com_ui_select_model')}
+        >
+          {selectedIcon && React.isValidElement(selectedIcon) && (
+            <div className="flex flex-shrink-0 items-center justify-center overflow-hidden">
+              {selectedIcon}
+            </div>
+          )}
+          <span className="flex-grow truncate text-left">{selectedDisplayValue}</span>
+        </button>
+      }
+    />
   );
 
   return (
@@ -98,7 +94,8 @@ function ModelSelectorContent() {
           });
         }}
         onSearch={(value) => setSearchValue(value)}
-        combobox={<input placeholder={localize('com_endpoint_search_models')} />}
+        combobox={<input id="model-search" placeholder=" " />}
+        comboboxLabel={localize('com_endpoint_search_models')}
         trigger={trigger}
       >
         {searchResults ? (
@@ -127,6 +124,14 @@ function ModelSelectorContent() {
 }
 
 export default function ModelSelector({ startupConfig }: ModelSelectorProps) {
+  const interfaceConfig = startupConfig?.interface ?? getConfigDefaults().interface;
+  const modelSpecs = startupConfig?.modelSpecs?.list ?? [];
+
+  // Hide the selector when modelSelect is false and there are no model specs to show
+  if (interfaceConfig.modelSelect === false && modelSpecs.length === 0) {
+    return null;
+  }
+
   return (
     <ModelSelectorChatProvider>
       <ModelSelectorProvider startupConfig={startupConfig}>

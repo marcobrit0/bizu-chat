@@ -1,7 +1,8 @@
 const express = require('express');
+const { updateUserKey, deleteUserKey, getUserKeyExpiry } = require('~/models');
+const { requireJwtAuth } = require('~/server/middleware');
+
 const router = express.Router();
-const { updateUserKey, deleteUserKey, getUserKeyExpiry } = require('../services/UserService');
-const { requireJwtAuth } = require('../middleware/');
 
 router.put('/', requireJwtAuth, async (req, res) => {
   // Destructure only expected fields to prevent userId override from req.body

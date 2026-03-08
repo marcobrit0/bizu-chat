@@ -1,20 +1,11 @@
 const express = require('express');
-const { logger } = require('@bizu/data-schemas');
-const { isEnabled, getBalanceConfig } = require('@bizu/api');
-const {
-  Constants,
-  CacheKeys,
-  removeNullishValues,
-  defaultSocialLogins,
-} = require('bizu-data-provider');
+const { logger } = require('@librechat/data-schemas');
+const { isEnabled, getBalanceConfig } = require('@librechat/api');
+const { Constants, CacheKeys, defaultSocialLogins } = require('librechat-data-provider');
 const { getLdapConfig } = require('~/server/services/Config/ldap');
 const { getAppConfig } = require('~/server/services/Config/app');
 const { getProjectByName } = require('~/models/Project');
-const { getMCPManager } = require('~/config');
 const { getLogStores } = require('~/cache');
-const { mcpServersRegistry } = require('@bizu/api');
-
-const optionalJwtAuth = require('~/server/middleware/optionalJwtAuth');
 
 const router = express.Router();
 const emailLoginEnabled =
@@ -32,61 +23,12 @@ const publicSharedLinksEnabled =
 const sharePointFilePickerEnabled = isEnabled(process.env.ENABLE_SHAREPOINT_FILEPICKER);
 const openidReuseTokens = isEnabled(process.env.OPENID_REUSE_TOKENS);
 
-/**
- * Fetches MCP servers from registry and adds them to the payload.
- * Registry now includes all configured servers (from YAML) plus inspection data when available.
- * Always fetches fresh to avoid caching incomplete initialization state.
- */
-const getMCPServers = async (payload, appConfig) => {
-  try {
-    if (appConfig?.mcpConfig == null) {
-      return;
-    }
-    const mcpManager = getMCPManager();
-    if (!mcpManager) {
-      return;
-    }
-    const mcpServers = await mcpServersRegistry.getAllServerConfigs();
-    if (!mcpServers) return;
-    for (const serverName in mcpServers) {
-      if (!payload.mcpServers) {
-        payload.mcpServers = {};
-      }
-      const serverConfig = mcpServers[serverName];
-      payload.mcpServers[serverName] = removeNullishValues({
-        startup: serverConfig?.startup,
-        chatMenu: serverConfig?.chatMenu,
-        isOAuth: serverConfig.requiresOAuth,
-        customUserVars: serverConfig?.customUserVars,
-      });
-    }
-  } catch (error) {
-    logger.error('Error loading MCP servers', error);
-  }
-};
-
-// Use optional JWT so unauthenticated requests (login page) get a limited payload
-router.get('/', optionalJwtAuth, async function (req, res) {
-  const isAuthenticated = !!req.user;
+router.get('/', async function (req, res) {
   const cache = getLogStores(CacheKeys.CONFIG_STORE);
 
   const cachedStartupConfig = await cache.get(CacheKeys.STARTUP_CONFIG);
   if (cachedStartupConfig) {
-    // Clone to avoid mutating the cache when stripping fields
-    const payload = { ...cachedStartupConfig };
-    if (isAuthenticated) {
-      const appConfig = await getAppConfig({ role: req.user?.role });
-      await getMCPServers(payload, appConfig);
-    } else {
-      // Strip sensitive fields for unauthenticated requests
-      delete payload.modelSpecs;
-      delete payload.balance;
-      delete payload.interface;
-      delete payload.serverDomain;
-      delete payload.instanceProjectId;
-      delete payload.mcpServers;
-    }
-    res.send(payload);
+    res.send(cachedStartupConfig);
     return;
   }
 
@@ -208,21 +150,7 @@ router.get('/', optionalJwtAuth, async function (req, res) {
     }
 
     await cache.set(CacheKeys.STARTUP_CONFIG, payload);
-
-    // Build response: authenticated users get the full payload;
-    // unauthenticated users (login page) get a limited subset.
-    const responsePayload = { ...payload };
-    if (isAuthenticated) {
-      await getMCPServers(responsePayload, appConfig);
-    } else {
-      delete responsePayload.modelSpecs;
-      delete responsePayload.balance;
-      delete responsePayload.interface;
-      delete responsePayload.serverDomain;
-      delete responsePayload.instanceProjectId;
-      delete responsePayload.mcpServers;
-    }
-    return res.status(200).send(responsePayload);
+    return res.status(200).send(payload);
   } catch (err) {
     logger.error('Error in startup config', err);
     return res.status(500).send({ error: err.message });

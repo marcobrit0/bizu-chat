@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
-import { useToastContext, TooltipAnchor, ListeningIcon, Spinner } from '@bizu/client';
+import { MicOff } from 'lucide-react';
+import { useToastContext, TooltipAnchor, ListeningIcon, Spinner } from '@librechat/client';
 import { useLocalize, useSpeechToText, useGetAudioSettings } from '~/hooks';
 import { useChatFormContext } from '~/Providers';
 import { globalAudioId } from '~/common';
@@ -95,7 +96,7 @@ export default function AudioRecorder({
 
   const renderIcon = () => {
     if (isListening === true) {
-      return <ListeningIcon className="stroke-red-500" />;
+      return <MicOff className="stroke-red-500" />;
     }
     if (isLoading === true) {
       return <Spinner className="stroke-text-secondary" />;

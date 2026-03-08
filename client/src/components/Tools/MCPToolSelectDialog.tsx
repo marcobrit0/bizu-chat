@@ -4,9 +4,9 @@ import { useFormContext } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { Constants, EModelEndpoint, QueryKeys } from 'bizu-data-provider';
 import { Dialog, DialogPanel, DialogTitle, Description } from '@headlessui/react';
-import { useUpdateUserPluginsMutation } from 'bizu-data-provider/react-query';
-import type { TError, AgentToolType } from 'bizu-data-provider';
-import type { AgentForm, TPluginStoreDialogProps } from '~/common';
+import { useUpdateUserPluginsMutation } from 'librechat-data-provider/react-query';
+import type { TError, AgentToolType } from 'librechat-data-provider';
+import type { AgentForm, ToolDialogProps } from '~/common';
 import {
   usePluginDialogHelpers,
   useMCPServerManager,
@@ -24,7 +24,7 @@ function MCPToolSelectDialog({
   agentId,
   setIsOpen,
   mcpServerNames,
-}: TPluginStoreDialogProps & {
+}: ToolDialogProps & {
   agentId: string;
   mcpServerNames?: string[];
   endpoint: EModelEndpoint.agents;
@@ -34,7 +34,7 @@ function MCPToolSelectDialog({
   const { initializeServer } = useMCPServerManager();
   const { getValues, setValue } = useFormContext<AgentForm>();
   const { removeTool } = useRemoveMCPTool({ showToast: false });
-  const { mcpServersMap, startupConfig } = useAgentPanelContext();
+  const { mcpServersMap, availableMCPServersMap } = useAgentPanelContext();
   const { refetch: refetchMCPTools } = useMCPToolsQuery({
     enabled: mcpServersMap.size > 0,
   });
@@ -191,7 +191,7 @@ function MCPToolSelectDialog({
       return;
     }
 
-    const serverConfig = startupConfig?.mcpServers?.[serverName];
+    const serverConfig = availableMCPServersMap?.[serverName];
     const hasCustomUserVars =
       serverConfig?.customUserVars && Object.keys(serverConfig.customUserVars).length > 0;
 
@@ -207,7 +207,7 @@ function MCPToolSelectDialog({
   }, [mcpServerNames]);
 
   const mcpServers = useMemo(() => {
-    const servers = Array.from(mcpServersMap.values());
+    const servers = Array.from(mcpServersMap.values()).filter((s) => !s.consumeOnly);
     return servers.sort((a, b) => a.serverName.localeCompare(b.serverName));
   }, [mcpServersMap]);
 
@@ -300,7 +300,7 @@ function MCPToolSelectDialog({
               <CustomUserVarsSection
                 serverName={configuringServer}
                 isSubmitting={isSavingCustomVars}
-                fields={startupConfig?.mcpServers?.[configuringServer]?.customUserVars || {}}
+                fields={availableMCPServersMap?.[configuringServer]?.customUserVars || {}}
                 onSave={(authData) => handleSaveCustomVars(configuringServer, authData)}
                 onRevoke={() => handleRevokeCustomVars(configuringServer)}
               />
@@ -340,7 +340,6 @@ function MCPToolSelectDialog({
                       tool_id: serverInfo.serverName,
                       metadata: {
                         ...serverInfo.metadata,
-                        description: `${localize('com_ui_tool_collection_prefix')} ${serverInfo.serverName}`,
                       },
                     };
 

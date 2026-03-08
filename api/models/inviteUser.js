@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
-const { getRandomValues } = require('@bizu/api');
-const { logger, hashToken } = require('@bizu/data-schemas');
+const { logger, hashToken, getRandomValues } = require('@librechat/data-schemas');
 const { createToken, findToken } = require('~/models');
 
 /**

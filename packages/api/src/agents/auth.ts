@@ -1,6 +1,5 @@
-import { logger } from '@bizu/data-schemas';
-import type { IPluginAuth, PluginAuthMethods } from '@bizu/data-schemas';
-import { decrypt } from '../crypto/encryption';
+import { logger, decrypt } from '@librechat/data-schemas';
+import type { IPluginAuth, PluginAuthMethods } from '@librechat/data-schemas';
 
 export interface GetPluginAuthMapParams {
   userId: string;

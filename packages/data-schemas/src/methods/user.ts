@@ -2,6 +2,9 @@ import mongoose, { FilterQuery } from 'mongoose';
 import type { IUser, BalanceConfig, CreateUserRequest, UserDeleteResult } from '~/types';
 import { signPayload } from '~/crypto';
 
+/** Default JWT session expiry: 15 minutes in milliseconds */
+export const DEFAULT_SESSION_EXPIRY = 1000 * 60 * 15;
+
 /** Factory function that takes mongoose instance and returns the methods */
 export function createUserMethods(mongoose: typeof import('mongoose')) {
   /**
@@ -163,31 +166,15 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
 
   /**
    * Generates a JWT token for a given user.
+   * @param user - The user object
+   * @param expiresIn - Optional expiry time in milliseconds. Default: 15 minutes
    */
-  async function generateToken(user: IUser): Promise<string> {
+  async function generateToken(user: IUser, expiresIn?: number): Promise<string> {
     if (!user) {
       throw new Error('No user provided');
     }
 
-    let expires = 1000 * 60 * 15;
-
-    if (process.env.SESSION_EXPIRY !== undefined && process.env.SESSION_EXPIRY !== '') {
-      // Safe math eval: only allows digits, operators, parens, and whitespace — no arbitrary code
-      const expiryStr = process.env.SESSION_EXPIRY;
-      if (/^[+\-\d.\s*/%()]+$/.test(expiryStr)) {
-        try {
-          const evaluated = new Function(`return (${expiryStr})`)();
-          // Preserve original behavior: falsy results (0, NaN) keep the default
-          if (evaluated) {
-            expires = evaluated;
-          }
-        } catch (error) {
-          console.warn('Invalid SESSION_EXPIRY expression, using default:', error);
-        }
-      } else {
-        console.warn('SESSION_EXPIRY contains invalid characters, using default');
-      }
-    }
+    const expires = expiresIn ?? DEFAULT_SESSION_EXPIRY;
 
     return await signPayload({
       payload: {
@@ -310,6 +297,32 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
       });
   };
 
+  /**
+   * Updates the plugins for a user based on the action specified (install/uninstall).
+   * @param userId - The user ID whose plugins are to be updated
+   * @param plugins - The current plugins array
+   * @param pluginKey - The key of the plugin to install or uninstall
+   * @param action - The action to perform, 'install' or 'uninstall'
+   * @returns The result of the update operation or null if action is invalid
+   */
+  async function updateUserPlugins(
+    userId: string,
+    plugins: string[] | undefined,
+    pluginKey: string,
+    action: 'install' | 'uninstall',
+  ): Promise<IUser | null> {
+    const userPlugins = plugins ?? [];
+    if (action === 'install') {
+      return updateUser(userId, { plugins: [...userPlugins, pluginKey] });
+    }
+    if (action === 'uninstall') {
+      return updateUser(userId, {
+        plugins: userPlugins.filter((plugin) => plugin !== pluginKey),
+      });
+    }
+    return null;
+  }
+
   return {
     findUser,
     countUsers,
@@ -319,6 +332,7 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
     getUserById,
     generateToken,
     deleteUserById,
+    updateUserPlugins,
     toggleUserMemories,
   };
 }

@@ -10,10 +10,7 @@ const createLogFunction = (
 ): LogFunction => {
   const isVerbose = type === 'log' || type === 'debug' || type === 'dir' || type === 'info';
   return (...args: unknown[]) => {
-    if (isVerbose && !isLoggerEnabled) {
-      return;
-    }
-    if (isDevelopment || isLoggerEnabled) {
+    if (isLoggerEnabled || (import.meta.env.VITE_ENABLE_LOGGER == null && isDevelopment)) {
       const tag = typeof args[0] === 'string' ? args[0] : '';
       if (shouldLog(tag)) {
         if (tag && typeof args[1] === 'string' && type === 'error') {

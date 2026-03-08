@@ -1,17 +1,15 @@
 import { Feather } from 'lucide-react';
 import { EModelEndpoint } from 'bizu-data-provider';
 import {
-  MinimalPlugin,
   GPTIcon,
+  Sparkles,
+  BedrockIcon,
+  AssistantIcon,
   AnthropicIcon,
   AzureMinimalIcon,
   GoogleMinimalIcon,
   CustomMinimalIcon,
-  AssistantIcon,
-  LightningIcon,
-  BedrockIcon,
-  Sparkles,
-} from '@bizu/client';
+} from '@librechat/client';
 import type { IconMapProps, AgentIconMapProps, IconsRecord } from '~/common';
 import UnknownIcon from './UnknownIcon';
 import { cn } from '~/utils';
@@ -63,9 +61,7 @@ const Bedrock = ({ className = '' }: IconMapProps) => {
 export const icons: IconsRecord = {
   [EModelEndpoint.azureOpenAI]: AzureMinimalIcon,
   [EModelEndpoint.openAI]: GPTIcon,
-  [EModelEndpoint.gptPlugins]: MinimalPlugin,
   [EModelEndpoint.anthropic]: AnthropicIcon,
-  [EModelEndpoint.chatGPTBrowser]: LightningIcon,
   [EModelEndpoint.google]: GoogleMinimalIcon,
   [EModelEndpoint.custom]: CustomMinimalIcon,
   [EModelEndpoint.assistants]: AssistantAvatar,

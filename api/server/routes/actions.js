@@ -1,8 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { getAccessToken } = require('@bizu/api');
-const { logger } = require('@bizu/data-schemas');
-const { CacheKeys } = require('bizu-data-provider');
+const { getAccessToken, getBasePath } = require('@librechat/api');
+const { logger } = require('@librechat/data-schemas');
+const { CacheKeys } = require('librechat-data-provider');
 const { findToken, updateToken, createToken } = require('~/models');
 const { getFlowStateManager } = require('~/config');
 const { getLogStores } = require('~/cache');
@@ -24,6 +24,7 @@ router.get('/:action_id/oauth/callback', async (req, res) => {
   const { code, state } = req.query;
   const flowsCache = getLogStores(CacheKeys.FLOWS);
   const flowManager = getFlowStateManager(flowsCache);
+  const basePath = getBasePath();
   let identifier = action_id;
   try {
     let decodedState;
@@ -32,17 +33,17 @@ router.get('/:action_id/oauth/callback', async (req, res) => {
     } catch (err) {
       logger.error('Error verifying state parameter:', err);
       await flowManager.failFlow(identifier, 'oauth', 'Invalid or expired state parameter');
-      return res.redirect('/oauth/error?error=invalid_state');
+      return res.redirect(`${basePath}/oauth/error?error=invalid_state`);
     }
 
     if (decodedState.action_id !== action_id) {
       await flowManager.failFlow(identifier, 'oauth', 'Mismatched action ID in state parameter');
-      return res.redirect('/oauth/error?error=invalid_state');
+      return res.redirect(`${basePath}/oauth/error?error=invalid_state`);
     }
 
     if (!decodedState.user) {
       await flowManager.failFlow(identifier, 'oauth', 'Invalid user ID in state parameter');
-      return res.redirect('/oauth/error?error=invalid_state');
+      return res.redirect(`${basePath}/oauth/error?error=invalid_state`);
     }
     identifier = `${decodedState.user}:${action_id}`;
     const flowState = await flowManager.getFlowState(identifier, 'oauth');
@@ -72,12 +73,12 @@ router.get('/:action_id/oauth/callback', async (req, res) => {
 
     /** Redirect to React success page */
     const serverName = flowState.metadata?.action_name || `Action ${action_id}`;
-    const redirectUrl = `/oauth/success?serverName=${encodeURIComponent(serverName)}`;
+    const redirectUrl = `${basePath}/oauth/success?serverName=${encodeURIComponent(serverName)}`;
     res.redirect(redirectUrl);
   } catch (error) {
     logger.error('Error in OAuth callback:', error);
     await flowManager.failFlow(identifier, 'oauth', error);
-    res.redirect('/oauth/error?error=callback_failed');
+    res.redirect(`${basePath}/oauth/error?error=callback_failed`);
   }
 });
 

@@ -2,9 +2,9 @@ const cookies = require('cookie');
 const jwksRsa = require('jwks-rsa');
 const { logger } = require('@bizu/data-schemas');
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const { SystemRoles } = require('bizu-data-provider');
+const { SystemRoles } = require('librechat-data-provider');
+const { isEnabled, findOpenIDUser, math } = require('@librechat/api');
 const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
-const { isEnabled, findOpenIDUser, math } = require('@bizu/api');
 const { updateUser, findUser } = require('~/models');
 
 /**
@@ -27,7 +27,6 @@ const { updateUser, findUser } = require('~/models');
 const openIdJwtLogin = (openIdConfig) => {
   let jwksRsaOptions = {
     cache: isEnabled(process.env.OPENID_JWKS_URL_CACHE_ENABLED) || true,
-    // Use safe math parser instead of eval to prevent code injection
     cacheMaxAge: math(process.env.OPENID_JWKS_URL_CACHE_TIME, 60000),
     jwksUri: openIdConfig.serverMetadata().jwks_uri,
   };
@@ -82,10 +81,18 @@ const openIdJwtLogin = (openIdConfig) => {
             await updateUser(user.id, updateData);
           }
 
-          const cookieHeader = req.headers.cookie;
-          const parsedCookies = cookieHeader ? cookies.parse(cookieHeader) : {};
-          const accessToken = parsedCookies.openid_access_token;
-          const refreshToken = parsedCookies.refreshToken;
+          /** Read tokens from session (server-side) to avoid large cookie issues */
+          const sessionTokens = req.session?.openidTokens;
+          let accessToken = sessionTokens?.accessToken;
+          let refreshToken = sessionTokens?.refreshToken;
+
+          /** Fallback to cookies for backward compatibility */
+          if (!accessToken || !refreshToken) {
+            const cookieHeader = req.headers.cookie;
+            const parsedCookies = cookieHeader ? cookies.parse(cookieHeader) : {};
+            accessToken = accessToken || parsedCookies.openid_access_token;
+            refreshToken = refreshToken || parsedCookies.refreshToken;
+          }
 
           user.federatedTokens = {
             access_token: accessToken || rawToken,
