@@ -7,7 +7,7 @@ const NEW_CONVO_ID = String(Constants.NEW_CONVO);
 describe('isEndpointModelLocked', () => {
   it('locks unsupported raw models for free users', () => {
     expect(
-      isEndpointModelLocked(EModelEndpoint.openAI, 'deepseek/deepseek-r1', 'free'),
+      isEndpointModelLocked(EModelEndpoint.openAI, 'google/gemini-2.5-flash', 'free'),
     ).toBe(true);
   });
 
@@ -19,19 +19,19 @@ describe('isEndpointModelLocked', () => {
 describe('getAutoSelection', () => {
   const specs = [
     {
-      name: 'deepseek-v3',
-      label: 'DeepSeek V3',
+      name: 'deepseek-v3-2',
+      label: 'DeepSeek V3.2',
       preset: {
         endpoint: 'OpenRouter',
-        model: 'deepseek/deepseek-chat-v3-0324',
+        model: 'deepseek/deepseek-v3.2',
       },
     },
     {
-      name: 'deepseek-r1',
-      label: 'DeepSeek R1',
+      name: 'gemini-2.5-flash',
+      label: 'Gemini 2.5 Flash',
       preset: {
         endpoint: 'OpenRouter',
-        model: 'deepseek/deepseek-r1',
+        model: 'google/gemini-2.5-flash',
       },
     },
   ] as any;
@@ -41,8 +41,8 @@ describe('getAutoSelection', () => {
     label: 'OpenRouter',
     hasModels: true,
     models: [
-      { name: 'deepseek/deepseek-chat-v3-0324' },
-      { name: 'deepseek/deepseek-r1' },
+      { name: 'deepseek/deepseek-v3.2' },
+      { name: 'google/gemini-2.5-flash' },
     ],
     icon: null,
   };
@@ -85,7 +85,7 @@ describe('getAutoSelection', () => {
     ).toEqual({
       type: 'model',
       endpoint: openRouterEndpoint,
-      model: 'deepseek/deepseek-chat-v3-0324',
+      model: 'deepseek/deepseek-v3.2',
     });
   });
 
@@ -105,7 +105,7 @@ describe('getAutoSelection', () => {
     ).toEqual({
       type: 'model',
       endpoint: openRouterEndpoint,
-      model: 'deepseek/deepseek-chat-v3-0324',
+      model: 'deepseek/deepseek-v3.2',
     });
   });
 
@@ -118,7 +118,7 @@ describe('getAutoSelection', () => {
         plan: 'free',
         selectedValues: {
           endpoint: EModelEndpoint.openAI,
-          model: 'deepseek/deepseek-chat-v3-0324',
+          model: 'deepseek/deepseek-v3.2',
           modelSpec: '',
         },
       }),
@@ -134,8 +134,8 @@ describe('getAutoSelection', () => {
         plan: 'free',
         selectedValues: {
           endpoint: 'OpenRouter',
-          model: 'deepseek/deepseek-r1',
-          modelSpec: 'deepseek-r1',
+          model: 'google/gemini-2.5-flash',
+          modelSpec: 'gemini-2.5-flash',
         },
       }),
     ).toEqual({

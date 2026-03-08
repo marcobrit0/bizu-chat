@@ -68,7 +68,7 @@ const userSchema = new Schema<IUser>(
     },
     plan: {
       type: String,
-      enum: ['free', 'basic_cn', 'pro_global'],
+      enum: ['free', 'premium', 'pro_global'],
       default: 'free',
     },
     googleId: {
