@@ -1,6 +1,6 @@
-import { logger } from '@bizu/data-schemas';
+import { logger } from '@librechat/data-schemas';
 import type { NextFunction, Request as ServerRequest, Response as ServerResponse } from 'express';
-import type { IBalance, IUser, BalanceConfig, ObjectId, AppConfig } from '@bizu/data-schemas';
+import type { IBalance, IUser, BalanceConfig, ObjectId, AppConfig } from '@librechat/data-schemas';
 import type { Model } from 'mongoose';
 import type { BalanceUpdateFields } from '~/types';
 import { getBalanceConfig } from '~/app/config';
@@ -58,11 +58,6 @@ function buildUpdateFields(
 
   if (userRecord?.refillAmount !== config.refillAmount) {
     updateFields.refillAmount = config.refillAmount;
-  }
-
-  // Sync the max refill cap from config (0 = unlimited)
-  if (config.maxRefillCount != null && userRecord?.maxRefillCount !== config.maxRefillCount) {
-    updateFields.maxRefillCount = config.maxRefillCount;
   }
 
   // Initialize lastRefill if it's missing when auto-refill is enabled

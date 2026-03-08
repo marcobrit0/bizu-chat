@@ -1,15 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import FormData from 'form-data';
-import { logger } from '@bizu/data-schemas';
+import { logger } from '@librechat/data-schemas';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import {
   FileSources,
   envVarRegex,
   extractEnvVariable,
   extractVariableName,
-} from 'bizu-data-provider';
-import type { TCustomConfig } from 'bizu-data-provider';
+} from 'librechat-data-provider';
+import type { TCustomConfig } from 'librechat-data-provider';
 import type { AxiosError, AxiosRequestConfig } from 'axios';
 import type {
   MistralFileUploadResponse,

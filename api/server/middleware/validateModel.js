@@ -1,7 +1,6 @@
-const { handleError } = require('@bizu/api');
-const { ViolationTypes } = require('bizu-data-provider');
+const { handleError } = require('@librechat/api');
+const { ViolationTypes } = require('librechat-data-provider');
 const { getModelsConfig } = require('~/server/controllers/ModelController');
-const { isModelAllowedForPlan } = require('~/server/services/Config/planModels');
 const { logViolation } = require('~/cache');
 /**
  * Validates the model of the request.
@@ -30,29 +29,19 @@ const validateModel = async (req, res, next) => {
 
   let validModel = !!availableModels.find((availableModel) => availableModel === model);
 
-  if (!validModel) {
-    const { ILLEGAL_MODEL_REQ_SCORE: score = 1 } = process.env ?? {};
-
-    const type = ViolationTypes.ILLEGAL_MODEL_REQUEST;
-    const errorMessage = {
-      type,
-    };
-
-    await logViolation(req, res, type, errorMessage, score);
-    return handleError(res, { text: 'Illegal model request' });
+  if (validModel) {
+    return next();
   }
 
-  // Bizu: Check plan-based model access
-  const userPlan = req.user?.plan || 'free';
-  if (!isModelAllowedForPlan(userPlan, model)) {
-    return handleError(res, {
-      text: 'upgrade_required',
-      model,
-      plan: userPlan,
-    });
-  }
+  const { ILLEGAL_MODEL_REQ_SCORE: score = 1 } = process.env ?? {};
 
-  return next();
+  const type = ViolationTypes.ILLEGAL_MODEL_REQUEST;
+  const errorMessage = {
+    type,
+  };
+
+  await logViolation(req, res, type, errorMessage, score);
+  return handleError(res, { text: 'Illegal model request' });
 };
 
 module.exports = validateModel;

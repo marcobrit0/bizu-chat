@@ -12,17 +12,14 @@ import { ModelSelectorProvider, useModelSelectorContext } from './ModelSelectorC
 import { ModelSelectorChatProvider } from './ModelSelectorChatContext';
 import { getSelectedIcon, getDisplayValue } from './utils';
 import { CustomMenu as Menu } from './CustomMenu';
-import { useGetStartupConfig } from '~/data-provider';
 import DialogManager from './DialogManager';
 import { useLocalize } from '~/hooks';
 
 function ModelSelectorContent() {
   const localize = useLocalize();
-  const { data: startupConfig } = useGetStartupConfig();
-  const enforceSpecs = startupConfig?.modelSpecs?.enforce === true;
 
   const {
-    // Bizu
+    // LibreChat
     agentsMap,
     modelSpecs,
     mappedEndpoints,
@@ -83,7 +80,7 @@ function ModelSelectorContent() {
   );
 
   return (
-    <div className="relative flex flex-col items-center gap-2">
+    <div className="relative flex w-full max-w-md flex-col items-center gap-2">
       <Menu
         values={selectedValues}
         onValuesChange={(values: Record<string, any>) => {
@@ -107,9 +104,10 @@ function ModelSelectorContent() {
               modelSpecs?.filter((spec) => !spec.group) || [],
               selectedValues.modelSpec || '',
             )}
-            {/* When modelSpecs.enforce is true, hide raw endpoints and custom groups */}
-            {!enforceSpecs && renderEndpoints(mappedEndpoints ?? [])}
-            {!enforceSpecs && renderCustomGroups(modelSpecs || [], mappedEndpoints ?? [])}
+            {/* Render endpoints (will include grouped specs matching endpoint names) */}
+            {renderEndpoints(mappedEndpoints ?? [])}
+            {/* Render custom groups (specs with group field not matching any endpoint) */}
+            {renderCustomGroups(modelSpecs || [], mappedEndpoints ?? [])}
           </>
         )}
       </Menu>

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Constants } from 'bizu-data-provider';
+import { Constants } from 'librechat-data-provider';
 
 /**
  * Schema for validating prompt group update payloads.

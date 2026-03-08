@@ -1,8 +1,8 @@
 const cookies = require('cookie');
 const jwt = require('jsonwebtoken');
 const openIdClient = require('openid-client');
-const { logger } = require('@bizu/data-schemas');
-const { isEnabled, findOpenIDUser } = require('@bizu/api');
+const { logger } = require('@librechat/data-schemas');
+const { isEnabled, findOpenIDUser } = require('@librechat/api');
 const {
   requestPasswordReset,
   setOpenIDAuthTokens,
@@ -28,8 +28,7 @@ const registrationController = async (req, res) => {
     res.status(status).send({ message });
   } catch (err) {
     logger.error('[registrationController]', err);
-    // Return generic message to prevent leaking internal error details
-    return res.status(500).json({ message: 'Registration failed. Please try again.' });
+    return res.status(500).json({ message: err.message });
   }
 };
 

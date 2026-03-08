@@ -1,8 +1,8 @@
 import React from 'react';
 import * as Ariakit from '@ariakit/react';
-import { PinIcon } from '@bizu/client';
+import { PinIcon } from '@librechat/client';
 import { ChevronRight, WandSparkles } from 'lucide-react';
-import { ArtifactModes } from 'bizu-data-provider';
+import { ArtifactModes } from 'librechat-data-provider';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 

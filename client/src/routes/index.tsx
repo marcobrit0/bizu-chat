@@ -8,6 +8,8 @@ import {
   TwoFactorScreen,
   RequestPasswordReset,
 } from '~/components/Auth';
+import { MarketplaceProvider } from '~/components/Agents/MarketplaceContext';
+import AgentMarketplace from '~/components/Agents/Marketplace';
 import { OAuthSuccess, OAuthError } from '~/components/OAuth';
 import { AuthContextProvider } from '~/hooks/AuthContext';
 import RouteErrorBoundary from './RouteErrorBoundary';
@@ -109,8 +111,22 @@ export const router = createBrowserRouter(
               path: 'search',
               element: <Search />,
             },
-            // Agent marketplace routes removed — agents and marketplace are disabled for v1.
-            // These routes will be re-added when agents feature is enabled via config.
+            {
+              path: 'agents',
+              element: (
+                <MarketplaceProvider>
+                  <AgentMarketplace />
+                </MarketplaceProvider>
+              ),
+            },
+            {
+              path: 'agents/:category',
+              element: (
+                <MarketplaceProvider>
+                  <AgentMarketplace />
+                </MarketplaceProvider>
+              ),
+            },
           ],
         },
       ],

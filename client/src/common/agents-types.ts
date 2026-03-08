@@ -1,11 +1,11 @@
-import { AgentCapabilities, ArtifactModes } from 'bizu-data-provider';
+import { AgentCapabilities, ArtifactModes } from 'librechat-data-provider';
 import type {
   AgentModelParameters,
   SupportContact,
   AgentProvider,
   GraphEdge,
   Agent,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type { OptionWithIcon, ExtendedFile } from './types';
 
 export type TAgentOption = OptionWithIcon &

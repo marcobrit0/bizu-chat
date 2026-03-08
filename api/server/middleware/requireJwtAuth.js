@@ -1,6 +1,6 @@
 const cookies = require('cookie');
 const passport = require('passport');
-const { isEnabled } = require('@bizu/api');
+const { isEnabled } = require('@librechat/api');
 
 /**
  * Custom Middleware to handle JWT authentication, with support for OpenID token reuse

@@ -1,10 +1,10 @@
 import { memo, useCallback } from 'react';
 import { useRecoilValue } from 'recoil';
 import { useForm } from 'react-hook-form';
-import { Spinner } from '@bizu/client';
+import { Spinner } from '@librechat/client';
 import { useParams } from 'react-router-dom';
-import { Constants, buildTree } from 'bizu-data-provider';
-import type { TMessage } from 'bizu-data-provider';
+import { Constants, buildTree } from 'librechat-data-provider';
+import type { TMessage } from 'librechat-data-provider';
 import type { ChatFormValues } from '~/common';
 import { ChatContext, AddedChatContext, useFileMapContext, ChatFormProvider } from '~/Providers';
 import { useAddedResponse, useResumeOnLoad, useAdaptiveSSE, useChatHelpers } from '~/hooks';

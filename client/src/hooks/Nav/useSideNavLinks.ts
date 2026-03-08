@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Blocks, MCPIcon, AttachmentIcon } from '@bizu/client';
+import { Blocks, MCPIcon, AttachmentIcon } from '@librechat/client';
 import { Database, Bookmark, Settings2, ArrowRightToLine, MessageSquareQuote } from 'lucide-react';
 import {
   Permissions,

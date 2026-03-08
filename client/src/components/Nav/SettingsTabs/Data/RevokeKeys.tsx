@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
-import { useRevokeAllUserKeysMutation } from 'bizu-data-provider/react-query';
-import { OGDialogTemplate, Button, Label, OGDialog, OGDialogTrigger, Spinner } from '@bizu/client';
+import { useRevokeAllUserKeysMutation } from 'librechat-data-provider/react-query';
+import {
+  OGDialogTemplate,
+  Button,
+  Label,
+  OGDialog,
+  OGDialogTrigger,
+  Spinner,
+} from '@librechat/client';
 import { useLocalize } from '~/hooks';
 
 export const RevokeKeys = ({

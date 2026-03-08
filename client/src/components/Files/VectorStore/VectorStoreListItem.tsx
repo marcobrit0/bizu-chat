@@ -1,7 +1,6 @@
-/* eslint-disable i18next/no-literal-string */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, DotsIcon, TrashIcon } from '@bizu/client';
+import { Button, DotsIcon, TrashIcon } from '@librechat/client';
 import { TVectorStore } from '~/common';
 
 type VectorStoreListItemProps = {

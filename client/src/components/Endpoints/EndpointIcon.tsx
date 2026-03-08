@@ -1,5 +1,10 @@
-import { getEndpointField, isAssistantsEndpoint } from 'bizu-data-provider';
-import type { TPreset, TConversation, TAssistantsMap, TEndpointsConfig } from 'bizu-data-provider';
+import { getEndpointField, isAssistantsEndpoint } from 'librechat-data-provider';
+import type {
+  TPreset,
+  TConversation,
+  TAssistantsMap,
+  TEndpointsConfig,
+} from 'librechat-data-provider';
 import ConvoIconURL from '~/components/Endpoints/ConvoIconURL';
 import MinimalIcon from '~/components/Endpoints/MinimalIcon';
 import { getIconEndpoint } from '~/utils';

@@ -1,4 +1,4 @@
-const { SystemRoles } = require('bizu-data-provider');
+const { SystemRoles } = require('librechat-data-provider');
 
 function checkAdmin(req, res, next) {
   try {

@@ -1,4 +1,4 @@
-const { isEnabled } = require('@bizu/api');
+const { isEnabled } = require('@librechat/api');
 
 /** @returns {TStartupConfig['ldap'] | undefined} */
 const getLdapConfig = () => {

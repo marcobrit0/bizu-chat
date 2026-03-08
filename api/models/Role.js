@@ -4,8 +4,8 @@ const {
   roleDefaults,
   permissionsSchema,
   removeNullishValues,
-} = require('bizu-data-provider');
-const { logger } = require('@bizu/data-schemas');
+} = require('librechat-data-provider');
+const { logger } = require('@librechat/data-schemas');
 const getLogStores = require('~/cache/getLogStores');
 const { Role } = require('~/db/models');
 

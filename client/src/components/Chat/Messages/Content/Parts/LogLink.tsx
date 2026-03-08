@@ -1,5 +1,5 @@
 import React from 'react';
-import { useToastContext } from '@bizu/client';
+import { useToastContext } from '@librechat/client';
 import { useCodeOutputDownload } from '~/data-provider';
 
 interface LogLinkProps {

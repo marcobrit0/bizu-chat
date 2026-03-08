@@ -1,4 +1,4 @@
-const { Constants } = require('bizu-data-provider');
+const { Constants } = require('librechat-data-provider');
 const { HumanMessage, AIMessage, SystemMessage } = require('@langchain/core/messages');
 const { formatMessage, formatLangChainMessages, formatFromLangChain } = require('./formatMessages');
 

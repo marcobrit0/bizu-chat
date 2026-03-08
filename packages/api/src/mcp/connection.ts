@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { logger } from '@bizu/data-schemas';
+import { logger } from '@librechat/data-schemas';
 import { fetch as undiciFetch, Agent } from 'undici';
 import {
   StdioClientTransport,
@@ -272,7 +272,7 @@ export class MCPConnection extends EventEmitter {
     }
     this.client = new Client(
       {
-        name: '@bizu/api-client',
+        name: '@librechat/api-client',
         version: '1.2.3',
       },
       {

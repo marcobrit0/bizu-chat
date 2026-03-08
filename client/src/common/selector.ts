@@ -1,5 +1,5 @@
 import React from 'react';
-import { TStartupConfig } from 'bizu-data-provider';
+import { TStartupConfig } from 'librechat-data-provider';
 
 export interface Endpoint {
   value: string;

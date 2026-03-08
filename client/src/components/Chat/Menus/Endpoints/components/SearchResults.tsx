@@ -1,16 +1,13 @@
-/* eslint-disable i18next/no-literal-string */
 import React, { Fragment } from 'react';
 import { VisuallyHidden } from '@ariakit/react';
 import { CheckCircle2, EarthIcon } from 'lucide-react';
 import { isAgentsEndpoint, isAssistantsEndpoint } from 'librechat-data-provider';
 import type { TModelSpec } from 'librechat-data-provider';
 import type { Endpoint } from '~/common';
-import { useAuthContext } from '~/hooks';
 import { useModelSelectorContext } from '../ModelSelectorContext';
 import { CustomMenuItem as MenuItem } from '../CustomMenu';
 import SpecIcon from './SpecIcon';
 import { cn } from '~/utils';
-import { isEndpointModelLocked } from '../selection';
 
 interface SearchResultsProps {
   results: (TModelSpec | Endpoint)[] | null;
@@ -26,7 +23,6 @@ export function SearchResults({ results, localize, searchValue }: SearchResultsP
     handleSelectEndpoint,
     endpointsConfig,
   } = useModelSelectorContext();
-  const { user } = useAuthContext();
 
   const {
     modelSpec: selectedSpec,
@@ -144,7 +140,6 @@ export function SearchResults({ results, localize, searchValue }: SearchResultsP
                 </div>
                 {filteredModels.map((model) => {
                   const modelId = model.name;
-                  const isLocked = isEndpointModelLocked(endpoint.value, modelId, user?.plan);
 
                   let isGlobal = false;
                   let modelName = modelId;

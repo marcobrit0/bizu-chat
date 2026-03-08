@@ -5,7 +5,7 @@ import {
   ContentTypes,
   ToolCallTypes,
   getNonEmptyValue,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type {
   Agents,
   TMessage,
@@ -13,7 +13,7 @@ import type {
   ContentMetadata,
   EventSubmission,
   TMessageContentParts,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type { SetterOrUpdater } from 'recoil';
 import type { AnnounceOptions } from '~/common';
 import { MESSAGE_UPDATE_INTERVAL } from '~/common';

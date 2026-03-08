@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useRecoilValue } from 'recoil';
-import { OGDialog, OGDialogTemplate } from '@bizu/client';
+import { OGDialog, OGDialogTemplate } from '@librechat/client';
 import {
   Providers,
   inferMimeType,
@@ -8,7 +8,7 @@ import {
   EModelEndpoint,
   defaultAgentCapabilities,
   isDocumentSupportedProvider,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import {
   ImageUpIcon,
   FileSearch,

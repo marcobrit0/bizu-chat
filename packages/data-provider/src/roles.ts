@@ -170,9 +170,7 @@ export const roleDefaults = defaultRolesSchema.parse({
       [PermissionTypes.PROMPTS]: {},
       [PermissionTypes.BOOKMARKS]: {},
       [PermissionTypes.MEMORIES]: {},
-      [PermissionTypes.AGENTS]: {
-        [Permissions.USE]: true,
-      },
+      [PermissionTypes.AGENTS]: {},
       [PermissionTypes.MULTI_CONVO]: {},
       [PermissionTypes.TEMPORARY_CHAT]: {},
       [PermissionTypes.RUN_CODE]: {},

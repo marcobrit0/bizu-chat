@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { logger } = require('@bizu/data-schemas');
+const { logger } = require('@librechat/data-schemas');
 const {
   verifyTOTP,
   getTOTPSecret,

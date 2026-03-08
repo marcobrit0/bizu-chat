@@ -1,4 +1,4 @@
-import { PermissionBits } from 'bizu-data-provider';
+import { PermissionBits } from 'librechat-data-provider';
 
 /**
  * Common role combinations

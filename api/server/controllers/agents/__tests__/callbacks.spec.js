@@ -1,15 +1,15 @@
-const { Tools } = require('bizu-data-provider');
+const { Tools } = require('librechat-data-provider');
 
 // Mock all dependencies before requiring the module
 jest.mock('nanoid', () => ({
   nanoid: jest.fn(() => 'mock-id'),
 }));
 
-jest.mock('@bizu/api', () => ({
+jest.mock('@librechat/api', () => ({
   sendEvent: jest.fn(),
 }));
 
-jest.mock('@bizu/data-schemas', () => ({
+jest.mock('@librechat/data-schemas', () => ({
   logger: {
     error: jest.fn(),
   },
@@ -49,7 +49,7 @@ describe('createToolEndCallback', () => {
     jest.clearAllMocks();
 
     // Get the mocked logger
-    logger = require('@bizu/data-schemas').logger;
+    logger = require('@librechat/data-schemas').logger;
 
     // Now require the module after all mocks are set up
     const callbacks = require('../callbacks');

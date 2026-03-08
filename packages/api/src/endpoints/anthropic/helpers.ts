@@ -1,6 +1,6 @@
-import { logger } from '@bizu/data-schemas';
+import { logger } from '@librechat/data-schemas';
 import { AnthropicClientOptions } from '@librechat/agents';
-import { EModelEndpoint, anthropicSettings } from 'bizu-data-provider';
+import { EModelEndpoint, anthropicSettings } from 'librechat-data-provider';
 import { matchModelName } from '~/utils/tokens';
 
 /**

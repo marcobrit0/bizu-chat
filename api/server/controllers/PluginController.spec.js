@@ -1,7 +1,7 @@
 const { getCachedTools, getAppConfig } = require('~/server/services/Config');
 const { getLogStores } = require('~/cache');
 
-jest.mock('@bizu/data-schemas', () => ({
+jest.mock('@librechat/data-schemas', () => ({
   logger: {
     debug: jest.fn(),
     error: jest.fn(),

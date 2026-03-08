@@ -1,5 +1,5 @@
-const { logger } = require('@bizu/data-schemas');
-const { encrypt, decrypt } = require('@bizu/api');
+const { logger } = require('@librechat/data-schemas');
+const { encrypt, decrypt } = require('@librechat/api');
 const { findOnePluginAuth, updatePluginAuth, deletePluginAuth } = require('~/models');
 
 /**

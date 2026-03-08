@@ -1,5 +1,5 @@
-const { logger } = require('@bizu/data-schemas');
-const { ToolCallTypes } = require('bizu-data-provider');
+const { logger } = require('@librechat/data-schemas');
+const { ToolCallTypes } = require('librechat-data-provider');
 
 /**
  * @typedef {import('openai').OpenAI} OpenAI

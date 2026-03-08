@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useOnClickOutside } from '@bizu/client';
+import { useOnClickOutside } from '@librechat/client';
 import ImportConversations from './ImportConversations';
 import { RevokeKeys } from './RevokeKeys';
 import { DeleteCache } from './DeleteCache';

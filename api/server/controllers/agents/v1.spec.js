@@ -78,7 +78,7 @@ const {
 const { refreshS3Url } = require('~/server/services/Files/S3/crud');
 
 /**
- * @type {import('mongoose').Model<import('@bizu/data-schemas').IAgent>}
+ * @type {import('mongoose').Model<import('@librechat/data-schemas').IAgent>}
  */
 let Agent;
 

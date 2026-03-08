@@ -8,7 +8,6 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "npm run build:packages",
     "update": "node config/update.js",
     "add-balance": "node config/add-balance.js",
     "set-balance": "node config/set-balance.js",
@@ -22,9 +21,10 @@
     "update:docker": "node config/update.js -d",
     "update:single": "node config/update.js -s",
     "update:sudo": "node config/update.js --sudo",
-    "update:deployed": "echo 'deploy-compose.yml not yet configured for Bizu — see PRODUCTION_AUDIT.md'",
-    "start:deployed": "echo 'deploy-compose.yml not yet configured for Bizu — see PRODUCTION_AUDIT.md'",
-    "stop:deployed": "echo 'deploy-compose.yml not yet configured for Bizu — see PRODUCTION_AUDIT.md'",
+    "update:deployed": "node config/deployed-update.js",
+    "rebase:deployed": "node config/deployed-update.js --rebase",
+    "start:deployed": "docker compose -f ./deploy-compose.yml up -d || docker-compose -f ./deploy-compose.yml up -d",
+    "stop:deployed": "docker compose -f ./deploy-compose.yml down || docker-compose -f ./deploy-compose.yml down",
     "upgrade": "node config/upgrade.js",
     "create-user": "node config/create-user.js",
     "invite-user": "node config/invite-user.js",
@@ -93,14 +93,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/danny-avila/Bizu.git"
+    "url": "git+https://github.com/danny-avila/LibreChat.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/danny-avila/Bizu/issues"
+    "url": "https://github.com/danny-avila/LibreChat/issues"
   },
-  "homepage": "https://bizu.ai/",
+  "homepage": "https://librechat.ai/",
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
     "@eslint/compat": "^1.2.6",

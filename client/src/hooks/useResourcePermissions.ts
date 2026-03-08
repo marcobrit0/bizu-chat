@@ -1,5 +1,8 @@
-import { hasPermissions, useGetEffectivePermissionsQuery } from 'bizu-data-provider/react-query';
-import type { ResourceType } from 'bizu-data-provider';
+import {
+  hasPermissions,
+  useGetEffectivePermissionsQuery,
+} from 'librechat-data-provider/react-query';
+import type { ResourceType } from 'librechat-data-provider';
 
 /**
  * fetches resource permissions once and returns a function to check any permission

@@ -1,5 +1,5 @@
 const express = require('express');
-const { logger } = require('@bizu/data-schemas');
+const { logger } = require('@librechat/data-schemas');
 const {
   generateCheckAccess,
   markPublicPromptGroups,
@@ -8,7 +8,7 @@ const {
   safeValidatePromptGroupUpdate,
   createEmptyPromptGroupsResponse,
   filterAccessibleIdsBySharedLogic,
-} = require('@bizu/api');
+} = require('@librechat/api');
 const {
   Permissions,
   SystemRoles,
@@ -17,7 +17,7 @@ const {
   PrincipalType,
   PermissionBits,
   PermissionTypes,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const {
   getListPromptGroupsByAccess,
   makePromptProduction,

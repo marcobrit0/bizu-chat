@@ -1,5 +1,5 @@
-const { logger } = require('@bizu/data-schemas');
-const { createTempChatExpirationDate } = require('@bizu/api');
+const { logger } = require('@librechat/data-schemas');
+const { createTempChatExpirationDate } = require('@librechat/api');
 const { getMessages, deleteMessages } = require('./Message');
 const { Conversation } = require('~/db/models');
 

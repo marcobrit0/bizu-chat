@@ -8,7 +8,7 @@ const express = require('express');
 const passport = require('passport');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
-const { logger } = require('@bizu/data-schemas');
+const { logger } = require('@librechat/data-schemas');
 const mongoSanitize = require('express-mongo-sanitize');
 const {
   isEnabled,
@@ -47,17 +47,6 @@ const startServer = async () => {
     axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
   }
   await connectDb();
-
-  // Guard against empty/missing critical secrets — refuse to start if not set
-  const requiredSecrets = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'CREDS_KEY', 'CREDS_IV'];
-  const missingSecrets = requiredSecrets.filter((key) => !process.env[key]);
-  if (missingSecrets.length > 0) {
-    logger.error(
-      `[FATAL] Missing required secrets: ${missingSecrets.join(', ')}. ` +
-        'Generate them with: openssl rand -hex 32',
-    );
-    process.exit(1);
-  }
 
   logger.info('Connected to MongoDB');
   indexSync().catch((err) => {
@@ -111,13 +100,7 @@ const startServer = async () => {
   });
 
   app.use(mongoSanitize());
-  // Restrict CORS to only allow requests from our own client domain
-  app.use(
-    cors({
-      origin: process.env.DOMAIN_CLIENT || 'http://localhost:3080',
-      credentials: true,
-    }),
-  );
+  app.use(cors());
   app.use(cookieParser());
 
   if (!isEnabled(DISABLE_COMPRESSION)) {
@@ -148,10 +131,7 @@ const startServer = async () => {
     await configureSocialLogins(app);
   }
 
-  // Only mount OAuth routes when social login is enabled to avoid leaking error info
-  if (isEnabled(ALLOW_SOCIAL_LOGIN)) {
-    app.use('/oauth', routes.oauth);
-  }
+  app.use('/oauth', routes.oauth);
   /* API Endpoints */
   app.use('/api/auth', routes.auth);
   app.use('/api/actions', routes.actions);
@@ -189,11 +169,8 @@ const startServer = async () => {
       Expires: process.env.INDEX_EXPIRES || '0',
     });
 
-    // Validate lang against a strict pattern to prevent HTML injection via cookies.
-    // Bizu is PT-BR only, so default to pt-BR.
-    const rawLang = req.cookies.lang || req.headers['accept-language']?.split(',')[0] || 'pt-BR';
-    const langPattern = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/;
-    const saneLang = langPattern.test(rawLang) ? rawLang : 'pt-BR';
+    const lang = req.cookies.lang || req.headers['accept-language']?.split(',')[0] || 'en-US';
+    const saneLang = lang.replace(/"/g, '&quot;');
     let updatedIndexHtml = indexHTML.replace(/lang="en-US"/g, `lang="${saneLang}"`);
 
     res.type('html');

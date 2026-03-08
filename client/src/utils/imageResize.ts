@@ -1,5 +1,5 @@
 /**
- * Client-side image resizing utility for Bizu
+ * Client-side image resizing utility for LibreChat
  * Resizes images to prevent backend upload errors while maintaining quality
  */
 

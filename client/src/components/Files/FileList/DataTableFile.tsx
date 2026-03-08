@@ -15,7 +15,7 @@ import type {
   VisibilityState,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { FileContext } from 'bizu-data-provider';
+import { FileContext } from 'librechat-data-provider';
 import {
   Input,
   Table,
@@ -31,8 +31,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
-} from '@bizu/client';
-import type { TFile } from 'bizu-data-provider';
+} from '@librechat/client';
+import type { TFile } from 'librechat-data-provider';
 import type { AugmentedColumnDef } from '~/common';
 import ActionButton from '~/components/Files/ActionButton';
 import { useDeleteFilesFromTable } from '~/hooks/Files';

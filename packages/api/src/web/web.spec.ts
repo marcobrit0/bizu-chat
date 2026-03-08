@@ -1,12 +1,12 @@
-import { webSearchAuth } from '@bizu/data-schemas';
-import { SafeSearchTypes, AuthType } from 'bizu-data-provider';
+import { webSearchAuth } from '@librechat/data-schemas';
+import { SafeSearchTypes, AuthType } from 'librechat-data-provider';
 import type {
   ScraperProviders,
   TWebSearchConfig,
   SearchProviders,
   TCustomConfig,
   RerankerTypes,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import { loadWebSearchAuth, extractWebSearchEnvVars } from './web';
 
 // Mock the extractVariableName function

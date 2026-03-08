@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const { SystemRoles, Permissions, roleDefaults, PermissionTypes } = require('bizu-data-provider');
+const {
+  SystemRoles,
+  Permissions,
+  roleDefaults,
+  PermissionTypes,
+} = require('librechat-data-provider');
 const { getRoleByName, updateAccessPermissions } = require('~/models/Role');
 const getLogStores = require('~/cache/getLogStores');
 const { initializeRoles } = require('~/models');

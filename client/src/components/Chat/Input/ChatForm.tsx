@@ -1,9 +1,8 @@
-/* eslint-disable i18next/no-literal-string */
 import { memo, useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useWatch } from 'react-hook-form';
-import { TextareaAutosize } from '@bizu/client';
+import { TextareaAutosize } from '@librechat/client';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { Constants, isAssistantsEndpoint, isAgentsEndpoint } from 'bizu-data-provider';
+import { Constants, isAssistantsEndpoint, isAgentsEndpoint } from 'librechat-data-provider';
 import {
   useChatContext,
   useChatFormContext,
@@ -20,9 +19,7 @@ import {
   useSubmitMessage,
   useFocusChatEffect,
 } from '~/hooks';
-import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import { mainTextareaId, BadgeItem } from '~/common';
-import ModelSelector from '~/components/Chat/Menus/Endpoints/ModelSelector';
 import AttachFileChat from './Files/AttachFileChat';
 import FileFormChat from './Files/FileFormChat';
 import { cn, removeFocusRings } from '~/utils';
@@ -67,18 +64,6 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
   );
 
   const { requiresKey } = useRequiresKey();
-  const { data: startupConfig } = useGetStartupConfig();
-  const balanceQuery = useGetUserBalance({
-    enabled: startupConfig?.balance?.enabled === true,
-  });
-  const balanceExhausted = useMemo(
-    () =>
-      startupConfig?.balance?.enabled === true &&
-      balanceQuery.data != null &&
-      balanceQuery.data.tokenCredits <= 0,
-    [startupConfig?.balance?.enabled, balanceQuery.data],
-  );
-
   const methods = useChatFormContext();
   const {
     files,
@@ -117,8 +102,8 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
     [conversation?.assistant_id, endpoint, assistantMap],
   );
   const disableInputs = useMemo(
-    () => requiresKey || invalidAssistant || balanceExhausted,
-    [requiresKey, invalidAssistant, balanceExhausted],
+    () => requiresKey || invalidAssistant,
+    [requiresKey, invalidAssistant],
   );
 
   const handleContainerClick = useCallback(() => {
@@ -217,40 +202,49 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
   );
 
   return (
-    <>
-      {balanceExhausted && (
-        <div className="mx-auto mb-2 flex w-full max-w-3xl items-center justify-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
-          <span>
-            Você atingiu o limite do seu plano. Aguarde a renovação mensal ou faça upgrade para
-            continuar.
-          </span>
-        </div>
+    <form
+      onSubmit={methods.handleSubmit(submitMessage)}
+      className={cn(
+        'mx-auto flex w-full flex-row gap-3 transition-[max-width] duration-300 sm:px-2',
+        maximizeChatSpace ? 'max-w-full' : 'md:max-w-3xl xl:max-w-4xl',
+        centerFormOnLanding &&
+          (conversationId == null || conversationId === Constants.NEW_CONVO) &&
+          !isSubmitting &&
+          conversation?.messages?.length === 0
+          ? 'transition-all duration-200 sm:mb-28'
+          : 'sm:mb-10',
       )}
-      <form
-        onSubmit={methods.handleSubmit(submitMessage)}
-        className={cn(
-          'mx-auto flex w-full flex-row gap-3 transition-[max-width] duration-300 sm:px-2',
-          maximizeChatSpace ? 'max-w-full' : 'md:max-w-3xl xl:max-w-4xl',
-          centerFormOnLanding &&
-            (conversationId == null || conversationId === Constants.NEW_CONVO) &&
-            !isSubmitting &&
-            conversation?.messages?.length === 0
-            ? 'transition-all duration-200 sm:mb-28'
-            : 'sm:mb-10',
-        )}
-      >
-        <div className="relative flex h-full flex-1 items-stretch md:flex-col">
-          <div className={cn('flex w-full items-center', isRTL && 'flex-row-reverse')}>
-            {showPlusPopover && !isAssistantsEndpoint(endpoint) && (
-              <Mention
-                conversation={conversation}
-                setShowMentionPopover={setShowPlusPopover}
-                newConversation={generateConversation}
-                textAreaRef={textAreaRef}
-                commandChar="+"
-                placeholder="com_ui_add_model_preset"
-                includeAssistants={false}
-              />
+    >
+      <div className="relative flex h-full flex-1 items-stretch md:flex-col">
+        <div className={cn('flex w-full items-center', isRTL && 'flex-row-reverse')}>
+          {showPlusPopover && !isAssistantsEndpoint(endpoint) && (
+            <Mention
+              conversation={conversation}
+              setShowMentionPopover={setShowPlusPopover}
+              newConversation={generateConversation}
+              textAreaRef={textAreaRef}
+              commandChar="+"
+              placeholder="com_ui_add_model_preset"
+              includeAssistants={false}
+            />
+          )}
+          {showMentionPopover && (
+            <Mention
+              conversation={conversation}
+              setShowMentionPopover={setShowMentionPopover}
+              newConversation={newConversation}
+              textAreaRef={textAreaRef}
+            />
+          )}
+          <PromptsCommand index={index} textAreaRef={textAreaRef} submitPrompt={submitPrompt} />
+          <div
+            onClick={handleContainerClick}
+            className={cn(
+              'relative flex w-full flex-grow flex-col overflow-hidden rounded-t-3xl border pb-4 text-text-primary transition-all duration-200 sm:rounded-3xl sm:pb-0',
+              isTextAreaFocused ? 'shadow-lg' : 'shadow-md',
+              isTemporary
+                ? 'border-violet-800/60 bg-violet-950/10'
+                : 'border-border-light bg-surface-chat',
             )}
           >
             <TextareaHeader addedConvo={addedConvo} setAddedConvo={setAddedConvo} />
@@ -316,15 +310,10 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
                 </div>
               </div>
             )}
-            <PromptsCommand index={index} textAreaRef={textAreaRef} submitPrompt={submitPrompt} />
             <div
-              onClick={handleContainerClick}
               className={cn(
-                'relative flex w-full flex-grow flex-col overflow-hidden rounded-t-3xl border pb-4 text-text-primary transition-all duration-200 sm:rounded-3xl sm:pb-0',
-                isTextAreaFocused ? 'shadow-lg' : 'shadow-md',
-                isTemporary
-                  ? 'border-violet-800/60 bg-violet-950/10'
-                  : 'border-border-light bg-surface-chat',
+                '@container items-between flex gap-2 pb-2',
+                isRTL ? 'flex-row-reverse' : 'flex-row',
               )}
             >
               <div className={`${isRTL ? 'mr-2' : 'ml-2'}`}>
@@ -361,79 +350,15 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
                       control={methods.control}
                       disabled={filesLoading || isSubmitting || disableInputs || isNotAppendable}
                     />
-                    {isCollapsed && (
-                      <div
-                        className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 transition-all duration-200"
-                        style={{
-                          backdropFilter: 'blur(2px)',
-                          WebkitMaskImage: 'linear-gradient(to top, black 15%, transparent 75%)',
-                          maskImage: 'linear-gradient(to top, black 15%, transparent 75%)',
-                        }}
-                      />
-                    )}
-                  </div>
-                  <div className="flex flex-col items-start justify-start pr-2.5 pt-1.5">
-                    <CollapseChat
-                      isCollapsed={isCollapsed}
-                      isScrollable={isMoreThanThreeRows}
-                      setIsCollapsed={setIsCollapsed}
-                    />
-                  </div>
-                </div>
-              )}
-              <div
-                className={cn(
-                  '@container items-between flex gap-2 pb-2',
-                  isRTL ? 'flex-row-reverse' : 'flex-row',
+                  )
                 )}
-              >
-                <div className={`${isRTL ? 'mr-2' : 'ml-2'}`}>
-                  <AttachFileChat conversation={conversation} disableInputs={disableInputs} />
-                </div>
-                <BadgeRow
-                  showEphemeralBadges={
-                    !isAgentsEndpoint(endpoint) && !isAssistantsEndpoint(endpoint)
-                  }
-                  isSubmitting={isSubmitting || isSubmittingAdded}
-                  conversationId={conversationId}
-                  onChange={setBadges}
-                  isInChat={
-                    Array.isArray(conversation?.messages) && conversation.messages.length >= 1
-                  }
-                />
-                <div className="mx-auto flex" />
-                <div className="flex items-center">
-                  <ModelSelector startupConfig={startupConfig} />
-                </div>
-                {SpeechToText && (
-                  <AudioRecorder
-                    methods={methods}
-                    ask={submitMessage}
-                    textAreaRef={textAreaRef}
-                    disabled={disableInputs || isNotAppendable}
-                    isSubmitting={isSubmitting}
-                  />
-                )}
-                <div className={`${isRTL ? 'ml-2' : 'mr-2'}`}>
-                  {(isSubmitting || isSubmittingAdded) && (showStopButton || showStopAdded) ? (
-                    <StopButton stop={handleStopGenerating} setShowStopButton={setShowStopButton} />
-                  ) : (
-                    endpoint && (
-                      <SendButton
-                        ref={submitButtonRef}
-                        control={methods.control}
-                        disabled={filesLoading || isSubmitting || disableInputs || isNotAppendable}
-                      />
-                    )
-                  )}
-                </div>
               </div>
-              {TextToSpeech && automaticPlayback && <StreamAudio index={index} />}
             </div>
+            {TextToSpeech && automaticPlayback && <StreamAudio index={index} />}
           </div>
         </div>
-      </form>
-    </>
+      </div>
+    </form>
   );
 });
 

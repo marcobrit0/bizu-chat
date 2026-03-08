@@ -9,8 +9,8 @@ import {
   OGDialogHeader,
   OGDialogTitle,
   Progress,
-} from '@bizu/client';
-import type { TUser, TVerify2FARequest } from 'bizu-data-provider';
+} from '@librechat/client';
+import type { TUser, TVerify2FARequest } from 'librechat-data-provider';
 import {
   useConfirmTwoFactorMutation,
   useDisableTwoFactorMutation,

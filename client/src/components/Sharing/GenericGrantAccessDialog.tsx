@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AccessRoleIds, ResourceType } from 'bizu-data-provider';
+import { AccessRoleIds, ResourceType } from 'librechat-data-provider';
 import { Share2Icon, Users, Link, CopyCheck, UserX, UserCheck } from 'lucide-react';
 import {
   Label,
@@ -12,8 +12,8 @@ import {
   OGDialogContent,
   OGDialogTrigger,
   useToastContext,
-} from '@bizu/client';
-import type { TPrincipal } from 'bizu-data-provider';
+} from '@librechat/client';
+import type { TPrincipal } from 'librechat-data-provider';
 import {
   usePeoplePickerPermissions,
   useResourcePermissionState,

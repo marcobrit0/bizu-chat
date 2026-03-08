@@ -5,6 +5,5 @@ export interface BalanceUpdateFields {
   refillIntervalValue?: number;
   refillIntervalUnit?: string;
   refillAmount?: number;
-  maxRefillCount?: number;
   lastRefill?: Date;
 }

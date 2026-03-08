@@ -5,9 +5,7 @@ const { requireJwtAuth } = require('~/server/middleware');
 const router = express.Router();
 
 router.put('/', requireJwtAuth, async (req, res) => {
-  // Destructure only expected fields to prevent userId override from req.body
-  const { name, value, expiresAt } = req.body;
-  await updateUserKey({ userId: req.user.id, name, value, expiresAt });
+  await updateUserKey({ userId: req.user.id, ...req.body });
   res.status(201).send();
 });
 

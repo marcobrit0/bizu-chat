@@ -1,9 +1,9 @@
-const { FileSources } = require('bizu-data-provider');
+const { FileSources } = require('librechat-data-provider');
 const {
   uploadMistralOCR,
   uploadAzureMistralOCR,
   uploadGoogleVertexMistralOCR,
-} = require('@bizu/api');
+} = require('@librechat/api');
 const {
   getFirebaseURL,
   prepareImageURL,

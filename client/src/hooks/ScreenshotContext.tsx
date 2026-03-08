@@ -1,6 +1,6 @@
 import { createContext, useRef, useContext, RefObject } from 'react';
 import { toCanvas } from 'html-to-image';
-import { ThemeContext, isDark } from '@bizu/client';
+import { ThemeContext, isDark } from '@librechat/client';
 
 type ScreenshotContextType = {
   ref?: RefObject<HTMLDivElement>;

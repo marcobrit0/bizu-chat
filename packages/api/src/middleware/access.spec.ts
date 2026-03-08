@@ -1,10 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import { Permissions, PermissionTypes, EModelEndpoint, EndpointURLs } from 'bizu-data-provider';
-import type { IRole, IUser } from '@bizu/data-schemas';
+import {
+  Permissions,
+  PermissionTypes,
+  EModelEndpoint,
+  EndpointURLs,
+} from 'librechat-data-provider';
+import type { IRole, IUser } from '@librechat/data-schemas';
 import { checkAccess, generateCheckAccess, skipAgentCheck } from './access';
 
 // Mock logger
-jest.mock('@bizu/data-schemas', () => ({
+jest.mock('@librechat/data-schemas', () => ({
   logger: {
     warn: jest.fn(),
     error: jest.fn(),

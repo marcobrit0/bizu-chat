@@ -14,7 +14,7 @@ if [[ -z "${TAG}" ]]; then
   TAG=latest
 fi
 
-LOCAL_DOCKER_IMG=bizu:${TAG}
+LOCAL_DOCKER_IMG=librechat:${TAG}
 
 set -e
 

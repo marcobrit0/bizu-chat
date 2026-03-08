@@ -1,7 +1,11 @@
 import { renderHook, act } from '@testing-library/react';
 import copy from 'copy-to-clipboard';
-import { ContentTypes } from 'bizu-data-provider';
-import type { SearchResultData, ProcessedOrganic, TMessageContentParts } from 'bizu-data-provider';
+import { ContentTypes } from 'librechat-data-provider';
+import type {
+  SearchResultData,
+  ProcessedOrganic,
+  TMessageContentParts,
+} from 'librechat-data-provider';
 import useCopyToClipboard from '~/hooks/Messages/useCopyToClipboard';
 
 // Mock the copy-to-clipboard module

@@ -43,7 +43,7 @@ const router = Router();
 
 /**
  * Get all MCP tools available to the user
- * Returns only MCP tools, completely decoupled from regular Bizu tools
+ * Returns only MCP tools, completely decoupled from regular LibreChat tools
  */
 router.get('/tools', requireJwtAuth, async (req, res) => {
   return getMCPTools(req, res);

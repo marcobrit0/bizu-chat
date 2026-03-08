@@ -10,7 +10,7 @@ import {
   FilterInput,
   TableHeader,
   useToastContext,
-} from '@bizu/client';
+} from '@librechat/client';
 import {
   flexRender,
   getCoreRowModel,

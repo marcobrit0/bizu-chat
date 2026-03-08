@@ -1,11 +1,11 @@
-const { loadCustomEndpointsConfig } = require('@bizu/api');
+const { loadCustomEndpointsConfig } = require('@librechat/api');
 const {
   CacheKeys,
   EModelEndpoint,
   isAgentsEndpoint,
   orderEndpointsConfig,
   defaultAgentCapabilities,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const loadDefaultEndpointsConfig = require('./loadDefaultEConfig');
 const getLogStores = require('~/cache/getLogStores');
 const { getAppConfig } = require('./app');
@@ -117,7 +117,7 @@ async function getEndpointsConfig(req) {
 
 /**
  * @param {ServerRequest} req
- * @param {import('bizu-data-provider').AgentCapabilities} capability
+ * @param {import('librechat-data-provider').AgentCapabilities} capability
  * @returns {Promise<boolean>}
  */
 const checkCapability = async (req, capability) => {

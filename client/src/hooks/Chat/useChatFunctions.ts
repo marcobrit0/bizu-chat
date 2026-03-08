@@ -22,7 +22,7 @@ import type {
   TEndpointOption,
   TEndpointsConfig,
   EndpointSchemaKey,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type { SetterOrUpdater } from 'recoil';
 import type { TAskFunction, ExtendedFile } from '~/common';
 import useSetFilesToDelete from '~/hooks/Files/useSetFilesToDelete';

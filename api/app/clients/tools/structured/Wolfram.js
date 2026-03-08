@@ -2,7 +2,7 @@
 const { z } = require('zod');
 const axios = require('axios');
 const { Tool } = require('@langchain/core/tools');
-const { logger } = require('@bizu/data-schemas');
+const { logger } = require('@librechat/data-schemas');
 
 class WolframAlphaAPI extends Tool {
   constructor(fields) {

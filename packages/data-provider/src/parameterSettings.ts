@@ -90,7 +90,7 @@ const createDefinition = (
   return { ...base, ...overrides } as SettingDefinition;
 };
 
-export const bizu = {
+export const librechat = {
   modelLabel: {
     key: 'modelLabel',
     label: 'com_endpoint_custom_name',
@@ -155,10 +155,10 @@ export const bizu = {
 
 const openAIParams: Record<string, SettingDefinition> = {
   chatGptLabel: {
-    ...bizu.modelLabel,
+    ...librechat.modelLabel,
     key: 'chatGptLabel',
   },
-  promptPrefix: bizu.promptPrefix,
+  promptPrefix: librechat.promptPrefix,
   temperature: createDefinition(baseDefinitions.temperature, {
     default: openAISettings.temperature.default,
     range: {
@@ -643,50 +643,50 @@ const google: Record<string, SettingDefinition> = {
 };
 
 const googleConfig: SettingsConfiguration = [
-  bizu.modelLabel,
-  bizu.promptPrefix,
-  bizu.maxContextTokens,
+  librechat.modelLabel,
+  librechat.promptPrefix,
+  librechat.maxContextTokens,
   google.maxOutputTokens,
   google.temperature,
   google.topP,
   google.topK,
-  bizu.resendFiles,
+  librechat.resendFiles,
   google.thinking,
   google.thinkingBudget,
   google.web_search,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const googleCol1: SettingsConfiguration = [
   baseDefinitions.model as SettingDefinition,
-  bizu.modelLabel,
-  bizu.promptPrefix,
+  librechat.modelLabel,
+  librechat.promptPrefix,
 ];
 
 const googleCol2: SettingsConfiguration = [
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   google.maxOutputTokens,
   google.temperature,
   google.topP,
   google.topK,
-  bizu.resendFiles,
+  librechat.resendFiles,
   google.thinking,
   google.thinkingBudget,
   google.web_search,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const openAI: SettingsConfiguration = [
-  bizu.modelLabel,
-  bizu.promptPrefix,
-  bizu.maxContextTokens,
+  librechat.modelLabel,
+  librechat.promptPrefix,
+  librechat.maxContextTokens,
   openAIParams.max_tokens,
   openAIParams.temperature,
   openAIParams.top_p,
   openAIParams.frequency_penalty,
   openAIParams.presence_penalty,
   baseDefinitions.stop,
-  bizu.resendFiles,
+  librechat.resendFiles,
   baseDefinitions.imageDetail,
   openAIParams.web_search,
   openAIParams.reasoning_effort,
@@ -694,24 +694,24 @@ const openAI: SettingsConfiguration = [
   openAIParams.reasoning_summary,
   openAIParams.verbosity,
   openAIParams.disableStreaming,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const openAICol1: SettingsConfiguration = [
   baseDefinitions.model as SettingDefinition,
-  bizu.modelLabel,
-  bizu.promptPrefix,
+  librechat.modelLabel,
+  librechat.promptPrefix,
 ];
 
 const openAICol2: SettingsConfiguration = [
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   openAIParams.max_tokens,
   openAIParams.temperature,
   openAIParams.top_p,
   openAIParams.frequency_penalty,
   openAIParams.presence_penalty,
   baseDefinitions.stop,
-  bizu.resendFiles,
+  librechat.resendFiles,
   baseDefinitions.imageDetail,
   openAIParams.reasoning_effort,
   openAIParams.reasoning_summary,
@@ -719,165 +719,165 @@ const openAICol2: SettingsConfiguration = [
   openAIParams.useResponsesApi,
   openAIParams.web_search,
   openAIParams.disableStreaming,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const anthropicConfig: SettingsConfiguration = [
-  bizu.modelLabel,
-  bizu.promptPrefix,
-  bizu.maxContextTokens,
+  librechat.modelLabel,
+  librechat.promptPrefix,
+  librechat.maxContextTokens,
   anthropic.maxOutputTokens,
   anthropic.temperature,
   anthropic.topP,
   anthropic.topK,
-  bizu.resendFiles,
+  librechat.resendFiles,
   anthropic.promptCache,
   anthropic.thinking,
   anthropic.thinkingBudget,
   anthropic.web_search,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const anthropicCol1: SettingsConfiguration = [
   baseDefinitions.model as SettingDefinition,
-  bizu.modelLabel,
-  bizu.promptPrefix,
+  librechat.modelLabel,
+  librechat.promptPrefix,
 ];
 
 const anthropicCol2: SettingsConfiguration = [
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   anthropic.maxOutputTokens,
   anthropic.temperature,
   anthropic.topP,
   anthropic.topK,
-  bizu.resendFiles,
+  librechat.resendFiles,
   anthropic.promptCache,
   anthropic.thinking,
   anthropic.thinkingBudget,
   anthropic.web_search,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockAnthropic: SettingsConfiguration = [
-  bizu.modelLabel,
+  librechat.modelLabel,
   bedrock.system,
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   bedrock.maxTokens,
   bedrock.temperature,
   bedrock.topP,
   bedrock.topK,
   baseDefinitions.stop,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
   bedrock.promptCache,
   anthropic.thinking,
   anthropic.thinkingBudget,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockMistral: SettingsConfiguration = [
-  bizu.modelLabel,
-  bizu.promptPrefix,
-  bizu.maxContextTokens,
+  librechat.modelLabel,
+  librechat.promptPrefix,
+  librechat.maxContextTokens,
   bedrock.maxTokens,
   mistral.temperature,
   mistral.topP,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockCohere: SettingsConfiguration = [
-  bizu.modelLabel,
-  bizu.promptPrefix,
-  bizu.maxContextTokens,
+  librechat.modelLabel,
+  librechat.promptPrefix,
+  librechat.maxContextTokens,
   bedrock.maxTokens,
   cohere.temperature,
   cohere.topP,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockGeneral: SettingsConfiguration = [
-  bizu.modelLabel,
-  bizu.promptPrefix,
-  bizu.maxContextTokens,
+  librechat.modelLabel,
+  librechat.promptPrefix,
+  librechat.maxContextTokens,
   meta.temperature,
   meta.topP,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
   bedrock.promptCache,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockAnthropicCol1: SettingsConfiguration = [
   baseDefinitions.model as SettingDefinition,
-  bizu.modelLabel,
+  librechat.modelLabel,
   bedrock.system,
   baseDefinitions.stop,
 ];
 
 const bedrockAnthropicCol2: SettingsConfiguration = [
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   bedrock.maxTokens,
   bedrock.temperature,
   bedrock.topP,
   bedrock.topK,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
   bedrock.promptCache,
   anthropic.thinking,
   anthropic.thinkingBudget,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockMistralCol1: SettingsConfiguration = [
   baseDefinitions.model as SettingDefinition,
-  bizu.modelLabel,
-  bizu.promptPrefix,
+  librechat.modelLabel,
+  librechat.promptPrefix,
 ];
 
 const bedrockMistralCol2: SettingsConfiguration = [
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   bedrock.maxTokens,
   mistral.temperature,
   mistral.topP,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockCohereCol1: SettingsConfiguration = [
   baseDefinitions.model as SettingDefinition,
-  bizu.modelLabel,
-  bizu.promptPrefix,
+  librechat.modelLabel,
+  librechat.promptPrefix,
 ];
 
 const bedrockCohereCol2: SettingsConfiguration = [
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   bedrock.maxTokens,
   cohere.temperature,
   cohere.topP,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockGeneralCol1: SettingsConfiguration = [
   baseDefinitions.model as SettingDefinition,
-  bizu.modelLabel,
-  bizu.promptPrefix,
+  librechat.modelLabel,
+  librechat.promptPrefix,
 ];
 
 const bedrockGeneralCol2: SettingsConfiguration = [
-  bizu.maxContextTokens,
+  librechat.maxContextTokens,
   meta.temperature,
   meta.topP,
-  bizu.resendFiles,
+  librechat.resendFiles,
   bedrock.region,
   bedrock.promptCache,
-  bizu.fileTokenLimit,
+  librechat.fileTokenLimit,
 ];
 
 const bedrockMoonshot: SettingsConfiguration = [

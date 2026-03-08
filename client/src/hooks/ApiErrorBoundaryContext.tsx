@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TError } from 'bizu-data-provider';
+import { TError } from 'librechat-data-provider';
 
 type ProviderValue = {
   error?: TError;

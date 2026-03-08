@@ -1,11 +1,11 @@
-import { connectDb } from '@bizu/backend/db/connect';
+import { connectDb } from '@librechat/backend/db/connect';
 import {
   findUser,
   deleteConvos,
   deleteMessages,
   deleteAllUserSessions,
-} from '@bizu/backend/models';
-import { User, Balance, Transaction, AclEntry, Token, Group } from '@bizu/backend/db/models';
+} from '@librechat/backend/models';
+import { User, Balance, Transaction, AclEntry, Token, Group } from '@librechat/backend/db/models';
 
 type TUser = { email: string; password: string };
 

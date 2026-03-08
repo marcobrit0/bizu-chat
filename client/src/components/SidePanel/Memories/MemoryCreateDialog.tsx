@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PermissionTypes, Permissions } from 'bizu-data-provider';
+import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import {
   OGDialog,
   OGDialogTemplate,
@@ -8,7 +8,7 @@ import {
   Input,
   Spinner,
   useToastContext,
-} from '@bizu/client';
+} from '@librechat/client';
 import { useCreateMemoryMutation } from '~/data-provider';
 import { useLocalize, useHasAccess } from '~/hooks';
 

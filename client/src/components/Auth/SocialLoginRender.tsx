@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string */
 import {
   GoogleIcon,
   FacebookIcon,
@@ -7,13 +6,13 @@ import {
   DiscordIcon,
   AppleIcon,
   SamlIcon,
-} from '@bizu/client';
+} from '@librechat/client';
 
 import SocialButton from './SocialButton';
 
 import { useLocalize } from '~/hooks';
 
-import { TStartupConfig } from 'bizu-data-provider';
+import { TStartupConfig } from 'librechat-data-provider';
 
 function SocialLoginRender({
   startupConfig,

@@ -33,9 +33,9 @@
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/danny-avila/Bizu/issues"
+    "url": "https://github.com/danny-avila/LibreChat/issues"
   },
-  "homepage": "https://bizu.ai",
+  "homepage": "https://librechat.ai",
   "devDependencies": {
     "@rollup/plugin-alias": "^5.1.0",
     "@rollup/plugin-commonjs": "^29.0.0",
@@ -76,6 +76,6 @@
     "mongoose",
     "schema",
     "typescript",
-    "bizu"
+    "librechat"
   ]
 }

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Button, OGDialog, OGDialogTemplate } from '@bizu/client';
+import { Button, OGDialog, OGDialogTemplate } from '@librechat/client';
 import {
   AuthType,
   RerankerTypes,
   SearchProviders,
   ScraperProviders,
   SearchCategories,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type { SearchApiKeyFormData } from '~/hooks/Plugins/useAuthSearchTool';
 import type { UseFormRegister, UseFormHandleSubmit } from 'react-hook-form';
 import InputSection, { type DropdownOption } from './InputSection';

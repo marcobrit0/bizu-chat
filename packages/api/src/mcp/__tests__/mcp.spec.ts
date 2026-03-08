@@ -1,5 +1,9 @@
-import { MCPOptions, StdioOptionsSchema, StreamableHTTPOptionsSchema } from 'bizu-data-provider';
-import type { TUser } from 'bizu-data-provider';
+import {
+  MCPOptions,
+  StdioOptionsSchema,
+  StreamableHTTPOptionsSchema,
+} from 'librechat-data-provider';
+import type { TUser } from 'librechat-data-provider';
 import { processMCPEnv } from '~/utils/env';
 
 // Helper function to create test user objects
@@ -216,7 +220,7 @@ describe('Environment Variable Extraction (MCP)', () => {
         url: 'https://example.com',
         headers: {
           Authorization: '${TEST_API_KEY}',
-          'User-Id': '{{BIZU_USER_ID}}',
+          'User-Id': '{{LIBRECHAT_USER_ID}}',
           'Content-Type': 'application/json',
         },
       };
@@ -256,7 +260,7 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'User-Id': '{{BIZU_USER_ID}}',
+          'User-Id': '{{LIBRECHAT_USER_ID}}',
           'API-Key': '${TEST_API_KEY}',
         },
       };
@@ -281,7 +285,7 @@ describe('Environment Variable Extraction (MCP)', () => {
       }
 
       // Original config should be unchanged
-      expect(baseConfig.headers?.['User-Id']).toBe('{{BIZU_USER_ID}}');
+      expect(baseConfig.headers?.['User-Id']).toBe('{{LIBRECHAT_USER_ID}}');
 
       // Second user's config should be unchanged
       expect('headers' in resultUser2 && resultUser2.headers?.['User-Id']).toBe('user-456');
@@ -294,7 +298,7 @@ describe('Environment Variable Extraction (MCP)', () => {
         url: 'https://example.com',
         headers: {
           Authorization: '${TEST_API_KEY}',
-          'User-Id': '{{BIZU_USER_ID}}',
+          'User-Id': '{{LIBRECHAT_USER_ID}}',
           'Content-Type': 'application/json',
         },
       };
@@ -337,7 +341,7 @@ describe('Environment Variable Extraction (MCP)', () => {
         url: 'https://example.com',
         headers: {
           Authorization: '${TEST_API_KEY}',
-          'User-Id': '{{BIZU_USER_ID}}',
+          'User-Id': '{{LIBRECHAT_USER_ID}}',
           'Content-Type': 'application/json',
         },
       };
@@ -365,12 +369,12 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'User-Email': '{{BIZU_USER_EMAIL}}',
-          'User-Name': '{{BIZU_USER_USERNAME}}',
-          OpenID: '{{BIZU_USER_OPENIDID}}',
-          'Google-ID': '{{BIZU_USER_GOOGLEID}}',
-          'Email-Verified': '{{BIZU_USER_EMAILVERIFIED}}',
-          'User-Role': '{{BIZU_USER_ROLE}}',
+          'User-Email': '{{LIBRECHAT_USER_EMAIL}}',
+          'User-Name': '{{LIBRECHAT_USER_USERNAME}}',
+          OpenID: '{{LIBRECHAT_USER_OPENIDID}}',
+          'Google-ID': '{{LIBRECHAT_USER_GOOGLEID}}',
+          'Email-Verified': '{{LIBRECHAT_USER_EMAILVERIFIED}}',
+          'User-Role': '{{LIBRECHAT_USER_ROLE}}',
           'Content-Type': 'application/json',
         },
       };
@@ -398,8 +402,8 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'User-Email': '{{BIZU_USER_EMAIL}}',
-          'User-Name': '{{BIZU_USER_USERNAME}}',
+          'User-Email': '{{LIBRECHAT_USER_EMAIL}}',
+          'User-Name': '{{LIBRECHAT_USER_USERNAME}}',
           'Content-Type': 'application/json',
         },
       };
@@ -423,8 +427,8 @@ describe('Environment Variable Extraction (MCP)', () => {
         command: 'node',
         args: ['server.js'],
         env: {
-          USER_EMAIL: '{{BIZU_USER_EMAIL}}',
-          LDAP_ID: '{{BIZU_USER_LDAPID}}',
+          USER_EMAIL: '{{LIBRECHAT_USER_EMAIL}}',
+          LDAP_ID: '{{LIBRECHAT_USER_LDAPID}}',
           API_KEY: '${TEST_API_KEY}',
         },
       };
@@ -445,7 +449,7 @@ describe('Environment Variable Extraction (MCP)', () => {
       });
       const options: MCPOptions = {
         type: 'sse',
-        url: 'https://example.com/api/{{BIZU_USER_USERNAME}}/stream',
+        url: 'https://example.com/api/{{LIBRECHAT_USER_USERNAME}}/stream',
       };
 
       const result = processMCPEnv({ options, user });
@@ -464,9 +468,9 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'Email-Verified': '{{BIZU_USER_EMAILVERIFIED}}',
-          'Two-Factor': '{{BIZU_USER_TWOFACTORENABLED}}',
-          'Terms-Accepted': '{{BIZU_USER_TERMSACCEPTED}}',
+          'Email-Verified': '{{LIBRECHAT_USER_EMAILVERIFIED}}',
+          'Two-Factor': '{{LIBRECHAT_USER_TWOFACTORENABLED}}',
+          'Terms-Accepted': '{{LIBRECHAT_USER_TERMSACCEPTED}}',
         },
       };
 
@@ -489,8 +493,8 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'User-Email': '{{BIZU_USER_EMAIL}}',
-          'User-Password': '{{BIZU_USER_PASSWORD}}', // This should not be processed
+          'User-Email': '{{LIBRECHAT_USER_EMAIL}}',
+          'User-Password': '{{LIBRECHAT_USER_PASSWORD}}', // This should not be processed
         },
       };
 
@@ -498,7 +502,7 @@ describe('Environment Variable Extraction (MCP)', () => {
 
       expect('headers' in result && result.headers).toEqual({
         'User-Email': 'test@example.com',
-        'User-Password': '{{BIZU_USER_PASSWORD}}', // Unchanged
+        'User-Password': '{{LIBRECHAT_USER_PASSWORD}}', // Unchanged
       });
     });
 
@@ -511,9 +515,9 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'Primary-Email': '{{BIZU_USER_EMAIL}}',
-          'Secondary-Email': '{{BIZU_USER_EMAIL}}',
-          'Backup-Email': '{{BIZU_USER_EMAIL}}',
+          'Primary-Email': '{{LIBRECHAT_USER_EMAIL}}',
+          'Secondary-Email': '{{LIBRECHAT_USER_EMAIL}}',
+          'Backup-Email': '{{LIBRECHAT_USER_EMAIL}}',
         },
       };
 
@@ -526,7 +530,7 @@ describe('Environment Variable Extraction (MCP)', () => {
       });
     });
 
-    it('should support both id and _id properties for BIZU_USER_ID', () => {
+    it('should support both id and _id properties for LIBRECHAT_USER_ID', () => {
       // Test with 'id' property
       const userWithId = createTestUser({
         id: 'user-123',
@@ -536,7 +540,7 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'User-Id': '{{BIZU_USER_ID}}',
+          'User-Id': '{{LIBRECHAT_USER_ID}}',
         },
       };
 
@@ -553,13 +557,13 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'User-Id': '{{BIZU_USER_ID}}',
+          'User-Id': '{{LIBRECHAT_USER_ID}}',
         },
       };
 
       const result2 = processMCPEnv({ options: obj2, user: userWithUnderscore });
       // Since we don't check _id, the placeholder should remain unchanged
-      expect('headers' in result2 && result2.headers?.['User-Id']).toBe('{{BIZU_USER_ID}}');
+      expect('headers' in result2 && result2.headers?.['User-Id']).toBe('{{LIBRECHAT_USER_ID}}');
 
       // Test with both properties (id takes precedence)
       const userWithBoth = createTestUser({
@@ -571,7 +575,7 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com',
         headers: {
-          'User-Id': '{{BIZU_USER_ID}}',
+          'User-Id': '{{LIBRECHAT_USER_ID}}',
         },
       };
 
@@ -592,7 +596,7 @@ describe('Environment Variable Extraction (MCP)', () => {
           VAR_A: '{{CUSTOM_VAR_1}}',
           VAR_B: 'Value with {{CUSTOM_VAR_2}}',
           VAR_C: '${TEST_API_KEY}',
-          VAR_D: '{{BIZU_USER_EMAIL}}',
+          VAR_D: '{{LIBRECHAT_USER_EMAIL}}',
         },
       };
 
@@ -619,7 +623,7 @@ describe('Environment Variable Extraction (MCP)', () => {
           Authorization: 'Bearer {{USER_TOKEN}}',
           'X-Region': '{{REGION}}',
           'X-System-Key': '${TEST_API_KEY}',
-          'X-User-Id': '{{BIZU_USER_ID}}',
+          'X-User-Id': '{{LIBRECHAT_USER_ID}}',
         },
       };
 
@@ -641,7 +645,7 @@ describe('Environment Variable Extraction (MCP)', () => {
       };
       const options: MCPOptions = {
         type: 'websocket',
-        url: 'wss://example.com/{{TENANT_ID}}/api/{{API_VERSION}}?user={{BIZU_USER_ID}}&key=${TEST_API_KEY}',
+        url: 'wss://example.com/{{TENANT_ID}}/api/{{API_VERSION}}?user={{LIBRECHAT_USER_ID}}&key=${TEST_API_KEY}',
       };
 
       const result = processMCPEnv({ options, user, customUserVars });
@@ -672,7 +676,7 @@ describe('Environment Variable Extraction (MCP)', () => {
           '--profile',
           '{{PROFILE_NAME}}',
           '--user',
-          '{{BIZU_USER_EMAIL}}',
+          '{{LIBRECHAT_USER_EMAIL}}',
         ],
       };
 
@@ -695,16 +699,16 @@ describe('Environment Variable Extraction (MCP)', () => {
     it('should prioritize customUserVars over user fields and system env vars if placeholders are the same (though not recommended)', () => {
       // This tests the order of operations: customUserVars -> userFields -> systemEnv
       // BUt it's generally not recommended to have overlapping placeholder names.
-      process.env.BIZU_USER_EMAIL = 'system-email-should-be-overridden';
+      process.env.LIBRECHAT_USER_EMAIL = 'system-email-should-be-overridden';
       const user = createTestUser({ email: 'user-email-should-be-overridden' });
       const customUserVars = {
-        BIZU_USER_EMAIL: 'custom-email-wins',
+        LIBRECHAT_USER_EMAIL: 'custom-email-wins',
       };
       const options: MCPOptions = {
         type: 'sse',
         url: 'https://example.com/api',
         headers: {
-          'Test-Email': '{{BIZU_USER_EMAIL}}', // Placeholder that could match custom, user, or system
+          'Test-Email': '{{LIBRECHAT_USER_EMAIL}}', // Placeholder that could match custom, user, or system
         },
       };
 
@@ -712,7 +716,7 @@ describe('Environment Variable Extraction (MCP)', () => {
       expect('headers' in result && result.headers?.['Test-Email']).toBe('custom-email-wins');
 
       // Clean up env var
-      delete process.env.BIZU_USER_EMAIL;
+      delete process.env.LIBRECHAT_USER_EMAIL;
     });
 
     it('should handle customUserVars with no matching placeholders', () => {
@@ -742,7 +746,7 @@ describe('Environment Variable Extraction (MCP)', () => {
         type: 'sse',
         url: 'https://example.com/api',
         headers: {
-          'User-Email-Header': '{{BIZU_USER_EMAIL}}', // Should use user.email
+          'User-Email-Header': '{{LIBRECHAT_USER_EMAIL}}', // Should use user.email
           'System-Key-Header': '${TEST_API_KEY}', // Should use process.env.TEST_API_KEY
           'Non-Existent-Custom': '{{NON_EXISTENT_CUSTOM_VAR}}', // Should remain as placeholder
         },
@@ -765,15 +769,15 @@ describe('Environment Variable Extraction (MCP)', () => {
 
       const obj = {
         type: 'streamable-http' as const,
-        url: 'https://{{CUSTOM_ENDPOINT_ID}}.example.com/users/{{BIZU_USER_USERNAME}}',
+        url: 'https://{{CUSTOM_ENDPOINT_ID}}.example.com/users/{{LIBRECHAT_USER_USERNAME}}',
         headers: {
           'X-Auth-Token': '{{CUSTOM_TOKEN_FROM_USER_SETTINGS}}', // Assuming this would be a custom var
-          'X-User-ID': '{{BIZU_USER_ID}}',
+          'X-User-ID': '{{LIBRECHAT_USER_ID}}',
           'X-System-Test-Key': '${TEST_API_KEY}', // Using existing env var from beforeEach
         },
         env: {
           PROCESS_MODE: '{{PROCESS_MODE_CUSTOM}}', // Another custom var
-          USER_HOME_DIR: '/home/{{BIZU_USER_USERNAME}}',
+          USER_HOME_DIR: '/home/{{LIBRECHAT_USER_USERNAME}}',
           SYSTEM_PATH: '${PATH}', // Example of a system env var
         },
       };
@@ -813,14 +817,14 @@ describe('Environment Variable Extraction (MCP)', () => {
         PAT_TOKEN: 'ghp_1234567890abcdef1234567890abcdef12345678', // GitHub Personal Access Token
       };
 
-      // Simulate the GitHub MCP server configuration from bizu.yaml
+      // Simulate the GitHub MCP server configuration from librechat.yaml
       const options: MCPOptions = {
         type: 'streamable-http',
         url: 'https://api.githubcopilot.com/mcp/',
         headers: {
           Authorization: '{{PAT_TOKEN}}',
           'Content-Type': 'application/json',
-          'User-Agent': 'Bizu-MCP-Client',
+          'User-Agent': 'LibreChat-MCP-Client',
         },
       };
 
@@ -829,7 +833,7 @@ describe('Environment Variable Extraction (MCP)', () => {
       expect('headers' in result && result.headers).toEqual({
         Authorization: 'ghp_1234567890abcdef1234567890abcdef12345678',
         'Content-Type': 'application/json',
-        'User-Agent': 'Bizu-MCP-Client',
+        'User-Agent': 'LibreChat-MCP-Client',
       });
       expect('url' in result && result.url).toBe('https://api.githubcopilot.com/mcp/');
       expect(result.type).toBe('streamable-http');

@@ -1,4 +1,4 @@
-import { SelectDropDown } from '@bizu/client';
+import { SelectDropDown } from '@librechat/client';
 import type { TModelSelectProps } from '~/common';
 import SelectDropDownPop from '~/components/Input/ModelSelect/SelectDropDownPop';
 import { cn, cardStyle } from '~/utils';

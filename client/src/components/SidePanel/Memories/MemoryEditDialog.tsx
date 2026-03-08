@@ -8,8 +8,8 @@ import {
   Input,
   Spinner,
   useToastContext,
-} from '@bizu/client';
-import type { TUserMemory } from 'bizu-data-provider';
+} from '@librechat/client';
+import type { TUserMemory } from 'librechat-data-provider';
 import { useUpdateMemoryMutation, useMemoriesQuery } from '~/data-provider';
 import { useLocalize, useHasAccess } from '~/hooks';
 import MemoryUsageBadge from './MemoryUsageBadge';

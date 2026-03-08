@@ -8,8 +8,8 @@ import {
   isAgentsEndpoint,
   isEphemeralAgentId,
   isAssistantsEndpoint,
-} from 'bizu-data-provider';
-import type * as t from 'bizu-data-provider';
+} from 'librechat-data-provider';
+import type * as t from 'librechat-data-provider';
 import type { LocalizeFunction, IconsRecord } from '~/common';
 
 /**

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Link, Pin, PinOff } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { OGDialog, OGDialogContent, Button, useToastContext } from '@bizu/client';
+import { OGDialog, OGDialogContent, Button, useToastContext } from '@librechat/client';
 import {
   QueryKeys,
   Constants,

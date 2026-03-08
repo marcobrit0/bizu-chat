@@ -75,12 +75,10 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
 
     const user = await User.create(userData);
 
-    // If balance is enabled, create or update a balance record for the user.
-    // Use $setOnInsert for tokenCredits to prevent double-crediting if the record already exists
-    // (e.g., from a concurrent middleware call via createSetBalanceConfig).
+    // If balance is enabled, create or update a balance record for the user
     if (balanceConfig?.enabled && balanceConfig?.startBalance) {
       const update: {
-        $setOnInsert: { tokenCredits: number };
+        $inc: { tokenCredits: number };
         $set?: {
           autoRefillEnabled: boolean;
           refillIntervalValue: number;
@@ -88,7 +86,7 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
           refillAmount: number;
         };
       } = {
-        $setOnInsert: { tokenCredits: balanceConfig.startBalance },
+        $inc: { tokenCredits: balanceConfig.startBalance },
       };
 
       if (

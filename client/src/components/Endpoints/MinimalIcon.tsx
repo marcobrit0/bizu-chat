@@ -1,5 +1,5 @@
 import { Feather } from 'lucide-react';
-import { EModelEndpoint, alternateName } from 'bizu-data-provider';
+import { EModelEndpoint, alternateName } from 'librechat-data-provider';
 import {
   Sparkles,
   BedrockIcon,

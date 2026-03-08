@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { Dropdown } from '@bizu/client';
+import { Dropdown } from '@librechat/client';
 import { fontSizeAtom } from '~/store/fontSize';
 import { useLocalize } from '~/hooks';
 

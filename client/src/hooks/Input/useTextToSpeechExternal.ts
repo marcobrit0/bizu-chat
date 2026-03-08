@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useRecoilValue } from 'recoil';
-import { useToastContext } from '@bizu/client';
+import { useToastContext } from '@librechat/client';
 import { useTextToSpeechMutation, useVoicesQuery } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import store from '~/store';

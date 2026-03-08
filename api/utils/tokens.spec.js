@@ -1,4 +1,4 @@
-const { EModelEndpoint } = require('bizu-data-provider');
+const { EModelEndpoint } = require('librechat-data-provider');
 const {
   maxTokensMap,
   matchModelName,
@@ -6,7 +6,7 @@ const {
   getModelMaxTokens,
   maxOutputTokensMap,
   findMatchingPattern,
-} = require('@bizu/api');
+} = require('@librechat/api');
 
 describe('getModelMaxTokens', () => {
   test('should return correct tokens for exact match', () => {
@@ -484,7 +484,7 @@ describe('getModelMaxTokens', () => {
   });
 
   test('should return correct max output tokens for GPT-5 models', () => {
-    const { getModelMaxOutputTokens } = require('@bizu/api');
+    const { getModelMaxOutputTokens } = require('@librechat/api');
     ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'gpt-5-pro'].forEach((model) => {
       expect(getModelMaxOutputTokens(model)).toBe(maxOutputTokensMap[EModelEndpoint.openAI][model]);
       expect(getModelMaxOutputTokens(model, EModelEndpoint.openAI)).toBe(
@@ -497,7 +497,7 @@ describe('getModelMaxTokens', () => {
   });
 
   test('should return correct max output tokens for GPT-OSS models', () => {
-    const { getModelMaxOutputTokens } = require('@bizu/api');
+    const { getModelMaxOutputTokens } = require('@librechat/api');
     ['gpt-oss-20b', 'gpt-oss-120b'].forEach((model) => {
       expect(getModelMaxOutputTokens(model)).toBe(maxOutputTokensMap[EModelEndpoint.openAI][model]);
       expect(getModelMaxOutputTokens(model, EModelEndpoint.openAI)).toBe(
@@ -725,7 +725,7 @@ describe('Meta Models Tests', () => {
   });
 
   describe('DeepSeek Max Output Tokens', () => {
-    const { getModelMaxOutputTokens } = require('@bizu/api');
+    const { getModelMaxOutputTokens } = require('@librechat/api');
 
     test('should return correct max output tokens for deepseek-chat', () => {
       expect(getModelMaxOutputTokens('deepseek-chat')).toBe(8000);

@@ -4,7 +4,7 @@ const {
   SEPARATORS,
   parseTextParts,
   findLastSeparatorIndex,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const { getMessage } = require('~/models/Message');
 const { getLogStores } = require('~/cache');
 

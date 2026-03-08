@@ -1,5 +1,5 @@
 /**
- * @import { TUpdateResourcePermissionsRequest, TUpdateResourcePermissionsResponse } from 'bizu-data-provider'
+ * @import { TUpdateResourcePermissionsRequest, TUpdateResourcePermissionsResponse } from 'librechat-data-provider'
  */
 
 const mongoose = require('mongoose');

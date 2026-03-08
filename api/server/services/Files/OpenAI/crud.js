@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { sleep } = require('@librechat/agents');
-const { logger } = require('@bizu/data-schemas');
-const { FilePurpose } = require('bizu-data-provider');
+const { logger } = require('@librechat/data-schemas');
+const { FilePurpose } = require('librechat-data-provider');
 
 /**
  * Uploads a file that can be used across various OpenAI services.

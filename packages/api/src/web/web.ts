@@ -3,16 +3,16 @@ import {
   SafeSearchTypes,
   SearchCategories,
   extractVariableName,
-} from 'bizu-data-provider';
-import { webSearchAuth } from '@bizu/data-schemas';
+} from 'librechat-data-provider';
+import { webSearchAuth } from '@librechat/data-schemas';
 import type {
   RerankerTypes,
   TCustomConfig,
   SearchProviders,
   ScraperProviders,
   TWebSearchConfig,
-} from 'bizu-data-provider';
-import type { TWebSearchKeys, TWebSearchCategories } from '@bizu/data-schemas';
+} from 'librechat-data-provider';
+import type { TWebSearchKeys, TWebSearchCategories } from '@librechat/data-schemas';
 
 export function extractWebSearchEnvVars({
   keys,

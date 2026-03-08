@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
-const { logger } = require('@bizu/data-schemas');
-const { EModelEndpoint, Constants, openAISettings, CacheKeys } = require('bizu-data-provider');
+const { logger } = require('@librechat/data-schemas');
+const { EModelEndpoint, Constants, openAISettings, CacheKeys } = require('librechat-data-provider');
 const { createImportBatchBuilder } = require('./importBatchBuilder');
 const { cloneMessagesWithTimestamps } = require('./fork');
 const getLogStores = require('~/cache/getLogStores');
@@ -31,10 +31,10 @@ function getImporter(jsonData) {
     return importChatBotUiConvo;
   }
 
-  // For Bizu
+  // For LibreChat
   if (jsonData.conversationId && (jsonData.messagesTree || jsonData.messages)) {
-    logger.info('Importing Bizu conversation');
-    return importBizuConvo;
+    logger.info('Importing LibreChat conversation');
+    return importLibreChatConvo;
   }
 
   throw new Error('Unsupported import type');
@@ -190,7 +190,11 @@ async function importClaudeConvo(
  * @param {Function} [builderFactory=createImportBatchBuilder] - The factory function to create an import batch builder.
  * @returns {Promise<void>} - A promise that resolves when the import is complete.
  */
-async function importBizuConvo(jsonData, requestUserId, builderFactory = createImportBatchBuilder) {
+async function importLibreChatConvo(
+  jsonData,
+  requestUserId,
+  builderFactory = createImportBatchBuilder,
+) {
   try {
     /** @type {ImportBatchBuilder} */
     const importBatchBuilder = builderFactory(requestUserId);
@@ -258,7 +262,7 @@ async function importBizuConvo(jsonData, requestUserId, builderFactory = createI
         }
       }
     } else {
-      throw new Error('Invalid Bizu file format');
+      throw new Error('Invalid LibreChat file format');
     }
 
     if (firstMessageDate === 'Invalid Date') {
@@ -269,7 +273,7 @@ async function importBizuConvo(jsonData, requestUserId, builderFactory = createI
     await importBatchBuilder.saveBatch();
     logger.debug(`user: ${requestUserId} | Conversation "${jsonData.title}" imported`);
   } catch (error) {
-    logger.error(`user: ${requestUserId} | Error creating conversation from Bizu file`, error);
+    logger.error(`user: ${requestUserId} | Error creating conversation from LibreChat file`, error);
   }
 }
 

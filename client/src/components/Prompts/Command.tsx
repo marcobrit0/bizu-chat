@@ -1,6 +1,6 @@
-import { Input } from '@bizu/client';
+import { Input } from '@librechat/client';
 import { SquareSlash } from 'lucide-react';
-import { Constants } from 'bizu-data-provider';
+import { Constants } from 'librechat-data-provider';
 import { useState, useEffect } from 'react';
 import { useLocalize } from '~/hooks';
 
