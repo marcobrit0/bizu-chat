@@ -10,7 +10,7 @@ export interface IUser extends Document {
   avatar?: string;
   provider: string;
   role?: string;
-  plan?: 'free' | 'basic_cn' | 'pro_global';
+  plan?: 'free' | 'premium' | 'pro_global';
   googleId?: string;
   facebookId?: string;
   openidId?: string;
@@ -60,7 +60,7 @@ export interface UpdateUserRequest {
   username?: string;
   email?: string;
   role?: string;
-  plan?: 'free' | 'basic_cn' | 'pro_global';
+  plan?: 'free' | 'premium' | 'pro_global';
   emailVerified?: boolean;
   avatar?: string;
   plugins?: string[];

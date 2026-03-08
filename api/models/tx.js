@@ -220,11 +220,23 @@ const tokenValues = Object.assign(
     'qwen3-vl-235b-a22b': { prompt: 0.3, completion: 1.2 },
     // Bizu-specific: explicit OpenRouter model name entries.
     // Prices in USD per 1M tokens — verify at https://openrouter.ai/models
-    'deepseek/deepseek-chat-v3-0324': { prompt: 0.28, completion: 0.42 },
-    'deepseek/deepseek-r1': { prompt: 0.4, completion: 2.0 },
-    'deepseek/deepseek-r1-0528': { prompt: 0.4, completion: 2.0 },
-    'qwen/qwen3-235b-a22b': { prompt: 0.08, completion: 0.55 },
-    'qwen/qwen3-30b-a3b': { prompt: 0.06, completion: 0.22 },
+    // Free Tier
+    'deepseek/deepseek-v3-2': { prompt: 0.26, completion: 0.38 },
+    'deepseek/deepseek-chat-v3-0324:free': { prompt: 0, completion: 0 },
+    'meta-llama/llama-4-maverick:free': { prompt: 0, completion: 0 },
+    'qwen/qwen3-235b-a22b:free': { prompt: 0, completion: 0 },
+    'google/gemma-3-27b-it:free': { prompt: 0, completion: 0 },
+    'meta-llama/llama-3.3-70b-instruct:free': { prompt: 0, completion: 0 },
+    'mistralai/mistral-small-3': { prompt: 0.05, completion: 0.08 },
+    // Premium Tier
+    'google/gemini-2.5-flash': { prompt: 0.30, completion: 2.50 },
+    'google/gemini-2.5-flash-lite': { prompt: 0.10, completion: 0.40 },
+    'x-ai/grok-4-1-fast': { prompt: 0.20, completion: 0.50 },
+    'anthropic/claude-haiku-4-5': { prompt: 1.00, completion: 5.00 },
+    'qwen/qwen3.5-plus': { prompt: 0.40, completion: 2.00 },
+    'deepseek/deepseek-r1': { prompt: 0.50, completion: 2.15 },
+    'mistralai/mistral-small-3.1': { prompt: 0.07, completion: 0.20 },
+    'z-ai/glm-4.7': { prompt: 0.40, completion: 1.50 },
     // Qwen3 specialized models
     'qwen3-max': { prompt: 1.2, completion: 6 },
     'qwen3-coder': { prompt: 0.22, completion: 0.95 },

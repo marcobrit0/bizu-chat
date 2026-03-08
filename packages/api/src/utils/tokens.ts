@@ -146,9 +146,9 @@ const deepseekModels = {
   'deepseek-v3': 128000,
   'deepseek.r1': 128000,
   // OpenRouter-namespaced model names (used by Bizu via OpenRouter)
-  'deepseek/deepseek-chat-v3-0324': 128000,
+  'deepseek/deepseek-v3-2': 128000,
+  'deepseek/deepseek-chat-v3-0324:free': 128000,
   'deepseek/deepseek-r1': 128000,
-  'deepseek/deepseek-r1-0528': 128000,
 };
 
 const metaModels = {
@@ -228,8 +228,8 @@ const qwenModels = {
   'qwen3-32b': 40960,
   'qwen3-235b-a22b': 40960,
   // OpenRouter-namespaced model names (used by Bizu via OpenRouter)
-  'qwen/qwen3-235b-a22b': 40960,
-  'qwen/qwen3-30b-a3b': 40960,
+  'qwen/qwen3-235b-a22b:free': 40960,
+  'qwen/qwen3.5-plus': 1000000,
   // Qwen3 VL (Vision-Language) models
   'qwen3-vl-8b-thinking': 256000,
   'qwen3-vl-8b-instruct': 262144,
@@ -315,6 +315,17 @@ const aggregateModels = {
   'glm-4.5-air': 131000,
   'glm-4.5v': 66000,
   'glm-4.6': 200000,
+  // OpenRouter-namespaced model names (used by Bizu via OpenRouter)
+  'meta-llama/llama-4-maverick:free': 1000000,
+  'google/gemma-3-27b-it:free': 131072,
+  'meta-llama/llama-3.3-70b-instruct:free': 131072,
+  'mistralai/mistral-small-3': 131072,
+  'google/gemini-2.5-flash': 1000000,
+  'google/gemini-2.5-flash-lite': 1000000,
+  'x-ai/grok-4-1-fast': 2000000,
+  'anthropic/claude-haiku-4-5': 200000,
+  'mistralai/mistral-small-3.1': 131072,
+  'z-ai/glm-4.7': 200000,
 };
 
 export const maxTokensMap = {
