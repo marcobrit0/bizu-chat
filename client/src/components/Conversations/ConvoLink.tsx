@@ -7,8 +7,9 @@ interface ConvoLinkProps {
   onRename: () => void;
   isSmallScreen: boolean;
   localize: (key: any, options?: any) => string;
-  children: React.ReactNode;
 }
+
+const stripQuotes = (text: string): string => text.replace(/^[""]|[""]$/g, '');
 
 const ConvoLink: React.FC<ConvoLinkProps> = ({
   isActiveConvo,
@@ -16,19 +17,18 @@ const ConvoLink: React.FC<ConvoLinkProps> = ({
   onRename,
   isSmallScreen,
   localize,
-  children,
 }) => {
+  const displayTitle = title ? stripQuotes(title) : null;
   return (
     <div
       className={cn(
         'flex grow items-center gap-2 overflow-hidden rounded-lg px-2',
         isActiveConvo ? 'bg-surface-active-alt' : '',
       )}
-      title={title ?? undefined}
+      title={displayTitle ?? undefined}
       aria-current={isActiveConvo ? 'page' : undefined}
       style={{ width: '100%' }}
     >
-      {children}
       <div
         className="relative flex-1 grow overflow-hidden whitespace-nowrap"
         style={{ textOverflow: 'clip' }}
@@ -40,9 +40,9 @@ const ConvoLink: React.FC<ConvoLinkProps> = ({
           e.stopPropagation();
           onRename();
         }}
-        aria-label={title || localize('com_ui_untitled')}
+        aria-label={displayTitle || localize('com_ui_untitled')}
       >
-        {title || localize('com_ui_untitled')}
+        {displayTitle || localize('com_ui_untitled')}
       </div>
       <div
         className={cn(
