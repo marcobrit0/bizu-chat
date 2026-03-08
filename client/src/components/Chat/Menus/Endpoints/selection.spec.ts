@@ -23,7 +23,7 @@ describe('getAutoSelection', () => {
       label: 'DeepSeek V3.2',
       preset: {
         endpoint: 'OpenRouter',
-        model: 'deepseek/deepseek-v3-2',
+        model: 'deepseek/deepseek-v3.2',
       },
     },
     {
@@ -41,7 +41,7 @@ describe('getAutoSelection', () => {
     label: 'OpenRouter',
     hasModels: true,
     models: [
-      { name: 'deepseek/deepseek-v3-2' },
+      { name: 'deepseek/deepseek-v3.2' },
       { name: 'google/gemini-2.5-flash' },
     ],
     icon: null,
@@ -85,7 +85,7 @@ describe('getAutoSelection', () => {
     ).toEqual({
       type: 'model',
       endpoint: openRouterEndpoint,
-      model: 'deepseek/deepseek-v3-2',
+      model: 'deepseek/deepseek-v3.2',
     });
   });
 
@@ -105,7 +105,7 @@ describe('getAutoSelection', () => {
     ).toEqual({
       type: 'model',
       endpoint: openRouterEndpoint,
-      model: 'deepseek/deepseek-v3-2',
+      model: 'deepseek/deepseek-v3.2',
     });
   });
 
@@ -118,7 +118,7 @@ describe('getAutoSelection', () => {
         plan: 'free',
         selectedValues: {
           endpoint: EModelEndpoint.openAI,
-          model: 'deepseek/deepseek-v3-2',
+          model: 'deepseek/deepseek-v3.2',
           modelSpec: '',
         },
       }),

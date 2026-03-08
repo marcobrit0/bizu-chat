@@ -76,13 +76,13 @@ modelSpecs:
     # ── Free Tier Models ──
 
     # DeepSeek V3.2 — flagship default model
-    - name: 'deepseek-v3-2'
+    - name: 'deepseek-v3.2'
       label: 'DeepSeek V3.2'
-      description: 'Nosso modelo principal — qualidade próxima ao GPT-5.4 por uma fração do custo'
+      description: 'Nosso modelo principal — raciocínio classe GPT-5, contexto de 164K tokens'
       default: true
       preset:
         endpoint: 'OpenRouter'
-        model: 'deepseek/deepseek-v3-2'
+        model: 'deepseek/deepseek-v3.2'
 
     # DeepSeek V3 (free) — rate-limited free fallback
     - name: 'deepseek-v3-free'
@@ -130,7 +130,7 @@ modelSpecs:
       description: '24B parâmetros, 3x mais rápido que Llama 70B — extremamente econômico'
       preset:
         endpoint: 'OpenRouter'
-        model: 'mistralai/mistral-small-3'
+        model: 'mistralai/mistral-small-24b-instruct-2501'
 
     # ── Premium Tier Models ──
 
@@ -153,26 +153,26 @@ modelSpecs:
     # Grok 4.1 Fast — near-frontier quality at high speed
     - name: 'grok-4.1-fast'
       label: 'Grok 4.1 Fast'
-      description: 'Contexto de 2M, 107 tok/s, qualidade quase frontier — excelente'
+      description: 'Contexto de 2M, melhor modelo agentic da xAI — rápido e acessível'
       preset:
         endpoint: 'OpenRouter'
-        model: 'x-ai/grok-4-1-fast'
+        model: 'x-ai/grok-4.1-fast'
 
     # Claude Haiku 4.5 — best "Claude feel" at budget price
     - name: 'claude-haiku-4.5'
       label: 'Claude Haiku 4.5'
-      description: 'Qualidade Anthropic acessível — 73%+ SWE-bench, ótimo para uso intenso'
+      description: 'Qualidade Anthropic acessível — contexto de 200K, 73%+ SWE-bench'
       preset:
         endpoint: 'OpenRouter'
-        model: 'anthropic/claude-haiku-4-5'
+        model: 'anthropic/claude-haiku-4.5'
 
     # Qwen3.5 Plus — excellent reasoning, strong PT-BR
     - name: 'qwen3.5-plus'
       label: 'Qwen3.5 Plus'
-      description: 'Mais recente da Alibaba — contexto de 1M, raciocínio excelente, forte em PT-BR'
+      description: 'Arquitetura híbrida MoE — contexto de 1M, visão nativa, forte em PT-BR'
       preset:
         endpoint: 'OpenRouter'
-        model: 'qwen/qwen3.5-plus'
+        model: 'qwen/qwen3.5-plus-02-15'
 
     # DeepSeek R1 — chain-of-thought reasoning model
     - name: 'deepseek-r1'
@@ -185,15 +185,15 @@ modelSpecs:
     # Mistral Small 3.1 — fast with 128K context
     - name: 'mistral-small-3.1'
       label: 'Mistral Small 3.1'
-      description: 'Licença Apache 2.0, contexto de 128K — rápido e versátil'
+      description: '24B parâmetros, contexto de 128K — multimodal, rápido e versátil'
       preset:
         endpoint: 'OpenRouter'
-        model: 'mistralai/mistral-small-3.1'
+        model: 'mistralai/mistral-small-3.1-24b-instruct'
 
     # Z.AI GLM 4.7 — strong multilingual reasoning
     - name: 'glm-4.7'
       label: 'Z.AI GLM 4.7'
-      description: 'Contexto de 200K, raciocínio multilíngue — diferencial único do Bizu'
+      description: 'Contexto de 200K, programação e raciocínio avançado — da Zhipu AI'
       preset:
         endpoint: 'OpenRouter'
         model: 'z-ai/glm-4.7'
@@ -207,23 +207,23 @@ endpoints:
       models:
         default:
           # Free Tier
-          - 'deepseek/deepseek-v3-2'
+          - 'deepseek/deepseek-v3.2'
           - 'deepseek/deepseek-chat-v3-0324:free'
           - 'meta-llama/llama-4-maverick:free'
           - 'qwen/qwen3-235b-a22b:free'
           - 'google/gemma-3-27b-it:free'
           - 'meta-llama/llama-3.3-70b-instruct:free'
-          - 'mistralai/mistral-small-3'
+          - 'mistralai/mistral-small-24b-instruct-2501'
           # Premium Tier
           - 'google/gemini-2.5-flash'
           - 'google/gemini-2.5-flash-lite'
-          - 'x-ai/grok-4-1-fast'
-          - 'anthropic/claude-haiku-4-5'
-          - 'qwen/qwen3.5-plus'
+          - 'x-ai/grok-4.1-fast'
+          - 'anthropic/claude-haiku-4.5'
+          - 'qwen/qwen3.5-plus-02-15'
           - 'deepseek/deepseek-r1'
-          - 'mistralai/mistral-small-3.1'
+          - 'mistralai/mistral-small-3.1-24b-instruct'
           - 'z-ai/glm-4.7'
         fetch: false
       titleConvo: true
-      titleModel: 'deepseek/deepseek-v3-2'
+      titleModel: 'deepseek/deepseek-v3.2'
       dropParams: ['stop']
