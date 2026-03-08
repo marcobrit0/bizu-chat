@@ -68,7 +68,7 @@ const { batchResetMeiliFlags } = require('~/db/utils');
 
     if (showAdvanced.toLowerCase() === 'y') {
       console.cyan('\nAdvanced Options:');
-      console.yellow('1. To trigger immediate sync, restart LibreChat');
+      console.yellow('1. To trigger immediate sync, restart Bizu');
       console.yellow('2. To disable sync, set MEILI_NO_SYNC=true in .env');
       console.yellow(
         '3. To adjust sync batch size, set MEILI_SYNC_BATCH_SIZE in .env (default: 100)',

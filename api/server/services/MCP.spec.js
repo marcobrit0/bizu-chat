@@ -1,6 +1,6 @@
 // Mock all dependencies - define mocks before imports
 // Mock all dependencies
-jest.mock('@librechat/data-schemas', () => ({
+jest.mock('@bizu/data-schemas', () => ({
   logger: {
     debug: jest.fn(),
     error: jest.fn(),
@@ -74,7 +74,7 @@ const {
   getServerConnectionStatus,
 } = require('./MCP');
 
-jest.mock('librechat-data-provider', () => ({
+jest.mock('bizu-data-provider', () => ({
   CacheKeys: {
     FLOWS: 'flows',
   },

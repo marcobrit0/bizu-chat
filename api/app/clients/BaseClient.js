@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const fetch = require('node-fetch');
-const { logger } = require('@librechat/data-schemas');
+const { logger } = require('@bizu/data-schemas');
 const {
   countTokens,
   getBalanceConfig,
@@ -8,7 +8,7 @@ const {
   encodeAndFormatAudios,
   encodeAndFormatVideos,
   encodeAndFormatDocuments,
-} = require('@librechat/api');
+} = require('@bizu/api');
 const {
   Constants,
   ErrorTypes,
@@ -76,7 +76,7 @@ class BaseClient {
     this.fetchedConvo;
     /** @type {TMessage[]} */
     this.currentMessages = [];
-    /** @type {import('librechat-data-provider').VisionModes | undefined} */
+    /** @type {import('bizu-data-provider').VisionModes | undefined} */
     this.visionMode;
   }
 
@@ -683,13 +683,17 @@ class BaseClient {
       balanceConfig?.enabled &&
       supportsBalanceCheck[this.options.endpointType ?? this.options.endpoint]
     ) {
+      // Add a safety buffer for estimated completion tokens since we can't know
+      // completion length upfront. This prevents users from triggering expensive
+      // completions with near-zero balance. Buffer = min(promptTokens, 1000).
+      const completionBuffer = Math.min(promptTokens, 1000);
       await checkBalance({
         req: this.options.req,
         res: this.options.res,
         txData: {
           user: this.user,
           tokenType: 'prompt',
-          amount: promptTokens,
+          amount: promptTokens + completionBuffer,
           endpoint: this.options.endpoint,
           model: this.modelOptions?.model ?? this.model,
           endpointTokenConfig: this.options.endpointTokenConfig,

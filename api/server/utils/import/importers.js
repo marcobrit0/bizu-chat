@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
-const { logger } = require('@librechat/data-schemas');
-const { EModelEndpoint, Constants, openAISettings, CacheKeys } = require('librechat-data-provider');
+const { logger } = require('@bizu/data-schemas');
+const { EModelEndpoint, Constants, openAISettings, CacheKeys } = require('bizu-data-provider');
 const { createImportBatchBuilder } = require('./importBatchBuilder');
 const { cloneMessagesWithTimestamps } = require('./fork');
 const getLogStores = require('~/cache/getLogStores');
@@ -31,10 +31,10 @@ function getImporter(jsonData) {
     return importChatBotUiConvo;
   }
 
-  // For LibreChat
+  // For Bizu
   if (jsonData.conversationId && (jsonData.messagesTree || jsonData.messages)) {
-    logger.info('Importing LibreChat conversation');
-    return importLibreChatConvo;
+    logger.info('Importing Bizu conversation');
+    return importBizuConvo;
   }
 
   throw new Error('Unsupported import type');
@@ -190,11 +190,7 @@ async function importClaudeConvo(
  * @param {Function} [builderFactory=createImportBatchBuilder] - The factory function to create an import batch builder.
  * @returns {Promise<void>} - A promise that resolves when the import is complete.
  */
-async function importLibreChatConvo(
-  jsonData,
-  requestUserId,
-  builderFactory = createImportBatchBuilder,
-) {
+async function importBizuConvo(jsonData, requestUserId, builderFactory = createImportBatchBuilder) {
   try {
     /** @type {ImportBatchBuilder} */
     const importBatchBuilder = builderFactory(requestUserId);
@@ -262,7 +258,7 @@ async function importLibreChatConvo(
         }
       }
     } else {
-      throw new Error('Invalid LibreChat file format');
+      throw new Error('Invalid Bizu file format');
     }
 
     if (firstMessageDate === 'Invalid Date') {
@@ -273,7 +269,7 @@ async function importLibreChatConvo(
     await importBatchBuilder.saveBatch();
     logger.debug(`user: ${requestUserId} | Conversation "${jsonData.title}" imported`);
   } catch (error) {
-    logger.error(`user: ${requestUserId} | Error creating conversation from LibreChat file`, error);
+    logger.error(`user: ${requestUserId} | Error creating conversation from Bizu file`, error);
   }
 }
 

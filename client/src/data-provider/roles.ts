@@ -13,7 +13,7 @@ import type {
   UseMutationResult,
   QueryObserverResult,
 } from '@tanstack/react-query';
-import type * as t from 'librechat-data-provider';
+import type * as t from 'bizu-data-provider';
 
 export const useGetRole = (
   roleName: string,

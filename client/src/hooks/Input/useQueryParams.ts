@@ -9,7 +9,7 @@ import {
   tQueryParamsSchema,
   isAssistantsEndpoint,
   PermissionBits,
-} from 'librechat-data-provider';
+} from 'bizu-data-provider';
 import type {
   AgentListResponse,
   TEndpointsConfig,

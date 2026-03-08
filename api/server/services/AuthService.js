@@ -94,7 +94,7 @@ const sendVerificationEmail = async (user) => {
     email: user.email,
     subject: 'Verify your email',
     payload: {
-      appName: process.env.APP_TITLE || 'LibreChat',
+      appName: process.env.APP_TITLE || 'Bizu',
       name: user.name || user.username || user.email,
       verificationLink: verificationLink,
       year: new Date().getFullYear(),
@@ -209,7 +209,8 @@ const registerUser = async (user, additionalData = {}) => {
     //determine if this is the first registered user (not counting anonymous_user)
     const isFirstRegisteredUser = (await countUsers()) === 0;
 
-    const salt = bcrypt.genSaltSync(10);
+    // Use async bcrypt to avoid blocking the event loop under concurrent registrations
+    const salt = await bcrypt.genSalt(10);
     const newUserData = {
       provider: provider ?? 'local',
       email,
@@ -217,7 +218,7 @@ const registerUser = async (user, additionalData = {}) => {
       name,
       avatar: null,
       role: isFirstRegisteredUser ? SystemRoles.ADMIN : SystemRoles.USER,
-      password: bcrypt.hashSync(password, salt),
+      password: await bcrypt.hash(password, salt),
       ...additionalData,
     };
 
@@ -292,7 +293,7 @@ const requestPasswordReset = async (req) => {
       email: user.email,
       subject: 'Password Reset Request',
       payload: {
-        appName: process.env.APP_TITLE || 'LibreChat',
+        appName: process.env.APP_TITLE || 'Bizu',
         name: user.name || user.username || user.email,
         link: link,
         year: new Date().getFullYear(),
@@ -348,7 +349,7 @@ const resetPassword = async (userId, token, password) => {
       email: user.email,
       subject: 'Password Reset Successfully',
       payload: {
-        appName: process.env.APP_TITLE || 'LibreChat',
+        appName: process.env.APP_TITLE || 'Bizu',
         name: user.name || user.username || user.email,
         year: new Date().getFullYear(),
       },
@@ -395,7 +396,7 @@ const setAuthTokens = async (userId, res, _session = null) => {
       secure: isProduction,
       sameSite: 'strict',
     });
-    res.cookie('token_provider', 'librechat', {
+    res.cookie('token_provider', 'bizu', {
       expires: new Date(refreshTokenExpires),
       httpOnly: true,
       secure: isProduction,
@@ -525,7 +526,7 @@ const resendVerificationEmail = async (req) => {
       email: user.email,
       subject: 'Verify your email',
       payload: {
-        appName: process.env.APP_TITLE || 'LibreChat',
+        appName: process.env.APP_TITLE || 'Bizu',
         name: user.name || user.username || user.email,
         verificationLink: verificationLink,
         year: new Date().getFullYear(),

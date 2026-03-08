@@ -1,4 +1,4 @@
-const { logger } = require('@librechat/data-schemas');
+const { logger } = require('@bizu/data-schemas');
 const { getMultiplier, getCacheMultiplier } = require('./tx');
 const { Transaction, Balance } = require('~/db/models');
 
@@ -12,7 +12,7 @@ const cancelRate = 1.15;
  * @param {Object} params - The function parameters.
  * @param {string|mongoose.Types.ObjectId} params.user - The user ID.
  * @param {number} params.incrementValue - The value to increment the balance by (can be negative).
- * @param {import('mongoose').UpdateQuery<import('@librechat/data-schemas').IBalance>['$set']} [params.setValues] - Optional additional fields to set.
+ * @param {import('mongoose').UpdateQuery<import('@bizu/data-schemas').IBalance>['$set']} [params.setValues] - Optional additional fields to set.
  * @returns {Promise<Object>} Returns the updated balance document (lean).
  * @throws {Error} Throws an error if the update fails after multiple retries.
  */
@@ -164,10 +164,16 @@ async function createAutoRefillTransaction(txData) {
   if (txData.rawAmount != null && isNaN(txData.rawAmount)) {
     return;
   }
-  const transaction = new Transaction(txData);
+  const { skipBalanceUpdate, ...transactionData } = txData;
+  const transaction = new Transaction(transactionData);
   transaction.endpointTokenConfig = txData.endpointTokenConfig;
   calculateTokenValue(transaction);
   await transaction.save();
+
+  // When skipBalanceUpdate is true, the caller already updated the balance atomically
+  if (skipBalanceUpdate) {
+    return { rate: transaction.rate, user: transaction.user.toString(), transaction };
+  }
 
   const balanceResponse = await updateBalance({
     user: transaction.user,

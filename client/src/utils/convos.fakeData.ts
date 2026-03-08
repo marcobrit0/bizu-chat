@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { EModelEndpoint, ImageDetail } from 'librechat-data-provider';
-import type { ConversationData } from 'librechat-data-provider';
+import { EModelEndpoint, ImageDetail } from 'bizu-data-provider';
+import type { ConversationData } from 'bizu-data-provider';
 
 const today = new Date();
 today.setDate(today.getDate() - 3);

@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import * as RadioGroup from '@radix-ui/react-radio-group';
-import {
-  AuthTypeEnum,
-  AuthorizationTypeEnum,
-  TokenExchangeMethodEnum,
-} from 'librechat-data-provider';
+import { AuthTypeEnum, AuthorizationTypeEnum, TokenExchangeMethodEnum } from 'bizu-data-provider';
 import {
   OGDialog,
   OGDialogClose,
@@ -13,7 +9,7 @@ import {
   OGDialogHeader,
   OGDialogContent,
   OGDialogTrigger,
-} from '@librechat/client';
+} from '@bizu/client';
 import { TranslationKeys, useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 

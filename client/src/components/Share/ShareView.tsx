@@ -1,10 +1,9 @@
 import { memo, useState, useCallback, useContext } from 'react';
-import Cookies from 'js-cookie';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { useParams } from 'react-router-dom';
-import { buildTree } from 'librechat-data-provider';
+import { buildTree } from 'bizu-data-provider';
 import { CalendarDays, Settings } from 'lucide-react';
-import { useGetSharedMessages } from 'librechat-data-provider/react-query';
+import { useGetSharedMessages } from 'bizu-data-provider/react-query';
 import {
   Spinner,
   Button,
@@ -15,8 +14,8 @@ import {
   OGDialogHeader,
   OGDialogContent,
   OGDialogTrigger,
-} from '@librechat/client';
-import { ThemeSelector, LangSelector } from '~/components/Nav/SettingsTabs/General/General';
+} from '@bizu/client';
+import { ThemeSelector } from '~/components/Nav/SettingsTabs/General/General';
 import { ShareArtifactsContainer } from './ShareArtifacts';
 import { useLocalize, useDocumentTitle } from '~/hooks';
 import { useGetStartupConfig } from '~/data-provider';
@@ -36,7 +35,7 @@ function SharedView() {
   const dataTree = data && buildTree({ messages: data.messages });
   const messagesTree = dataTree?.length === 0 ? null : (dataTree ?? null);
 
-  const [langcode, setLangcode] = useRecoilState(store.lang);
+  const langcode = useRecoilValue(store.lang);
 
   // configure document title
   let docTitle = '';
@@ -70,26 +69,6 @@ function SharedView() {
     [setTheme],
   );
 
-  const handleLangChange = useCallback(
-    (value: string) => {
-      let userLang = value;
-      if (value === 'auto') {
-        userLang =
-          (typeof navigator !== 'undefined'
-            ? navigator.language || navigator.languages?.[0]
-            : null) ?? 'en-US';
-      }
-
-      requestAnimationFrame(() => {
-        document.documentElement.lang = userLang;
-      });
-
-      setLangcode(userLang);
-      Cookies.set('lang', userLang, { expires: 365 });
-    },
-    [setLangcode],
-  );
-
   let content: JSX.Element;
   if (isLoading) {
     content = (
@@ -104,9 +83,7 @@ function SharedView() {
           title={data.title}
           formattedDate={formattedDate}
           theme={theme}
-          langcode={langcode}
           onThemeChange={handleThemeChange}
-          onLangChange={handleLangChange}
           settingsLabel={localize('com_nav_settings')}
         />
         <ShareMessagesProvider messages={data.messages}>
@@ -163,20 +140,16 @@ interface ShareHeaderProps {
   title?: string;
   formattedDate: string | null;
   theme: string;
-  langcode: string;
   settingsLabel: string;
   onThemeChange: (value: string) => void;
-  onLangChange: (value: string) => void;
 }
 
 function ShareHeader({
   title,
   formattedDate,
   theme,
-  langcode,
   settingsLabel,
   onThemeChange,
-  onLangChange,
 }: ShareHeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -232,10 +205,6 @@ function ShareHeader({
               <div className="flex flex-col gap-4 pt-2 text-sm">
                 <div className="relative focus-within:z-[100]">
                   <ThemeSelector theme={theme} onChange={onThemeChange} portal={false} />
-                </div>
-                <div className="bg-border-medium/60 h-px w-full" />
-                <div className="relative focus-within:z-[100]">
-                  <LangSelector langcode={langcode} onChange={onLangChange} portal={false} />
                 </div>
               </div>
             </OGDialogContent>

@@ -1,5 +1,5 @@
 // file deepcode ignore HardcodedNonCryptoSecret: No hardcoded secrets
-import { ViolationTypes, ErrorTypes, alternateName } from 'librechat-data-provider';
+import { ViolationTypes, ErrorTypes, alternateName } from 'bizu-data-provider';
 import type { LocalizeFunction } from '~/common';
 import { formatJSON, extractJson, isJson } from '~/utils/json';
 import { useLocalize } from '~/hooks';
@@ -100,7 +100,7 @@ const errorMessages = {
   },
   token_balance: (json: TTokenBalance) => {
     const { balance, tokenCost, promptTokens, generations } = json;
-    const message = `Insufficient Funds! Balance: ${balance}. Prompt tokens: ${promptTokens}. Cost: ${tokenCost}.`;
+    const message = `Créditos insuficientes! Saldo: ${balance}. Tokens usados: ${promptTokens}. Custo: ${tokenCost}. Aguarde a renovação mensal ou faça upgrade.`;
     return (
       <>
         {message}
@@ -126,7 +126,7 @@ const Error = ({ text }: { text: string }) => {
   const localize = useLocalize();
   const jsonString = extractJson(text);
   const errorMessage = text.length > 512 && !jsonString ? text.slice(0, 512) + '...' : text;
-  const defaultResponse = `Something went wrong. Here's the specific error message we encountered: ${errorMessage}`;
+  const defaultResponse = `Algo deu errado. Aqui está a mensagem de erro específica: ${errorMessage}`;
 
   if (!isJson(jsonString)) {
     return defaultResponse;

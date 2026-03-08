@@ -66,10 +66,10 @@ jobs:
       - name: Run unit tests
         run: cd api && npm run test:ci
 
-      - name: Run librechat-data-provider unit tests
+      - name: Run bizu-data-provider unit tests
         run: cd packages/data-provider && npm run test:ci
 
-      - name: Run @librechat/data-schemas unit tests
+      - name: Run @bizu/data-schemas unit tests
         run: cd packages/data-schemas && npm run test:ci
 
       - name: Run @librechat/api unit tests

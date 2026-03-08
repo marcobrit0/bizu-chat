@@ -10,7 +10,7 @@ import {
   OpenAIMinimalIcon,
 } from '@librechat/client';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { TFile } from 'librechat-data-provider';
+import type { TFile } from 'bizu-data-provider';
 import ImagePreview from '~/components/Chat/Input/Files/ImagePreview';
 import FilePreview from '~/components/Chat/Input/Files/FilePreview';
 import { TranslationKeys, useLocalize } from '~/hooks';

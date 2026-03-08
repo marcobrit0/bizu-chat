@@ -1,6 +1,6 @@
 const { z } = require('zod');
 const { tool } = require('@langchain/core/tools');
-const { logger } = require('@librechat/data-schemas');
+const { logger } = require('@bizu/data-schemas');
 const {
   Providers,
   StepTypes,
@@ -564,7 +564,7 @@ async function getMCPSetupData(userId) {
   }
 
   const mcpManager = getMCPManager(userId);
-  /** @type {Map<string, import('@librechat/api').MCPConnection>} */
+  /** @type {Map<string, import('@bizu/api').MCPConnection>} */
   let appConnections = new Map();
   try {
     // Use getLoaded() instead of getAll() to avoid forcing connection creation

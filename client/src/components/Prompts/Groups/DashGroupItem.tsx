@@ -10,7 +10,7 @@ import {
   OGDialogTrigger,
   OGDialogTemplate,
   TrashIcon,
-} from '@librechat/client';
+} from '@bizu/client';
 import { useDeletePromptGroup, useUpdatePromptGroup } from '~/data-provider';
 import CategoryIcon from '~/components/Prompts/Groups/CategoryIcon';
 import { useLocalize, useResourcePermissions } from '~/hooks';

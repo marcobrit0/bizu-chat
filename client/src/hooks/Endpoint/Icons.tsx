@@ -1,5 +1,5 @@
 import { Feather } from 'lucide-react';
-import { EModelEndpoint } from 'librechat-data-provider';
+import { EModelEndpoint } from 'bizu-data-provider';
 import {
   GPTIcon,
   Sparkles,

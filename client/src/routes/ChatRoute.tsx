@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Spinner } from '@librechat/client';
+import { Spinner } from '@bizu/client';
 import { useParams } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue } from 'recoil';
 import { Constants, EModelEndpoint } from 'librechat-data-provider';

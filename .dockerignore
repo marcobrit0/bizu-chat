@@ -1,17 +1,29 @@
-**/.circleci
-**/.editorconfig
-**/.dockerignore
-**/.git
-**/.DS_Store
-**/.vscode
-**/node_modules
+# Dependencies
+node_modules/
 
-# Specific patterns to ignore
-data-node
-meili_data*
-librechat*
-Dockerfile*
-docs
+# Test files
+**/*.spec.js
+**/*.spec.ts
+**/*.test.js
+**/*.test.ts
+**/__tests__/
+e2e/
 
-# Ignore all hidden files
-.*
+# Development configs
+.devcontainer/
+.vscode/
+.github/
+
+# Git and docs
+.git/
+*.md
+
+# Environment files (secrets must be injected at runtime, not baked into images)
+.env
+.env.*
+!.env.example
+
+# Editor and OS files
+.DS_Store
+*.swp
+*.swo

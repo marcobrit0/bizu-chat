@@ -12,8 +12,8 @@ import {
   OGDialogHeader,
   OGDialogContent,
   useToastContext,
-} from '@librechat/client';
-import type { TMessage } from 'librechat-data-provider';
+} from '@bizu/client';
+import type { TMessage } from 'bizu-data-provider';
 import { useDeleteConversationMutation } from '~/data-provider';
 import { useLocalize, useNewConvo } from '~/hooks';
 import { NotificationSeverity } from '~/common';

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useMediaQuery } from '@librechat/client';
+import { useMediaQuery } from '@bizu/client';
 import { useOutletContext } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getConfigDefaults, PermissionTypes, Permissions } from 'librechat-data-provider';

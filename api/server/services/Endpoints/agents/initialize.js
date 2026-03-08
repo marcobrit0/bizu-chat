@@ -1,4 +1,4 @@
-const { logger } = require('@librechat/data-schemas');
+const { logger } = require('@bizu/data-schemas');
 const { createContentAggregator } = require('@librechat/agents');
 const {
   initializeAgent,
@@ -8,7 +8,7 @@ const {
   GenerationJobManager,
   getCustomEndpointConfig,
   createSequentialChainEdges,
-} = require('@librechat/api');
+} = require('@bizu/api');
 const {
   EModelEndpoint,
   isAgentsEndpoint,
