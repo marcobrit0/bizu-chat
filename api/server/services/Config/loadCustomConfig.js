@@ -14,6 +14,7 @@ const {
 
 const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
 const defaultConfigPath = path.resolve(projectRoot, 'bizu.yaml');
+const fallbackConfigPath = path.resolve(projectRoot, 'bizu.example.yaml');
 
 let i = 0;
 
@@ -40,6 +41,12 @@ async function loadCustomConfig(printConfig = true) {
     }
   } else {
     customConfig = loadYaml(configPath);
+    if (!customConfig && configPath === defaultConfigPath) {
+      customConfig = loadYaml(fallbackConfigPath);
+      if (customConfig) {
+        i === 0 && logger.info('Using bizu.example.yaml as fallback configuration.');
+      }
+    }
     if (!customConfig) {
       i === 0 &&
         logger.info(

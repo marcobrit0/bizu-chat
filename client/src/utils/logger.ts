@@ -8,7 +8,11 @@ const createLogFunction = (
   consoleMethod: LogFunction,
   type?: 'log' | 'warn' | 'error' | 'info' | 'debug' | 'dir',
 ): LogFunction => {
+  const isVerbose = type === 'log' || type === 'debug' || type === 'dir' || type === 'info';
   return (...args: unknown[]) => {
+    if (isVerbose && !isLoggerEnabled) {
+      return;
+    }
     if (isDevelopment || isLoggerEnabled) {
       const tag = typeof args[0] === 'string' ? args[0] : '';
       if (shouldLog(tag)) {
