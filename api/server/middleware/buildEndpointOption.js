@@ -1,11 +1,11 @@
-const { handleError } = require('@bizu/api');
-const { logger } = require('@bizu/data-schemas');
+const { handleError } = require('@librechat/api');
+const { logger } = require('@librechat/data-schemas');
 const {
   EndpointURLs,
   EModelEndpoint,
   isAgentsEndpoint,
   parseCompactConvo,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const azureAssistants = require('~/server/services/Endpoints/azureAssistants');
 const assistants = require('~/server/services/Endpoints/assistants');
 const agents = require('~/server/services/Endpoints/agents');

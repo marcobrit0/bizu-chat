@@ -1,4 +1,4 @@
-import { AuthType } from 'bizu-data-provider';
+import { AuthType } from 'librechat-data-provider';
 
 /**
  * Checks if the given value is truthy by being either the boolean `true` or a string

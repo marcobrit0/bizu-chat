@@ -1,5 +1,5 @@
-jest.mock('@bizu/data-schemas', () => ({
-  ...jest.requireActual('@bizu/data-schemas'),
+jest.mock('@librechat/data-schemas', () => ({
+  ...jest.requireActual('@librechat/data-schemas'),
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -7,7 +7,7 @@ jest.mock('@bizu/data-schemas', () => ({
   },
 }));
 
-import { AppService } from '@bizu/data-schemas';
+import { AppService } from '@librechat/data-schemas';
 
 describe('AppService interface configuration', () => {
   beforeEach(() => {

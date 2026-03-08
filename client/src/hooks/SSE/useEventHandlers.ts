@@ -12,8 +12,13 @@ import {
   tMessageSchema,
   tConvoUpdateSchema,
   isAssistantsEndpoint,
-} from 'bizu-data-provider';
-import type { TMessage, TConversation, EventSubmission, TStartupConfig } from 'bizu-data-provider';
+} from 'librechat-data-provider';
+import type {
+  TMessage,
+  TConversation,
+  EventSubmission,
+  TStartupConfig,
+} from 'librechat-data-provider';
 import type { TResData, TFinalResData, ConvoGenerator } from '~/common';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { SetterOrUpdater, Resetter } from 'recoil';

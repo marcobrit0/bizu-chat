@@ -2,7 +2,7 @@ import {
   TConversationTagRequest,
   TConversationTagResponse,
   TConversationTagsResponse,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 
 export const updateConversationTag = (
   queryCache: TConversationTagsResponse,

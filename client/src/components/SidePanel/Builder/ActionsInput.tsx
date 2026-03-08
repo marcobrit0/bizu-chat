@@ -1,16 +1,19 @@
-/* eslint-disable i18next/no-literal-string */
 import debounce from 'lodash/debounce';
 import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Spinner, useToastContext } from '@bizu/client';
-import { validateAndParseOpenAPISpec, openapiToFunction, AuthTypeEnum } from 'bizu-data-provider';
+import { Spinner, useToastContext } from '@librechat/client';
+import {
+  validateAndParseOpenAPISpec,
+  openapiToFunction,
+  AuthTypeEnum,
+} from 'librechat-data-provider';
 import type {
   Action,
   FunctionTool,
   ActionMetadata,
   ValidationResult,
   AssistantsEndpoint,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type { ActionAuthForm, ActionWithNullableMetadata } from '~/common';
 import type { Spec } from './ActionsTable';
 import ActionCallback from '~/components/SidePanel/Builder/ActionCallback';

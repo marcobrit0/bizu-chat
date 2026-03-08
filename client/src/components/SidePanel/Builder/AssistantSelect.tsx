@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
-import { SelectDropDown } from '@bizu/client';
+import { SelectDropDown } from '@librechat/client';
 import {
   Tools,
   FileSources,
@@ -9,14 +9,14 @@ import {
   LocalStorageKeys,
   isImageVisionTool,
   defaultAssistantFormValues,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type {
   TPlugin,
   Assistant,
   AssistantDocument,
   AssistantsEndpoint,
   AssistantCreateParams,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type {
   Actions,
   ExtendedFile,

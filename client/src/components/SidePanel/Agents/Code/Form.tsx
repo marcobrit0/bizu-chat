@@ -1,4 +1,4 @@
-import { Tools } from 'bizu-data-provider';
+import { Tools } from 'librechat-data-provider';
 import type { ExtendedFile } from '~/common';
 import { useVerifyAgentToolAuth } from '~/data-provider';
 import { useLocalize } from '~/hooks';
@@ -23,7 +23,9 @@ export default function CodeForm({
             <span className="text-token-text-primary block font-medium">
               {localize('com_agents_code_interpreter_title')}
             </span>
-            <span className="text-xs text-text-secondary">{localize('com_agents_by_bizu')}</span>
+            <span className="text-xs text-text-secondary">
+              {localize('com_agents_by_librechat')}
+            </span>
           </div>
         </div>
       </div>

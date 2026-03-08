@@ -8,7 +8,7 @@ import {
   TooltipAnchor,
   OGDialogTemplate,
   useToastContext,
-} from '@bizu/client';
+} from '@librechat/client';
 import type { FC } from 'react';
 import { useDeleteConversationTagMutation } from '~/data-provider';
 import { NotificationSeverity } from '~/common';

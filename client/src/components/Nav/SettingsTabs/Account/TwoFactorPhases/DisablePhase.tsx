@@ -8,7 +8,7 @@ import {
   InputOTPSlot,
   InputOTPSeparator,
   Spinner,
-} from '@bizu/client';
+} from '@librechat/client';
 import { useLocalize } from '~/hooks';
 
 const fadeAnimation = {

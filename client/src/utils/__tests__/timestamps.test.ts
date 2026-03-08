@@ -1,4 +1,4 @@
-import { LocalStorageKeys } from 'bizu-data-provider';
+import { LocalStorageKeys } from 'librechat-data-provider';
 import {
   setTimestamp,
   setTimestampedValue,

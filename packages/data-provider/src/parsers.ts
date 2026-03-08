@@ -227,8 +227,6 @@ export const getResponseSender = (endpointOption: Partial<t.TEndpointOption>): s
       return 'Mistral';
     } else if (model && model.includes('deepseek')) {
       return 'Deepseek';
-    } else if (model && model.includes('qwen')) {
-      return 'Qwen';
     } else if (model && model.includes('gpt-')) {
       const gptVersion = extractGPTVersion(model);
       return gptVersion || 'GPT';
@@ -255,9 +253,7 @@ export const getResponseSender = (endpointOption: Partial<t.TEndpointOption>): s
   }
 
   if (endpoint === EModelEndpoint.custom || endpointType === EModelEndpoint.custom) {
-    if (modelDisplayLabel) {
-      return modelDisplayLabel;
-    } else if (modelLabel) {
+    if (modelLabel) {
       return modelLabel;
     } else if (chatGptLabel) {
       // @deprecated - prefer modelLabel
@@ -268,11 +264,11 @@ export const getResponseSender = (endpointOption: Partial<t.TEndpointOption>): s
       return 'Mistral';
     } else if (model && model.includes('deepseek')) {
       return 'Deepseek';
-    } else if (model && model.includes('qwen')) {
-      return 'Qwen';
     } else if (model && model.includes('gpt-')) {
       const gptVersion = extractGPTVersion(model);
       return gptVersion || 'GPT';
+    } else if (modelDisplayLabel) {
+      return modelDisplayLabel;
     }
 
     return 'AI';

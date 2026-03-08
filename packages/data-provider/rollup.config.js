@@ -66,7 +66,7 @@ export default [
       ...Object.keys(pkg.peerDependencies || {}),
       'react',
       'react-dom',
-      // 'bizu-data-provider', // Marking main part as external
+      // 'librechat-data-provider', // Marking main part as external
     ],
     preserveSymlinks: true,
     plugins,

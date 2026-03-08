@@ -1,5 +1,5 @@
 // --- Mocks ---
-jest.mock('@bizu/data-schemas', () => ({
+jest.mock('@librechat/data-schemas', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -8,7 +8,7 @@ jest.mock('@bizu/data-schemas', () => ({
   },
 }));
 
-jest.mock('@bizu/api', () => ({
+jest.mock('@librechat/api', () => ({
   // isEnabled used for TLS flags
   isEnabled: jest.fn(() => false),
   isEmailDomainAllowed: jest.fn(() => true),
@@ -35,8 +35,8 @@ jest.mock('passport-ldapauth', () => {
   });
 });
 
-const { ErrorTypes } = require('bizu-data-provider');
-const { isEmailDomainAllowed } = require('@bizu/api');
+const { ErrorTypes } = require('librechat-data-provider');
+const { isEmailDomainAllowed } = require('@librechat/api');
 const { findUser, createUser, updateUser, countUsers } = require('~/models');
 
 // Helper to call the verify callback and wrap in a Promise for convenience

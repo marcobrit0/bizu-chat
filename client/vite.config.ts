@@ -58,8 +58,8 @@ export default defineConfig(({ command }) => ({
       },
       includeAssets: [],
       manifest: {
-        name: 'Bizu',
-        short_name: 'Bizu',
+        name: 'LibreChat',
+        short_name: 'LibreChat',
         display: 'standalone',
         background_color: '#000000',
         theme_color: '#009688',

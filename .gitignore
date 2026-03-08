@@ -67,8 +67,8 @@ bower_components/
 .flooignore
 
 #config file
-bizu.yaml
-bizu.yml
+librechat.yaml
+librechat.yml
 
 # Environment
 .npmrc
@@ -120,7 +120,7 @@ uploads/
 release/
 
 # Helm
-helm/bizu/Chart.lock
+helm/librechat/Chart.lock
 helm/**/charts/
 helm/**/.values.yaml
 

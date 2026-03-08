@@ -1,4 +1,4 @@
-const { logger } = require('@bizu/data-schemas');
+const { logger } = require('@librechat/data-schemas');
 
 const options = [
   {

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { ContentTypes } from 'bizu-data-provider';
+import { ContentTypes } from 'librechat-data-provider';
 import { useQueryClient } from '@tanstack/react-query';
 
 import type {
@@ -11,7 +11,7 @@ import type {
   TContentData,
   EventSubmission,
   TMessageContentParts,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import { addFileToCache } from '~/utils';
 
 type TUseContentHandler = {

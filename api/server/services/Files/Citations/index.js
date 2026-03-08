@@ -1,13 +1,13 @@
 const { nanoid } = require('nanoid');
-const { checkAccess } = require('@bizu/api');
-const { logger } = require('@bizu/data-schemas');
+const { checkAccess } = require('@librechat/api');
+const { logger } = require('@librechat/data-schemas');
 const {
   Tools,
   Permissions,
   FileSources,
   EModelEndpoint,
   PermissionTypes,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const { getRoleByName } = require('~/models/Role');
 const { Files } = require('~/models');
 

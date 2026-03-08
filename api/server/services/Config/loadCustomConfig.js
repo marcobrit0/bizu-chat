@@ -2,19 +2,18 @@ const path = require('path');
 const axios = require('axios');
 const yaml = require('js-yaml');
 const keyBy = require('lodash/keyBy');
-const { loadYaml } = require('@bizu/api');
-const { logger } = require('@bizu/data-schemas');
+const { loadYaml } = require('@librechat/api');
+const { logger } = require('@librechat/data-schemas');
 const {
   configSchema,
   paramSettings,
   EImageOutputType,
   agentParamSettings,
   validateSettingDefinitions,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 
 const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
-const defaultConfigPath = path.resolve(projectRoot, 'bizu.yaml');
-const fallbackConfigPath = path.resolve(projectRoot, 'bizu.example.yaml');
+const defaultConfigPath = path.resolve(projectRoot, 'librechat.yaml');
 
 let i = 0;
 
@@ -41,16 +40,10 @@ async function loadCustomConfig(printConfig = true) {
     }
   } else {
     customConfig = loadYaml(configPath);
-    if (!customConfig && configPath === defaultConfigPath) {
-      customConfig = loadYaml(fallbackConfigPath);
-      if (customConfig) {
-        i === 0 && logger.info('Using bizu.example.yaml as fallback configuration.');
-      }
-    }
     if (!customConfig) {
       i === 0 &&
         logger.info(
-          'Custom config file missing or YAML format invalid.\n\nCheck out the latest config file guide for configurable options and features.\nhttps://www.bizu.ai/docs/configuration/bizu_yaml\n\n',
+          'Custom config file missing or YAML format invalid.\n\nCheck out the latest config file guide for configurable options and features.\nhttps://www.librechat.ai/docs/configuration/librechat_yaml\n\n',
         );
       i === 0 && i++;
       return null;
@@ -85,7 +78,7 @@ Please specify a correct \`imageOutputType\` value (case-sensitive).
       - ${EImageOutputType.WEBP}
       
       Refer to the latest config file guide for more information:
-      https://www.bizu.ai/docs/configuration/bizu_yaml`,
+      https://www.librechat.ai/docs/configuration/librechat_yaml`,
     );
   }
   if (!result.success) {

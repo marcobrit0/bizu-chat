@@ -1,12 +1,12 @@
 const { sleep } = require('@librechat/agents');
-const { logger } = require('@bizu/data-schemas');
+const { logger } = require('@librechat/data-schemas');
 const { tool: toolFn, DynamicStructuredTool } = require('@langchain/core/tools');
 const {
   getToolkitKey,
   hasCustomUserVars,
   getUserMCPAuthMap,
   isActionDomainAllowed,
-} = require('@bizu/api');
+} = require('@librechat/api');
 const {
   Tools,
   ErrorTypes,
@@ -21,7 +21,7 @@ const {
   validateActionDomain,
   defaultAgentCapabilities,
   validateAndParseOpenAPISpec,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const {
   createActionTool,
   decryptMetadata,

@@ -1,4 +1,4 @@
-import type { MemoriesResponse, TUserMemory, MemoryArtifact } from 'bizu-data-provider';
+import type { MemoriesResponse, TUserMemory, MemoryArtifact } from 'librechat-data-provider';
 
 type HandleMemoryArtifactParams = {
   memoryArtifact: MemoryArtifact;

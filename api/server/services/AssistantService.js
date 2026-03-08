@@ -1,7 +1,7 @@
 const { klona } = require('klona');
 const { sleep } = require('@librechat/agents');
-const { sendEvent } = require('@bizu/api');
-const { logger } = require('@bizu/data-schemas');
+const { sendEvent } = require('@librechat/api');
+const { logger } = require('@librechat/data-schemas');
 const {
   StepTypes,
   RunStatus,
@@ -11,7 +11,7 @@ const {
   imageGenTools,
   EModelEndpoint,
   defaultOrderQuery,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const { retrieveAndProcessFile } = require('~/server/services/Files/process');
 const { processRequiredActions } = require('~/server/services/ToolService');
 const { RunManager, waitForRun } = require('~/server/services/Runs');

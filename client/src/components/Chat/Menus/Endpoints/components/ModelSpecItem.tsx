@@ -16,17 +16,14 @@ interface ModelSpecItemProps {
 export function ModelSpecItem({ spec, isSelected }: ModelSpecItemProps) {
   const localize = useLocalize();
   const { handleSelectSpec, endpointsConfig } = useModelSelectorContext();
-  const { user } = useAuthContext();
   const { showIconInMenu = true } = spec;
-  const isLocked = isModelSpecLocked(spec, user?.plan);
   return (
     <MenuItem
       key={spec.name}
       onClick={() => handleSelectSpec(spec)}
       aria-selected={isSelected || undefined}
       className={cn(
-        'flex w-full items-center justify-between rounded-lg px-2 text-sm',
-        isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+        'flex w-full cursor-pointer items-center justify-between rounded-lg px-2 text-sm',
       )}
     >
       <div
@@ -47,12 +44,6 @@ export function ModelSpecItem({ spec, isSelected }: ModelSpecItemProps) {
           )}
         </div>
       </div>
-      {isLocked && (
-        <span className="ml-auto mr-2 flex flex-shrink-0 items-center gap-1 rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-400">
-          <LockIcon className="size-3" />
-          Premium
-        </span>
-      )}
       {isSelected && (
         <>
           <CheckCircle2

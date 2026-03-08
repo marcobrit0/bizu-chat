@@ -1,5 +1,5 @@
 import TextareaAutosize from 'react-textarea-autosize';
-import { EModelEndpoint, endpointSettings } from 'bizu-data-provider';
+import { EModelEndpoint, endpointSettings } from 'librechat-data-provider';
 import {
   Input,
   Label,
@@ -8,7 +8,7 @@ import {
   InputNumber,
   SelectDropDown,
   HoverCardTrigger,
-} from '@bizu/client';
+} from '@librechat/client';
 import type { TModelSelectProps, OnInputNumberChange } from '~/common';
 import { cn, defaultTextProps, optionText, removeFocusOutlines, removeFocusRings } from '~/utils';
 import OptionHoverAlt from '~/components/SidePanel/Parameters/OptionHover';

@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
-import { ResourceType, PrincipalType, PrincipalModel, PermissionBits } from 'bizu-data-provider';
+import {
+  ResourceType,
+  PrincipalType,
+  PrincipalModel,
+  PermissionBits,
+} from 'librechat-data-provider';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type * as t from '~/types';
 import { createAclEntryMethods } from './aclEntry';

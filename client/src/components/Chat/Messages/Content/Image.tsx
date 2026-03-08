@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Skeleton } from '@bizu/client';
+import { Skeleton } from '@librechat/client';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
-import { apiBaseUrl } from 'bizu-data-provider';
+import { apiBaseUrl } from 'librechat-data-provider';
 import { cn, scaleImage } from '~/utils';
 import DialogImage from './DialogImage';
 

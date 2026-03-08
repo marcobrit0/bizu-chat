@@ -18,7 +18,7 @@ const {
   actionDelimiter,
   isImageVisionTool,
   actionDomainSeparator,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const { findToken, updateToken, createToken } = require('~/models');
 const { getActions, deleteActions } = require('~/models/Action');
 const { deleteAssistant } = require('~/models/Assistant');
@@ -149,7 +149,7 @@ async function createActionTool({
   /** @type {(toolInput: Object | string, config: GraphRunnableConfig) => Promise<unknown>} */
   const _call = async (toolInput, config) => {
     try {
-      /** @type {import('bizu-data-provider').ActionMetadataRuntime} */
+      /** @type {import('librechat-data-provider').ActionMetadataRuntime} */
       const metadata = action.metadata;
       const executor = requestBuilder.createExecutor();
       const preparedExecutor = executor.setParams(toolInput ?? {});

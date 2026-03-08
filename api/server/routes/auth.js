@@ -1,5 +1,5 @@
 const express = require('express');
-const { createSetBalanceConfig } = require('@bizu/api');
+const { createSetBalanceConfig } = require('@librechat/api');
 const {
   resetPasswordRequestController,
   resetPasswordController,
@@ -40,8 +40,7 @@ router.post(
   setBalanceConfig,
   loginController,
 );
-// Rate-limit refresh token endpoint to prevent brute-force/replay attacks
-router.post('/refresh', middleware.refreshLimiter, refreshController);
+router.post('/refresh', refreshController);
 router.post(
   '/register',
   middleware.registerLimiter,

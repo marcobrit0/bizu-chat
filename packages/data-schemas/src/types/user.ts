@@ -10,7 +10,6 @@ export interface IUser extends Document {
   avatar?: string;
   provider: string;
   role?: string;
-  plan?: 'free' | 'premium' | 'pro_global';
   googleId?: string;
   facebookId?: string;
   openidId?: string;
@@ -53,7 +52,6 @@ export interface BalanceConfig {
   refillIntervalValue?: number;
   refillIntervalUnit?: string;
   refillAmount?: number;
-  maxRefillCount?: number;
 }
 
 export interface CreateUserRequest extends Partial<IUser> {
@@ -65,7 +63,6 @@ export interface UpdateUserRequest {
   username?: string;
   email?: string;
   role?: string;
-  plan?: 'free' | 'premium' | 'pro_global';
   emailVerified?: boolean;
   avatar?: string;
   plugins?: string[];

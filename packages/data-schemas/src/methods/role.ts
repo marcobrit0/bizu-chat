@@ -1,4 +1,4 @@
-import { roleDefaults, SystemRoles } from 'bizu-data-provider';
+import { roleDefaults, SystemRoles } from 'librechat-data-provider';
 
 // Factory function that takes mongoose instance and returns the methods
 export function createRoleMethods(mongoose: typeof import('mongoose')) {
@@ -20,18 +20,8 @@ export function createRoleMethods(mongoose: typeof import('mongoose')) {
         const permissions = role.toObject()?.permissions ?? {};
         role.permissions = role.permissions || {};
         for (const permType of Object.keys(defaultPerms)) {
-          const currentPerms = permissions[permType];
-          const defaults = defaultPerms[permType as keyof typeof defaultPerms];
-          if (currentPerms == null || Object.keys(currentPerms).length === 0) {
-            role.permissions[permType] = defaults;
-          } else {
-            // Merge individual missing permissions from defaults
-            role.permissions[permType] = { ...currentPerms };
-            for (const [key, value] of Object.entries(defaults as Record<string, unknown>)) {
-              if (currentPerms[key] == null) {
-                role.permissions[permType][key] = value;
-              }
-            }
+          if (permissions[permType] == null || Object.keys(permissions[permType]).length === 0) {
+            role.permissions[permType] = defaultPerms[permType as keyof typeof defaultPerms];
           }
         }
       }

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useGetModelsQuery } from 'bizu-data-provider/react-query';
-import { Spinner, useToastContext, SelectDropDown } from '@bizu/client';
+import { useGetModelsQuery } from 'librechat-data-provider/react-query';
+import { Spinner, useToastContext, SelectDropDown } from '@librechat/client';
 import { useForm, FormProvider, Controller, useWatch } from 'react-hook-form';
 import {
   Tools,
@@ -8,8 +8,8 @@ import {
   actionDelimiter,
   ImageVisionTool,
   defaultAssistantFormValues,
-} from 'bizu-data-provider';
-import type { FunctionTool, TConfig } from 'bizu-data-provider';
+} from 'librechat-data-provider';
+import type { FunctionTool, TConfig } from 'librechat-data-provider';
 import type { AssistantForm, AssistantPanelProps } from '~/common';
 import {
   useCreateAssistantMutation,

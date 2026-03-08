@@ -18,7 +18,7 @@ const {
   getTransactionsConfig,
   createMemoryProcessor,
   filterMalformedContentParts,
-} = require('@bizu/api');
+} = require('@librechat/api');
 const {
   Callback,
   Providers,
@@ -674,7 +674,7 @@ class AgentClient extends BaseClient {
       agent.model_parameters,
     );
 
-    /** @type {import('@bizu/api').MemoryConfig} */
+    /** @type {import('@librechat/api').MemoryConfig} */
     const config = {
       validKeys: memoryConfig.validKeys,
       instructions: agent.instructions,

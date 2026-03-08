@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { SystemRoles } from 'bizu-data-provider';
+import { SystemRoles } from 'librechat-data-provider';
 import { IUser } from '~/types';
 
 // Session sub-schema
@@ -65,11 +65,6 @@ const userSchema = new Schema<IUser>(
     role: {
       type: String,
       default: SystemRoles.USER,
-    },
-    plan: {
-      type: String,
-      enum: ['free', 'premium', 'pro_global'],
-      default: 'free',
     },
     googleId: {
       type: String,

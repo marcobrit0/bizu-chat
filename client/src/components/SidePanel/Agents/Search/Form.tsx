@@ -1,4 +1,4 @@
-import { Tools } from 'bizu-data-provider';
+import { Tools } from 'librechat-data-provider';
 import { useVerifyAgentToolAuth } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import Action from './Action';

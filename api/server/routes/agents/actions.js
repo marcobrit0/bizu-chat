@@ -1,7 +1,7 @@
 const express = require('express');
 const { nanoid } = require('nanoid');
-const { logger } = require('@bizu/data-schemas');
-const { generateCheckAccess, isActionDomainAllowed } = require('@bizu/api');
+const { logger } = require('@librechat/data-schemas');
+const { generateCheckAccess, isActionDomainAllowed } = require('@librechat/api');
 const {
   Permissions,
   ResourceType,
@@ -11,7 +11,7 @@ const {
   removeNullishValues,
   validateActionDomain,
   validateAndParseOpenAPISpec,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const { encryptMetadata, domainParser } = require('~/server/services/ActionService');
 const { findAccessibleResources } = require('~/server/services/PermissionService');
 const { getAgent, updateAgent, getListAgentsByAccess } = require('~/models/Agent');

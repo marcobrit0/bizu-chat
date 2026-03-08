@@ -34,7 +34,7 @@ jest.mock('axios', () => {
   };
 });
 
-jest.mock('@bizu/data-schemas', () => ({
+jest.mock('@librechat/data-schemas', () => ({
   logger: {
     error: jest.fn(),
   },
@@ -59,7 +59,7 @@ import type {
   ServerRequest,
   OCRResult,
 } from '~/types';
-import { logger as mockLogger } from '@bizu/data-schemas';
+import { logger as mockLogger } from '@librechat/data-schemas';
 import { readFileAsBuffer } from '~/utils/files';
 import {
   uploadDocumentToMistral,

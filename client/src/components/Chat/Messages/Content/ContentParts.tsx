@@ -5,7 +5,7 @@ import type {
   SearchResultData,
   TAttachment,
   Agents,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import { MessageContext, SearchContext } from '~/Providers';
 import { ParallelContentRenderer, type PartWithIndex } from './ParallelContent';
 import { mapAttachments } from '~/utils';

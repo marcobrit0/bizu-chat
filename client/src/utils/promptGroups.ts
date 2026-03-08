@@ -1,10 +1,10 @@
-import { InfiniteCollections, QueryKeys } from 'bizu-data-provider';
+import { InfiniteCollections, QueryKeys } from 'librechat-data-provider';
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import type {
   PromptGroupListResponse,
   PromptGroupListData,
   TPromptGroup,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import {
   addData,
   deleteData,

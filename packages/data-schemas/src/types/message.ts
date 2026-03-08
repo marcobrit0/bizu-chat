@@ -1,5 +1,5 @@
 import type { Document } from 'mongoose';
-import type { TFeedbackRating, TFeedbackTag } from 'bizu-data-provider';
+import type { TFeedbackRating, TFeedbackTag } from 'librechat-data-provider';
 
 // @ts-ignore
 export interface IMessage extends Document {

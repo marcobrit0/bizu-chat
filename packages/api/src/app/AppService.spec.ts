@@ -7,11 +7,11 @@ import {
   defaultSocialLogins,
   validateAzureGroups,
   defaultAgentCapabilities,
-} from 'bizu-data-provider';
-import type { TCustomConfig } from 'bizu-data-provider';
+} from 'librechat-data-provider';
+import type { TCustomConfig } from 'librechat-data-provider';
 
-jest.mock('@bizu/data-schemas', () => ({
-  ...jest.requireActual('@bizu/data-schemas'),
+jest.mock('@librechat/data-schemas', () => ({
+  ...jest.requireActual('@librechat/data-schemas'),
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -20,13 +20,13 @@ jest.mock('@bizu/data-schemas', () => ({
   },
 }));
 
-import { AppService } from '@bizu/data-schemas';
+import { AppService } from '@librechat/data-schemas';
 
 const azureGroups = [
   {
-    group: 'bizu-westus',
+    group: 'librechat-westus',
     apiKey: '${WESTUS_API_KEY}',
-    instanceName: 'bizu-westus',
+    instanceName: 'librechat-westus',
     version: '2023-12-01-preview',
     models: {
       'gpt-4-vision-preview': {
@@ -48,9 +48,9 @@ const azureGroups = [
     },
   },
   {
-    group: 'bizu-eastus',
+    group: 'librechat-eastus',
     apiKey: '${EASTUS_API_KEY}',
-    instanceName: 'bizu-eastus',
+    instanceName: 'librechat-eastus',
     deploymentName: 'gpt-4-turbo',
     version: '2024-02-15-preview',
     models: {

@@ -1,11 +1,11 @@
-const { logger, webSearchKeys } = require('@bizu/data-schemas');
-const { Tools, CacheKeys, Constants, FileSources } = require('bizu-data-provider');
+const { logger, webSearchKeys } = require('@librechat/data-schemas');
+const { Tools, CacheKeys, Constants, FileSources } = require('librechat-data-provider');
 const {
   MCPOAuthHandler,
   MCPTokenStorage,
   normalizeHttpError,
   extractWebSearchEnvVars,
-} = require('@bizu/api');
+} = require('@librechat/api');
 const {
   deleteAllUserSessions,
   deleteAllSharedLinks,

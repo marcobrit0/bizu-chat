@@ -1,4 +1,4 @@
-const { FileSources, FileContext } = require('bizu-data-provider');
+const { FileSources, FileContext } = require('librechat-data-provider');
 
 /**
  * Determines the appropriate file storage strategy based on file type and configuration.

@@ -1,4 +1,4 @@
-const { logger } = require('@bizu/data-schemas');
+const { logger } = require('@librechat/data-schemas');
 const {
   EnvVar,
   Calculator,
@@ -20,7 +20,7 @@ const {
   EToolResources,
   PermissionTypes,
   replaceSpecialVars,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const {
   availableTools,
   manifestToolMap,

@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { AttachmentIcon } from '@bizu/client';
+import { AttachmentIcon } from '@librechat/client';
 import {
   EToolResources,
   EModelEndpoint,
   mergeFileConfig,
   AgentCapabilities,
   getEndpointFileConfig,
-} from 'bizu-data-provider';
+} from 'librechat-data-provider';
 import type { ExtendedFile, AgentForm } from '~/common';
 import { useFileHandling, useLocalize, useLazyEffect } from '~/hooks';
 import FileRow from '~/components/Chat/Input/Files/FileRow';

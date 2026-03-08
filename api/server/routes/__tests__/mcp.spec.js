@@ -44,7 +44,7 @@ jest.mock('@librechat/api', () => {
   };
 });
 
-jest.mock('@bizu/data-schemas', () => ({
+jest.mock('@librechat/data-schemas', () => ({
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -274,7 +274,7 @@ describe('MCP Routes', () => {
   });
 
   describe('GET /:serverName/oauth/callback', () => {
-    const { MCPOAuthHandler, MCPTokenStorage } = require('@bizu/api');
+    const { MCPOAuthHandler, MCPTokenStorage } = require('@librechat/api');
     const { getLogStores } = require('~/cache');
 
     it('should redirect to error page when OAuth error is received', async () => {
@@ -362,7 +362,7 @@ describe('MCP Routes', () => {
       require('~/config').getMCPManager.mockReturnValue(mockMcpManager);
 
       const { getCachedTools, setCachedTools } = require('~/server/services/Config');
-      const { Constants } = require('bizu-data-provider');
+      const { Constants } = require('librechat-data-provider');
       getCachedTools.mockResolvedValue({
         [`existing-tool${Constants.mcp_delimiter}test-server`]: { type: 'function' },
         [`other-tool${Constants.mcp_delimiter}other-server`]: { type: 'function' },
@@ -796,7 +796,7 @@ describe('MCP Routes', () => {
   });
 
   describe('POST /oauth/cancel/:serverName', () => {
-    const { MCPOAuthHandler } = require('@bizu/api');
+    const { MCPOAuthHandler } = require('@librechat/api');
     const { getLogStores } = require('~/cache');
 
     it('should cancel OAuth flow successfully', async () => {
@@ -1056,7 +1056,7 @@ describe('MCP Routes', () => {
       require('~/config').getMCPManager.mockReturnValue(mockMcpManager);
       require('~/config').getFlowStateManager.mockReturnValue({});
       require('~/cache').getLogStores.mockReturnValue({});
-      require('@bizu/api').getUserMCPAuthMap.mockResolvedValue({
+      require('@librechat/api').getUserMCPAuthMap.mockResolvedValue({
         'mcp:test-server': {
           API_KEY: 'api-key-value',
         },
@@ -1083,7 +1083,7 @@ describe('MCP Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(require('@bizu/api').getUserMCPAuthMap).toHaveBeenCalledWith({
+      expect(require('@librechat/api').getUserMCPAuthMap).toHaveBeenCalledWith({
         userId: 'test-user-id',
         servers: ['test-server'],
         findPluginAuthsByKeys: require('~/models').findPluginAuthsByKeys,

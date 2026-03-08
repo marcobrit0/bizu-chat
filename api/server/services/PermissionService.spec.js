@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
-const { RoleBits, createModels } = require('@bizu/data-schemas');
+const { RoleBits, createModels } = require('@librechat/data-schemas');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const {
   ResourceType,
   AccessRoleIds,
   PrincipalType,
   PrincipalModel,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 const {
   bulkUpdateResourcePermissions,
   getEffectivePermissions,
@@ -18,10 +18,10 @@ const {
 const { findRoleByIdentifier, getUserPrincipals, seedDefaultRoles } = require('~/models');
 
 // Mock the getTransactionSupport function for testing
-jest.mock('@bizu/data-schemas', () => ({
-  ...jest.requireActual('@bizu/data-schemas'),
+jest.mock('@librechat/data-schemas', () => ({
+  ...jest.requireActual('@librechat/data-schemas'),
   getTransactionSupport: jest.fn().mockResolvedValue(false),
-  createModels: jest.requireActual('@bizu/data-schemas').createModels,
+  createModels: jest.requireActual('@librechat/data-schemas').createModels,
 }));
 
 // Mock GraphApiService to prevent config loading issues

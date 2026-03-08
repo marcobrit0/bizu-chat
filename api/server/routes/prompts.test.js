@@ -9,7 +9,7 @@ const {
   AccessRoleIds,
   PrincipalType,
   PermissionBits,
-} = require('bizu-data-provider');
+} = require('librechat-data-provider');
 
 // Mock modules before importing
 jest.mock('~/server/services/Config', () => ({

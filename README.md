@@ -1,27 +1,53 @@
-# Bizu
+<p align="center">
+  <a href="https://librechat.ai">
+    <img src="client/public/assets/logo.svg" height="256">
+  </a>
+  <h1 align="center">
+    <a href="https://librechat.ai">LibreChat</a>
+  </h1>
+</p>
 
-Bizu é um fork simplificado do Bizu, focado em PT-BR e em uma experiência de chat rápida e utilitária para usuários sensíveis a preço, usando modelos via OpenRouter.
+<p align="center">
+  <a href="https://discord.librechat.ai"> 
+    <img
+      src="https://img.shields.io/discord/1086345563026489514?label=&logo=discord&style=for-the-badge&logoWidth=20&logoColor=white&labelColor=000000&color=blueviolet">
+  </a>
+  <a href="https://www.youtube.com/@LibreChat"> 
+    <img
+      src="https://img.shields.io/badge/YOUTUBE-red.svg?style=for-the-badge&logo=youtube&logoColor=white&labelColor=000000&logoWidth=20">
+  </a>
+  <a href="https://docs.librechat.ai"> 
+    <img
+      src="https://img.shields.io/badge/DOCS-blue.svg?style=for-the-badge&logo=read-the-docs&logoColor=white&labelColor=000000&logoWidth=20">
+  </a>
+  <a aria-label="Sponsors" href="https://github.com/sponsors/danny-avila">
+    <img
+      src="https://img.shields.io/badge/SPONSORS-brightgreen.svg?style=for-the-badge&logo=github-sponsors&logoColor=white&labelColor=000000&logoWidth=20">
+  </a>
+</p>
 
-## Escopo atual
-- Chat básico com streaming e busca na web.
-- Seleção de modelos com bloqueio/etiqueta de upgrade (planos: free, basic_cn, pro_global futuro).
-- OpenRouter como provedor principal.
-- Interface apenas em PT-BR.
+<p align="center">
+<a href="https://railway.app/template/b5k2mn?referralCode=HI9hWz">
+  <img src="https://railway.app/button.svg" alt="Deploy on Railway" height="30">
+</a>
+<a href="https://zeabur.com/templates/0X2ZY8">
+  <img src="https://zeabur.com/button.svg" alt="Deploy on Zeabur" height="30"/>
+</a>
+<a href="https://template.cloud.sealos.io/deploy?templateName=librechat">
+  <img src="https://raw.githubusercontent.com/labring-actions/templates/main/Deploy-on-Sealos.svg" alt="Deploy on Sealos" height="30">
+</a>
+</p>
 
-## O que removemos nesta fase
-- Automação/infra de OSS e contêineres (GitHub Actions, Helm, Docker/Compose, redis cluster, e2e Playwright).
-- Licença e changelog do projeto original.
-- Idiomas não PT-BR.
-- Exemplos/artefatos de deploy do Bizu que não fazem parte do Bizu.
+<p align="center">
+  <a href="https://www.librechat.ai/docs/translation">
+    <img 
+      src="https://img.shields.io/badge/dynamic/json.svg?style=for-the-badge&color=2096F3&label=locize&query=%24.translatedPercentage&url=https://api.locize.app/badgedata/4cb2598b-ed4d-469c-9b04-2ed531a8cb45&suffix=%+translated" 
+      alt="Translation Progress">
+  </a>
+</p>
 
-## Estrutura do repositório
-- `packages/*`: stack principal a ser usada no Bizu.
-- `api/` e `client/`: legado do Bizu, mantido apenas como referência (não ativo na fase atual).
 
-## Próximos passos
-- Fase 2: esconder agentes, imagens, arquivos, presets e áudio na UI.
-- Integrar Supabase Auth + Stripe (basic_cn) e limites pós-resposta por plano.
-- Ajustar seletor de modelos com dados vindos do backend de planos/modelos.
+# ✨ Features
 
 - 🖥️ **UI & Experience** inspired by ChatGPT with enhanced design and features
 
