@@ -67,7 +67,7 @@ bower_components/
 .flooignore
 
 #config file
-librechat.yaml
+# librechat.yaml is tracked — it IS the Bizu config
 librechat.yml
 
 # Environment
