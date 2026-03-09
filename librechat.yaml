@@ -72,7 +72,7 @@ modelSpecs:
   enforce: true
   prioritize: true
   list:
-    # ── Free Tier Models ──
+    # ── Free Tier Models (all users) ──
 
     # DeepSeek V3.2 — flagship default model
     - name: 'deepseek-v3.2'
@@ -82,14 +82,6 @@ modelSpecs:
       preset:
         endpoint: 'OpenRouter'
         model: 'deepseek/deepseek-v3.2'
-
-    # DeepSeek V3 (free) — rate-limited free fallback
-    - name: 'deepseek-v3-free'
-      label: 'DeepSeek V3'
-      description: 'Versão gratuita com limite de requisições — ótimo para uso leve'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'deepseek/deepseek-chat-v3-0324:free'
 
     # Llama 4 Maverick — Meta's best open model
     - name: 'llama-4-maverick'
@@ -107,31 +99,7 @@ modelSpecs:
         endpoint: 'OpenRouter'
         model: 'qwen/qwen3-235b-a22b:free'
 
-    # Gemma 3 27B — Google's open model
-    - name: 'gemma-3-27b'
-      label: 'Gemma 3 27B'
-      description: 'Modelo aberto do Google — limpo, rápido e versátil'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'google/gemma-3-27b-it:free'
-
-    # Llama 3.3 70B — reliable workhorse
-    - name: 'llama-3.3-70b'
-      label: 'Llama 3.3 70B'
-      description: 'Modelo robusto e confiável — bom substituto quando outros estão limitados'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'meta-llama/llama-3.3-70b-instruct:free'
-
-    # Mistral Small 3 — fast and extremely cheap
-    - name: 'mistral-small-3'
-      label: 'Mistral Small 3'
-      description: '24B parâmetros, 3x mais rápido que Llama 70B — extremamente econômico'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'mistralai/mistral-small-24b-instruct-2501'
-
-    # ── Premium Tier Models ──
+    # ── Premium Tier Models (pro plan — R$20/mês) ──
 
     # Gemini 2.5 Flash — Google's reasoning workhorse
     - name: 'gemini-2.5-flash'
@@ -141,38 +109,6 @@ modelSpecs:
         endpoint: 'OpenRouter'
         model: 'google/gemini-2.5-flash'
 
-    # Gemini 2.5 Flash Lite — even cheaper, speed-focused
-    - name: 'gemini-2.5-flash-lite'
-      label: 'Gemini 2.5 Flash Lite'
-      description: 'Mais barato e rápido — para quem prioriza velocidade'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'google/gemini-2.5-flash-lite'
-
-    # Grok 4.1 Fast — near-frontier quality at high speed
-    - name: 'grok-4.1-fast'
-      label: 'Grok 4.1 Fast'
-      description: 'Contexto de 2M, melhor modelo agentic da xAI — rápido e acessível'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'x-ai/grok-4.1-fast'
-
-    # Claude Haiku 4.5 — best "Claude feel" at budget price
-    - name: 'claude-haiku-4.5'
-      label: 'Claude Haiku 4.5'
-      description: 'Qualidade Anthropic acessível — contexto de 200K, 73%+ SWE-bench'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'anthropic/claude-haiku-4.5'
-
-    # Qwen3.5 Plus — excellent reasoning, strong PT-BR
-    - name: 'qwen3.5-plus'
-      label: 'Qwen3.5 Plus'
-      description: 'Arquitetura híbrida MoE — contexto de 1M, visão nativa, forte em PT-BR'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'qwen/qwen3.5-plus-02-15'
-
     # DeepSeek R1 — chain-of-thought reasoning model
     - name: 'deepseek-r1'
       label: 'DeepSeek R1'
@@ -181,21 +117,13 @@ modelSpecs:
         endpoint: 'OpenRouter'
         model: 'deepseek/deepseek-r1'
 
-    # Mistral Small 3.1 — fast with 128K context
-    - name: 'mistral-small-3.1'
-      label: 'Mistral Small 3.1'
-      description: '24B parâmetros, contexto de 128K — multimodal, rápido e versátil'
+    # Grok 4.1 Fast — near-frontier quality at high speed
+    - name: 'grok-4.1-fast'
+      label: 'Grok 4.1 Fast'
+      description: 'Contexto de 2M, rápido e acessível — da xAI'
       preset:
         endpoint: 'OpenRouter'
-        model: 'mistralai/mistral-small-3.1-24b-instruct'
-
-    # Z.AI GLM 4.7 — strong multilingual reasoning
-    - name: 'glm-4.7'
-      label: 'Z.AI GLM 4.7'
-      description: 'Contexto de 200K, programação e raciocínio avançado — da Zhipu AI'
-      preset:
-        endpoint: 'OpenRouter'
-        model: 'z-ai/glm-4.7'
+        model: 'x-ai/grok-4.1-fast'
 
 # Models via OpenRouter
 endpoints:
@@ -207,21 +135,12 @@ endpoints:
         default:
           # Free Tier
           - 'deepseek/deepseek-v3.2'
-          - 'deepseek/deepseek-chat-v3-0324:free'
           - 'meta-llama/llama-4-maverick:free'
           - 'qwen/qwen3-235b-a22b:free'
-          - 'google/gemma-3-27b-it:free'
-          - 'meta-llama/llama-3.3-70b-instruct:free'
-          - 'mistralai/mistral-small-24b-instruct-2501'
           # Premium Tier
           - 'google/gemini-2.5-flash'
-          - 'google/gemini-2.5-flash-lite'
-          - 'x-ai/grok-4.1-fast'
-          - 'anthropic/claude-haiku-4.5'
-          - 'qwen/qwen3.5-plus-02-15'
           - 'deepseek/deepseek-r1'
-          - 'mistralai/mistral-small-3.1-24b-instruct'
-          - 'z-ai/glm-4.7'
+          - 'x-ai/grok-4.1-fast'
         fetch: false
       titleConvo: true
       titleModel: 'deepseek/deepseek-v3.2'
