@@ -2922,3 +2922,18 @@ html {
 .sharepoint-picker-bg {
   background-color: #f5f5f5;
 }
+
+/* ── Bizu Custom Overrides ── */
+
+/* Hide model/endpoint icons in the sidebar conversation list */
+[data-testid="convo-icon"] {
+  display: none !important;
+}
+
+/* Hide icons next to messages in chat.
+   .message-render has two child divs: icon column + content column.
+   The content column always has .agent-turn or .user-turn.
+   The icon column never has those classes. */
+.message-render > div:first-child:not(.agent-turn):not(.user-turn) {
+  display: none !important;
+}
