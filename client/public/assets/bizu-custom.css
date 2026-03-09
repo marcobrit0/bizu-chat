@@ -8,18 +8,17 @@
  */
 
 /* ── Hide model/endpoint icons in the sidebar conversation list ── */
-/* ConvoLink renders: [EndpointIcon] [title] [gradient fade] */
-/* Target the first child of the ConvoLink flex container (the icon) */
-[data-testid="convo-item"] .flex.grow.items-center.gap-2 > :first-child:not(.relative.flex-1) {
-  display: none;
-}
-/* Also close the gap left behind */
-[data-testid="convo-item"] .flex.grow.items-center.gap-2 {
-  gap: 0;
+/* MinimalIcon renders with data-testid="convo-icon" */
+[data-testid="convo-icon"] {
+  display: none !important;
 }
 
-/* ── Hide model/endpoint icons next to assistant messages in chat ── */
-/* MessageRender: .message-render > div.relative.flex.flex-shrink-0 (icon column) */
-.message-render > .relative.flex.flex-shrink-0.flex-col.items-center {
-  display: none;
+/* ── Hide icons next to messages in chat ── */
+/* .message-render has two children: icon column + content column.
+   Content column has class .agent-turn or .user-turn (hardcoded).
+   Use :has() to target .message-render that contains a turn class,
+   then hide the first child (icon column). */
+.message-render:has(.agent-turn) > div:first-child:not(.agent-turn),
+.message-render:has(.user-turn) > div:first-child:not(.user-turn) {
+  display: none !important;
 }
