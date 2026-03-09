@@ -1,0 +1,25 @@
+/*
+ * Bizu Custom Overrides
+ * ---------------------
+ * This file is loaded via <link> in index.html and is never touched by
+ * upstream LibreChat — safe from merge conflicts.
+ *
+ * To add more overrides, just append rules here.
+ */
+
+/* ── Hide model/endpoint icons in the sidebar conversation list ── */
+/* ConvoLink renders: [EndpointIcon] [title] [gradient fade] */
+/* Target the first child of the ConvoLink flex container (the icon) */
+[data-testid="convo-item"] .flex.grow.items-center.gap-2 > :first-child:not(.relative.flex-1) {
+  display: none;
+}
+/* Also close the gap left behind */
+[data-testid="convo-item"] .flex.grow.items-center.gap-2 {
+  gap: 0;
+}
+
+/* ── Hide model/endpoint icons next to assistant messages in chat ── */
+/* MessageRender: .message-render > div.relative.flex.flex-shrink-0 (icon column) */
+.message-render > .relative.flex.flex-shrink-0.flex-col.items-center {
+  display: none;
+}
