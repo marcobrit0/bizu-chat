@@ -17,7 +17,7 @@ interface:
   fileSearch: false
   endpointsMenu: false
   sidePanel: false
-  modelSelect: true
+  modelSelect: false
   parameters: true
   fileCitations: false
   marketplace:
