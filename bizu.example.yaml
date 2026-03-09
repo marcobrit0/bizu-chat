@@ -17,7 +17,7 @@ interface:
   multiConvo: false
   fileSearch: false
   endpointsMenu: false
-  sidePanel: true
+  sidePanel: false
   modelSelect: true
   parameters: true
   fileCitations: false
