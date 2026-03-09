@@ -217,6 +217,9 @@ const tokenValues = Object.assign(
     'qwen3-30b-a3b': { prompt: 0.06, completion: 0.22 },
     'qwen3-32b': { prompt: 0.05, completion: 0.2 },
     'qwen3-235b-a22b': { prompt: 0.08, completion: 0.55 },
+    // Llama 4 models
+    'llama-4-maverick': { prompt: 0.18, completion: 0.18 },
+    'llama-4-scout': { prompt: 0.12, completion: 0.12 },
     // Qwen3 VL (Vision-Language) models
     'qwen3-vl-8b-thinking': { prompt: 0.18, completion: 2.1 },
     'qwen3-vl-8b-instruct': { prompt: 0.18, completion: 0.69 },
