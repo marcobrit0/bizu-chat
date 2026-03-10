@@ -55,16 +55,30 @@ interface:
 
 balance:
   enabled: true
-  startBalance: 100000
+  startBalance: 5000
   autoRefillEnabled: true
   refillIntervalValue: 30
   refillIntervalUnit: 'days'
-  refillAmount: 100000
-  # Cap total auto-refills per user (0 = unlimited). Set before Stripe integration.
-  maxRefillCount: 3
+  refillAmount: 5000
+  # 0 = unlimited refills — free tier is free forever, just capped monthly.
+  maxRefillCount: 0
 
 registration:
   socialLogins: []
+
+# Rate limits — protect against abuse.
+# Message limits (per-minute) are set via env vars: MESSAGE_IP_MAX, MESSAGE_USER_MAX, etc.
+rateLimits:
+  fileUploads:
+    ipMax: 50
+    ipWindowInMinutes: 15
+    userMax: 25
+    userWindowInMinutes: 15
+  conversationsImport:
+    ipMax: 20
+    ipWindowInMinutes: 15
+    userMax: 10
+    userWindowInMinutes: 15
 
 # Model specs — show actual model display names so users know exactly which model they're using.
 # Never rename models with brand names; use the real model name as the label.
