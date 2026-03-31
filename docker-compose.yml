@@ -16,10 +16,13 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - HOST=0.0.0.0
-      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/LibreChat?authSource=admin
       - MEILI_HOST=http://meilisearch:7700
       - RAG_PORT=${RAG_PORT:-8000}
       - RAG_API_URL=http://rag_api:${RAG_PORT:-8000}
+      # This section defines the minimum production-oriented defaults used by the app.
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:${PORT}}
+      - REQUIRE_PERMISSION_MIGRATIONS=${REQUIRE_PERMISSION_MIGRATIONS:-true}
     volumes:
       - type: bind
         source: ./.env
@@ -37,7 +40,17 @@ services:
     user: "${UID}:${GID}"
     volumes:
       - ./data-node:/data/db
-    command: mongod --noauth
+    command: >
+      bash -lc '
+      if [ -z "$$MONGO_ROOT_USERNAME" ] || [ -z "$$MONGO_ROOT_PASSWORD" ]; then
+        echo "MONGO_ROOT_USERNAME and MONGO_ROOT_PASSWORD must be set.";
+        exit 1;
+      fi;
+      exec docker-entrypoint.sh mongod --auth
+      '
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
   meilisearch:
     container_name: chat-meilisearch
     image: getmeili/meilisearch:v1.12.3
@@ -53,9 +66,9 @@ services:
     container_name: vectordb
     image: pgvector/pgvector:0.8.0-pg15-trixie
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: ${RAG_POSTGRES_DB:?RAG_POSTGRES_DB must be set}
+      POSTGRES_USER: ${RAG_POSTGRES_USER:?RAG_POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${RAG_POSTGRES_PASSWORD:?RAG_POSTGRES_PASSWORD must be set}
     restart: always
     volumes:
       - pgdata2:/var/lib/postgresql/data
@@ -64,6 +77,10 @@ services:
     image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:latest
     environment:
       - DB_HOST=vectordb
+      - DB_PORT=5432
+      - POSTGRES_DB=${RAG_POSTGRES_DB:?RAG_POSTGRES_DB must be set}
+      - POSTGRES_USER=${RAG_POSTGRES_USER:?RAG_POSTGRES_USER must be set}
+      - POSTGRES_PASSWORD=${RAG_POSTGRES_PASSWORD:?RAG_POSTGRES_PASSWORD must be set}
       - RAG_PORT=${RAG_PORT:-8000}
     restart: always
     depends_on:

@@ -15,8 +15,20 @@ const { findRoleByIdentifier } = require('~/models');
  * This runs at the end to ensure all systems are initialized
  */
 async function checkMigrations() {
+  let agentMigrationResult = {
+    totalToMigrate: 0,
+    globalEditAccess: 0,
+    globalViewAccess: 0,
+    privateAgents: 0,
+  };
+  let promptMigrationResult = {
+    totalToMigrate: 0,
+    globalViewAccess: 0,
+    privateGroups: 0,
+  };
+
   try {
-    const agentMigrationResult = await checkAgentPermissionsMigration({
+    agentMigrationResult = await checkAgentPermissionsMigration({
       mongoose,
       methods: {
         findRoleByIdentifier,
@@ -29,7 +41,7 @@ async function checkMigrations() {
     logger.error('Failed to check agent permissions migration:', error);
   }
   try {
-    const promptMigrationResult = await checkPromptPermissionsMigration({
+    promptMigrationResult = await checkPromptPermissionsMigration({
       mongoose,
       methods: {
         findRoleByIdentifier,
@@ -41,6 +53,22 @@ async function checkMigrations() {
   } catch (error) {
     logger.error('Failed to check prompt permissions migration:', error);
   }
+
+  const requirePermissionMigrations = process.env.REQUIRE_PERMISSION_MIGRATIONS === 'true';
+  const totalPendingMigrations =
+    agentMigrationResult.totalToMigrate + promptMigrationResult.totalToMigrate;
+
+  if (requirePermissionMigrations && totalPendingMigrations > 0) {
+    throw new Error(
+      'Permission migrations are required before startup. Run npm run migrate:agent-permissions and npm run migrate:prompt-permissions.',
+    );
+  }
+
+  return {
+    agentMigrationResult,
+    promptMigrationResult,
+    totalPendingMigrations,
+  };
 }
 
 module.exports = {
