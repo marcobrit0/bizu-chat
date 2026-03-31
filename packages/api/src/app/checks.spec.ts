@@ -7,12 +7,20 @@ jest.mock('@librechat/data-schemas', () => ({
   ...jest.requireActual('@librechat/data-schemas'),
   logger: {
     debug: jest.fn(),
+    info: jest.fn(),
     warn: jest.fn(),
   },
 }));
 
 import { handleRateLimits } from './limits';
-import { checkWebSearchConfig } from './checks';
+import {
+  checkVariables,
+  checkWebSearchConfig,
+  getCorsConfig,
+  getHealthResponse,
+  resetStartupStatus,
+  setMongoStartupStatus,
+} from './checks';
 import { logger } from '@librechat/data-schemas';
 import { extractVariableName as extract } from 'librechat-data-provider';
 
@@ -202,6 +210,129 @@ describe('checkWebSearchConfig', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Current value: "this-is-a-..."'),
       );
+    });
+  });
+});
+
+describe('startup safety helpers', () => {
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    originalEnv = process.env;
+    process.env = { ...originalEnv };
+    resetStartupStatus();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    resetStartupStatus();
+  });
+
+  describe('checkVariables', () => {
+    it('should throw in production when a required secret uses a default value', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.SEARCH = 'false';
+      process.env.CREDS_KEY =
+        'f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0';
+      process.env.CREDS_IV = 'custom-creds-iv';
+      process.env.JWT_SECRET = 'custom-jwt-secret';
+      process.env.JWT_REFRESH_SECRET = 'custom-jwt-refresh-secret';
+
+      expect(() => checkVariables()).toThrow(
+        'Production startup blocked due to unsafe secret configuration',
+      );
+    });
+
+    it('should throw in production when Meilisearch is enabled without a configured master key', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.SEARCH = 'true';
+      process.env.CREDS_KEY = 'custom-creds-key';
+      process.env.CREDS_IV = 'custom-creds-iv';
+      process.env.JWT_SECRET = 'custom-jwt-secret';
+      process.env.JWT_REFRESH_SECRET = 'custom-jwt-refresh-secret';
+      process.env.MEILI_MASTER_KEY = '';
+
+      expect(() => checkVariables()).toThrow(
+        'Production startup blocked due to unsafe secret configuration',
+      );
+    });
+
+    it('should not throw in development when default secrets are present', () => {
+      process.env.NODE_ENV = 'development';
+      process.env.SEARCH = 'false';
+      process.env.CREDS_KEY =
+        'f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0';
+
+      expect(() => checkVariables()).not.toThrow();
+      expect(logger.warn).toHaveBeenCalledWith('Default value for CREDS_KEY is being used.');
+    });
+  });
+
+  describe('getCorsConfig', () => {
+    it('should use CORS_ALLOWED_ORIGINS when provided', () => {
+      process.env.CORS_ALLOWED_ORIGINS = 'https://app.example.com, https://admin.example.com';
+
+      const corsConfig = getCorsConfig();
+
+      expect(corsConfig.allowedOrigins).toEqual([
+        'https://app.example.com',
+        'https://admin.example.com',
+      ]);
+      expect(corsConfig.allowAllOrigins).toBe(false);
+      expect(corsConfig.credentials).toBe(true);
+    });
+
+    it('should fall back to DOMAIN_CLIENT when explicit origins are not configured', () => {
+      process.env.DOMAIN_CLIENT = 'https://chat.example.com';
+
+      const corsConfig = getCorsConfig();
+
+      expect(corsConfig.allowedOrigins).toEqual(['https://chat.example.com']);
+    });
+
+    it('should normalize DOMAIN_CLIENT values that include a path', () => {
+      process.env.DOMAIN_CLIENT = 'https://chat.example.com/librechat';
+
+      const corsConfig = getCorsConfig();
+
+      expect(corsConfig.allowedOrigins).toEqual(['https://chat.example.com']);
+    });
+
+    it('should allow localhost origins during non-production development', () => {
+      process.env.NODE_ENV = 'development';
+      process.env.DOMAIN_CLIENT = 'https://chat.example.com';
+
+      const corsConfig = getCorsConfig();
+      const callback = jest.fn();
+
+      corsConfig.origin('http://localhost:3090', callback);
+
+      expect(callback).toHaveBeenCalledWith(null, true);
+    });
+  });
+
+  describe('getHealthResponse', () => {
+    it('should return 200 when all tracked dependencies are healthy or disabled', () => {
+      setMongoStartupStatus({ status: 'ok', details: 'MongoDB is reachable.' });
+
+      const response = getHealthResponse();
+
+      expect(response.httpStatus).toBe(200);
+      expect(response.body.status).toBe('ok');
+    });
+
+    it('should return 503 when a tracked dependency has failed', () => {
+      setMongoStartupStatus({ status: 'error', details: 'MongoDB connection failed.' });
+
+      const response = getHealthResponse();
+
+      expect(response.httpStatus).toBe(503);
+      expect(response.body.status).toBe('error');
+      expect(response.body.dependencies.mongo).toEqual({
+        status: 'error',
+        details: 'MongoDB connection failed.',
+      });
     });
   });
 });

@@ -3,6 +3,7 @@ import { Constants, extractVariableName } from 'librechat-data-provider';
 import type { TCustomConfig } from 'librechat-data-provider';
 import type { AppConfig } from '@librechat/data-schemas';
 import { isEnabled, checkEmailConfig } from '~/utils';
+import { cacheConfig, ioredisClient } from '~/cache';
 import { handleRateLimits } from './limits';
 
 const secretDefaults = {
@@ -10,7 +11,166 @@ const secretDefaults = {
   CREDS_IV: 'e2341419ec3dd3d19b13a1a87fafcbfb',
   JWT_SECRET: '16f8c0ef4a5d391b26034086c628469d3f9f497f08163ab9b40137092f2909ef',
   JWT_REFRESH_SECRET: 'eaa5191f2914e30b9387fd84e254e4ba6fc51b4654968a9b0803b456a54b8418',
+  MEILI_MASTER_KEY: 'DrhYf7zENyR6AlUCKmnz0eYASOQdl6zxH7s7MKFSfFCt',
 };
+
+type DependencyStatus = 'ok' | 'disabled' | 'error';
+
+export interface StartupDependencyStatus {
+  mongo: {
+    status: DependencyStatus;
+    details?: string;
+  };
+  meilisearch: {
+    status: DependencyStatus;
+    details?: string;
+  };
+  ragApi: {
+    status: DependencyStatus;
+    details?: string;
+  };
+  redis: {
+    status: DependencyStatus;
+    details?: string;
+  };
+}
+
+export interface StartupStatusReport {
+  dependencies: StartupDependencyStatus;
+}
+
+// This shared status object lets the HTTP health endpoint reflect what startup checks discovered.
+const defaultStartupStatus: StartupStatusReport = {
+  dependencies: {
+    mongo: { status: 'error', details: 'Database connection has not been checked yet.' },
+    meilisearch: { status: 'disabled', details: 'Search is disabled.' },
+    ragApi: { status: 'disabled', details: 'RAG API is not configured.' },
+    redis: { status: 'disabled', details: 'Redis is disabled.' },
+  },
+};
+
+// Clone the default object so tests and runtime updates do not mutate the original template.
+let startupStatus: StartupStatusReport = structuredClone(defaultStartupStatus);
+
+function getRequiredProductionSecrets() {
+  // These secrets protect sessions, encrypted credentials, and search access in production.
+  const requiredSecrets = [
+    'CREDS_KEY',
+    'CREDS_IV',
+    'JWT_SECRET',
+    'JWT_REFRESH_SECRET',
+  ];
+
+  if (isEnabled(process.env.SEARCH)) {
+    requiredSecrets.push('MEILI_MASTER_KEY');
+  }
+
+  return requiredSecrets;
+}
+
+function isProductionEnvironment() {
+  return process.env.NODE_ENV === 'production';
+}
+
+function isLocalClientOrigin(origin: string) {
+  try {
+    const parsedOrigin = new URL(origin);
+    return ['localhost', '127.0.0.1', '::1'].includes(parsedOrigin.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function normalizeCorsOrigin(origin: string) {
+  try {
+    const parsedOrigin = new URL(origin);
+    return parsedOrigin.origin;
+  } catch {
+    return origin.trim();
+  }
+}
+
+function getConfiguredCorsOrigins() {
+  // Allow operators to provide a comma-separated allowlist without editing code.
+  const explicitOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',')
+    .map((origin) => normalizeCorsOrigin(origin))
+    .filter(Boolean);
+
+  if (explicitOrigins && explicitOrigins.length > 0) {
+    return explicitOrigins;
+  }
+
+  const fallbackOrigins = [process.env.DOMAIN_CLIENT]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => normalizeCorsOrigin(value));
+
+  return Array.from(new Set(fallbackOrigins));
+}
+
+export function getCorsConfig() {
+  const allowedOrigins = getConfiguredCorsOrigins();
+  const allowAllOrigins = allowedOrigins.length === 0;
+
+  return {
+    allowedOrigins,
+    allowAllOrigins,
+    origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+      // Requests without an Origin header come from non-browser clients and health checks.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // Development stays permissive unless an explicit allowlist is configured.
+      if (allowAllOrigins) {
+        callback(null, true);
+        return;
+      }
+
+      // Browsers from approved origins are allowed to send credentialed requests.
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Local development tools may use localhost aliases while the app is still being wired up.
+      if (!isProductionEnvironment() && isLocalClientOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+  };
+}
+
+export function resetStartupStatus() {
+  startupStatus = structuredClone(defaultStartupStatus);
+}
+
+export function setMongoStartupStatus(status: StartupDependencyStatus['mongo']) {
+  // Mongo is checked before the HTTP server starts, so the server entrypoint updates it directly.
+  startupStatus.dependencies.mongo = status;
+}
+
+export function getStartupStatus() {
+  return startupStatus;
+}
+
+export function getHealthResponse() {
+  // Any dependency error marks readiness as failed so orchestrators stop sending user traffic.
+  const dependencyStatuses = Object.values(startupStatus.dependencies).map(({ status }) => status);
+  const hasErrors = dependencyStatuses.includes('error');
+
+  return {
+    httpStatus: hasErrors ? 503 : 200,
+    body: {
+      status: hasErrors ? 'error' : 'ok',
+      ...startupStatus,
+    },
+  };
+}
 
 const deprecatedVariables = [
   {
@@ -102,9 +262,11 @@ function checkPasswordReset() {
  */
 export function checkVariables() {
   let hasDefaultSecrets = false;
+  const defaultSecretsInUse: string[] = [];
   for (const [key, value] of Object.entries(secretDefaults)) {
     if (process.env[key] === value) {
       logger.warn(`Default value for ${key} is being used.`);
+      defaultSecretsInUse.push(key);
       if (!hasDefaultSecrets) {
         hasDefaultSecrets = true;
       }
@@ -121,6 +283,20 @@ export function checkVariables() {
     \u200B`);
   }
 
+  const missingRequiredSecrets = getRequiredProductionSecrets().filter((key) => !process.env[key]);
+
+  // Production should fail fast so unsafe defaults never make it to a public deployment.
+  if (isProductionEnvironment() && (defaultSecretsInUse.length > 0 || missingRequiredSecrets.length > 0)) {
+    const issues = [
+      ...defaultSecretsInUse.map((key) => `${key} is using a default value`),
+      ...missingRequiredSecrets.map((key) => `${key} is missing`),
+    ];
+
+    throw new Error(
+      `Production startup blocked due to unsafe secret configuration: ${issues.join(', ')}.`,
+    );
+  }
+
   deprecatedVariables.forEach(({ key, description }) => {
     if (process.env[key]) {
       logger.warn(`The \`${key}\` environment variable is deprecated. ${description}`);
@@ -135,15 +311,101 @@ export function checkVariables() {
  * Logs information or warning based on the API's availability and response.
  */
 export async function checkHealth() {
-  try {
-    const response = await fetch(`${process.env.RAG_API_URL}/health`);
-    if (response?.ok && response?.status === 200) {
-      logger.info(`RAG API is running and reachable at ${process.env.RAG_API_URL}.`);
+  // Reset optional dependency state before each check so stale results are not reused.
+  startupStatus.dependencies.meilisearch = {
+    status: 'disabled',
+    details: 'Search is disabled.',
+  };
+  startupStatus.dependencies.ragApi = {
+    status: 'disabled',
+    details: 'RAG API is not configured.',
+  };
+  startupStatus.dependencies.redis = {
+    status: 'disabled',
+    details: 'Redis is disabled.',
+  };
+
+  if (isEnabled(process.env.SEARCH)) {
+    if (!process.env.MEILI_HOST || !process.env.MEILI_MASTER_KEY) {
+      startupStatus.dependencies.meilisearch = {
+        status: 'error',
+        details: 'Search is enabled but Meilisearch configuration is incomplete.',
+      };
+    } else {
+      try {
+        const response = await fetch(`${process.env.MEILI_HOST}/health`, {
+          headers: {
+            'X-Meili-API-Key': process.env.MEILI_MASTER_KEY,
+          },
+        });
+
+        if (response?.ok) {
+          startupStatus.dependencies.meilisearch = {
+            status: 'ok',
+            details: `Meilisearch is reachable at ${process.env.MEILI_HOST}.`,
+          };
+        } else {
+          startupStatus.dependencies.meilisearch = {
+            status: 'error',
+            details: `Meilisearch health check returned status ${response.status}.`,
+          };
+        }
+      } catch (error) {
+        startupStatus.dependencies.meilisearch = {
+          status: 'error',
+          details: `Meilisearch health check failed: ${(error as Error).message}`,
+        };
+      }
     }
-  } catch {
+  }
+
+  try {
+    if (process.env.RAG_API_URL) {
+      const response = await fetch(`${process.env.RAG_API_URL}/health`);
+      if (response?.ok && response?.status === 200) {
+        startupStatus.dependencies.ragApi = {
+          status: 'ok',
+          details: `RAG API is reachable at ${process.env.RAG_API_URL}.`,
+        };
+        logger.info(`RAG API is running and reachable at ${process.env.RAG_API_URL}.`);
+      } else {
+        startupStatus.dependencies.ragApi = {
+          status: 'error',
+          details: `RAG API health check returned status ${response.status}.`,
+        };
+      }
+    }
+  } catch (error) {
+    startupStatus.dependencies.ragApi = {
+      status: 'error',
+      details: `RAG API health check failed: ${(error as Error).message}`,
+    };
     logger.warn(
       `RAG API is either not running or not reachable at ${process.env.RAG_API_URL}, you may experience errors with file uploads.`,
     );
+  }
+
+  if (cacheConfig.USE_REDIS) {
+    if (!ioredisClient) {
+      startupStatus.dependencies.redis = {
+        status: 'error',
+        details: 'Redis is enabled but the Redis client is unavailable.',
+      };
+    } else {
+      try {
+        // Ping verifies that the shared Redis client has a live connection before marking readiness.
+        await ioredisClient.ping();
+        startupStatus.dependencies.redis = {
+          status: 'ok',
+          details: 'Redis is reachable.',
+        };
+      } catch (error) {
+        startupStatus.dependencies.redis = {
+          status: 'error',
+          details: `Redis health check failed: ${(error as Error).message}`,
+        };
+      }
+    }
   }
 }
 

@@ -16,6 +16,9 @@ const {
   isEnabled,
   ErrorController,
   performStartupChecks,
+  getHealthResponse,
+  getCorsConfig,
+  setMongoStartupStatus,
   handleJsonParseError,
   initializeFileStorage,
 } = require('@librechat/api');
@@ -204,6 +207,10 @@ if (cluster.isMaster) {
 
     /** Connect to MongoDB */
     await connectDb();
+    setMongoStartupStatus({
+      status: 'ok',
+      details: 'MongoDB connection established.',
+    });
     logger.info(`Worker ${process.pid}: Connected to MongoDB`);
 
     /** Background index sync (non-blocking) */
@@ -239,8 +246,11 @@ if (cluster.isMaster) {
       }
     }
 
-    /** Health check endpoint */
-    app.get('/health', (_req, res) => res.status(200).send('OK'));
+    /** Health endpoint reports dependency-aware readiness information for orchestration. */
+    app.get('/health', (_req, res) => {
+      const health = getHealthResponse();
+      res.status(health.httpStatus).json(health.body);
+    });
 
     /** Middleware */
     app.use(noIndex);
@@ -263,7 +273,7 @@ if (cluster.isMaster) {
     });
 
     app.use(mongoSanitize());
-    app.use(cors());
+    app.use(cors(getCorsConfig()));
     app.use(cookieParser());
 
     if (!isEnabled(DISABLE_COMPRESSION)) {

@@ -19,10 +19,12 @@ services:
     environment:
       - HOST=0.0.0.0
       - NODE_ENV=production
-      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in .env}:${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}@mongodb:27017/LibreChat?authSource=admin
       - MEILI_HOST=http://meilisearch:7700
       - RAG_PORT=${RAG_PORT:-8000}
       - RAG_API_URL=http://rag_api:${RAG_PORT:-8000}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?Set CORS_ALLOWED_ORIGINS in .env}
+      - REQUIRE_PERMISSION_MIGRATIONS=${REQUIRE_PERMISSION_MIGRATIONS:-true}
     volumes:
       - type: bind
         source: ./librechat.yaml
@@ -50,7 +52,11 @@ services:
     restart: always
     volumes:
       - ./data-node:/data/db
-    command: mongod --noauth
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}
+    command: >
+      mongod --auth --bind_ip_all
   meilisearch:
     container_name: chat-meilisearch
     image: getmeili/meilisearch:v1.12.3
@@ -67,9 +73,9 @@ services:
   vectordb:
     image: pgvector/pgvector:0.8.0-pg15-trixie
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: ${RAG_POSTGRES_DB:?Set RAG_POSTGRES_DB in .env}
+      POSTGRES_USER: ${RAG_POSTGRES_USER:?Set RAG_POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${RAG_POSTGRES_PASSWORD:?Set RAG_POSTGRES_PASSWORD in .env}
     restart: always
     volumes:
       - pgdata2:/var/lib/postgresql/data
@@ -77,6 +83,9 @@ services:
     image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:latest
     environment:
       - DB_HOST=vectordb
+      - POSTGRES_DB=${RAG_POSTGRES_DB:?Set RAG_POSTGRES_DB in .env}
+      - POSTGRES_USER=${RAG_POSTGRES_USER:?Set RAG_POSTGRES_USER in .env}
+      - POSTGRES_PASSWORD=${RAG_POSTGRES_PASSWORD:?Set RAG_POSTGRES_PASSWORD in .env}
       - RAG_PORT=${RAG_PORT:-8000}
     restart: always
     depends_on:

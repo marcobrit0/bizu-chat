@@ -89,7 +89,11 @@ describe('Server Configuration', () => {
   it('should return OK for /health', async () => {
     const response = await request(app).get('/health');
     expect(response.status).toBe(200);
-    expect(response.text).toBe('OK');
+    expect(response.body.status).toBe('ok');
+    expect(response.body.dependencies.mongo).toEqual({
+      status: 'ok',
+      details: 'MongoDB connection is ready.',
+    });
   });
 
   it('should not cache index page', async () => {

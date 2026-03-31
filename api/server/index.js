@@ -18,6 +18,9 @@ const {
   initializeFileStorage,
   GenerationJobManager,
   createStreamServices,
+  getCorsConfig,
+  getHealthResponse,
+  setMongoStartupStatus,
 } = require('@librechat/api');
 const { connectDb, indexSync } = require('~/db');
 const initializeOAuthReconnectManager = require('./services/initializeOAuthReconnectManager');
@@ -49,6 +52,10 @@ const startServer = async () => {
   await connectDb();
 
   logger.info('Connected to MongoDB');
+  setMongoStartupStatus({
+    status: 'ok',
+    details: 'MongoDB connection is ready.',
+  });
   indexSync().catch((err) => {
     logger.error('[indexSync] Background sync failed:', err);
   });
@@ -78,7 +85,11 @@ const startServer = async () => {
     }
   }
 
-  app.get('/health', (_req, res) => res.status(200).send('OK'));
+  // Report real dependency readiness so deploys do not route traffic too early.
+  app.get('/health', (_req, res) => {
+    const { httpStatus, body } = getHealthResponse();
+    res.status(httpStatus).json(body);
+  });
 
   /* Middleware */
   app.use(noIndex);
@@ -100,7 +111,8 @@ const startServer = async () => {
   });
 
   app.use(mongoSanitize());
-  app.use(cors());
+  // Restrict browser origins in production while preserving local development access.
+  app.use(cors(getCorsConfig()));
   app.use(cookieParser());
 
   if (!isEnabled(DISABLE_COMPRESSION)) {
