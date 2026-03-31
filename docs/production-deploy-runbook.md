@@ -5,7 +5,9 @@ This runbook explains the minimum steps required to deploy this application safe
 ## 1. Choose the deployment shape
 
 - Use a single Linux VM with Docker Compose for the first production deployment.
-- Put TLS at a reverse proxy or load balancer in front of the app.
+- Choose one TLS strategy before exposing the app publicly:
+  - terminate TLS at an external reverse proxy or load balancer, or
+  - use the included nginx container with mounted certificates
 - Use managed MongoDB if possible. If self-hosting MongoDB, require authentication.
 
 ## 2. Prepare required configuration
@@ -28,6 +30,15 @@ Set the public URLs that users and browsers will use:
 
 - `DOMAIN_CLIENT=https://your-chat-domain.example`
 - `DOMAIN_SERVER=https://your-chat-domain.example`
+
+### MongoDB credentials
+
+If you use the included Compose stack, set:
+
+- `MONGO_ROOT_USERNAME`
+- `MONGO_ROOT_PASSWORD`
+
+The included deployment examples will build the internal `MONGO_URI` automatically from those values.
 
 ### Browser access control
 
@@ -53,10 +64,7 @@ REQUIRE_PERMISSION_MIGRATIONS=true
 
 - Do not run MongoDB with `--noauth` in production.
 - Use a MongoDB URI with credentials.
-- If you use the included Compose stack, set:
-  - `MONGO_ROOT_USERNAME`
-  - `MONGO_ROOT_PASSWORD`
-  - `MONGO_URI=mongodb://<user>:<password>@mongodb:27017/LibreChat?authSource=admin`
+- If you are not using the included Compose stack, point `MONGO_URI` at your authenticated MongoDB deployment.
 - Store backups outside the VM.
 
 ### Meilisearch
@@ -88,6 +96,28 @@ If using the included Compose deployment:
 - Confirm all env substitutions resolve to production values
 - Confirm mounted volumes exist and are persisted
 
+### TLS options
+
+#### Option A: External TLS termination
+
+Use a cloud load balancer, ingress, Caddy, Traefik, or another reverse proxy to terminate TLS before traffic reaches the nginx or app container.
+
+Recommended checks:
+
+- Redirect HTTP to HTTPS at the edge
+- Forward `X-Forwarded-Proto` and related proxy headers
+- Keep `TRUST_PROXY` aligned with your proxy hop count
+
+#### Option B: Included nginx container with mounted certificates
+
+If you want nginx in this repository to terminate TLS directly:
+
+1. Mount certificates into the nginx container, for example under `/etc/nginx/ssl`
+2. Uncomment the HTTPS server block in `client/nginx.conf`
+3. Uncomment the HTTP-to-HTTPS redirect block
+4. Set `server_name` to your real domain
+5. Restart the deployment and verify HTTPS before exposing traffic publicly
+
 ## 5. Run required migrations
 
 Before putting the app behind public traffic, run:
@@ -117,13 +147,18 @@ curl http://localhost:3080/health
 
 Expected behavior:
 
-- HTTP `200` only when all required dependencies are healthy
+- HTTP `200` when all required dependencies are healthy
 - HTTP `503` when a required dependency is unhealthy
 - Response body includes dependency-level status for:
   - MongoDB
   - Meilisearch
   - RAG API
   - Redis
+
+Note:
+
+- Optional dependencies can report a degraded state without failing readiness
+- Required dependencies still fail readiness immediately
 
 ## 8. Smoke test critical flows
 
@@ -157,3 +192,4 @@ If a deploy fails:
 - Production startup can fail if required permission migrations are still pending.
 - CORS now defaults to `DOMAIN_CLIENT` when `CORS_ALLOWED_ORIGINS` is not explicitly set.
 - Local development still allows localhost-style origins when not running in production.
+- Readiness now distinguishes between required dependency failures and optional feature degradation.

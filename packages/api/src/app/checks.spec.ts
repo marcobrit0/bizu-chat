@@ -19,6 +19,7 @@ import {
   getCorsConfig,
   getHealthResponse,
   resetStartupStatus,
+  setStartupDependencyStatus,
   setMongoStartupStatus,
 } from './checks';
 import { logger } from '@librechat/data-schemas';
@@ -332,6 +333,23 @@ describe('startup safety helpers', () => {
       expect(response.body.dependencies.mongo).toEqual({
         status: 'error',
         details: 'MongoDB connection failed.',
+      });
+    });
+
+    it('should return degraded when an optional dependency fails', () => {
+      setMongoStartupStatus({ status: 'ok', details: 'MongoDB is reachable.' });
+      setStartupDependencyStatus('ragApi', {
+        status: 'warning',
+        details: 'RAG API health check failed.',
+      });
+
+      const response = getHealthResponse();
+
+      expect(response.httpStatus).toBe(200);
+      expect(response.body.status).toBe('degraded');
+      expect(response.body.dependencies.ragApi).toEqual({
+        status: 'warning',
+        details: 'RAG API health check failed.',
       });
     });
   });

@@ -14,7 +14,7 @@ const secretDefaults = {
   MEILI_MASTER_KEY: 'DrhYf7zENyR6AlUCKmnz0eYASOQdl6zxH7s7MKFSfFCt',
 };
 
-type DependencyStatus = 'ok' | 'disabled' | 'error';
+type DependencyStatus = 'ok' | 'disabled' | 'warning' | 'error';
 
 export interface StartupDependencyStatus {
   mongo: {
@@ -52,6 +52,8 @@ const defaultStartupStatus: StartupStatusReport = {
 // Clone the default object so tests and runtime updates do not mutate the original template.
 let startupStatus: StartupStatusReport = structuredClone(defaultStartupStatus);
 
+type StartupDependencyName = keyof StartupDependencyStatus;
+
 function getRequiredProductionSecrets() {
   // These secrets protect sessions, encrypted credentials, and search access in production.
   const requiredSecrets = [
@@ -70,6 +72,10 @@ function getRequiredProductionSecrets() {
 
 function isProductionEnvironment() {
   return process.env.NODE_ENV === 'production';
+}
+
+function isRagApiRequired() {
+  return isEnabled(process.env.REQUIRE_RAG_API);
 }
 
 function isLocalClientOrigin(origin: string) {
@@ -149,9 +155,16 @@ export function resetStartupStatus() {
   startupStatus = structuredClone(defaultStartupStatus);
 }
 
+export function setStartupDependencyStatus<T extends StartupDependencyName>(
+  name: T,
+  status: StartupDependencyStatus[T],
+) {
+  startupStatus.dependencies[name] = status;
+}
+
 export function setMongoStartupStatus(status: StartupDependencyStatus['mongo']) {
   // Mongo is checked before the HTTP server starts, so the server entrypoint updates it directly.
-  startupStatus.dependencies.mongo = status;
+  setStartupDependencyStatus('mongo', status);
 }
 
 export function getStartupStatus() {
@@ -159,14 +172,15 @@ export function getStartupStatus() {
 }
 
 export function getHealthResponse() {
-  // Any dependency error marks readiness as failed so orchestrators stop sending user traffic.
+  // Errors fail readiness, while warnings surface optional dependency problems without blocking traffic.
   const dependencyStatuses = Object.values(startupStatus.dependencies).map(({ status }) => status);
   const hasErrors = dependencyStatuses.includes('error');
+  const hasWarnings = dependencyStatuses.includes('warning');
 
   return {
     httpStatus: hasErrors ? 503 : 200,
     body: {
-      status: hasErrors ? 'error' : 'ok',
+      status: hasErrors ? 'error' : hasWarnings ? 'degraded' : 'ok',
       ...startupStatus,
     },
   };
@@ -363,23 +377,23 @@ export async function checkHealth() {
     if (process.env.RAG_API_URL) {
       const response = await fetch(`${process.env.RAG_API_URL}/health`);
       if (response?.ok && response?.status === 200) {
-        startupStatus.dependencies.ragApi = {
+        setStartupDependencyStatus('ragApi', {
           status: 'ok',
           details: `RAG API is reachable at ${process.env.RAG_API_URL}.`,
-        };
+        });
         logger.info(`RAG API is running and reachable at ${process.env.RAG_API_URL}.`);
       } else {
-        startupStatus.dependencies.ragApi = {
-          status: 'error',
+        setStartupDependencyStatus('ragApi', {
+          status: isRagApiRequired() ? 'error' : 'warning',
           details: `RAG API health check returned status ${response.status}.`,
-        };
+        });
       }
     }
   } catch (error) {
-    startupStatus.dependencies.ragApi = {
-      status: 'error',
+    setStartupDependencyStatus('ragApi', {
+      status: isRagApiRequired() ? 'error' : 'warning',
       details: `RAG API health check failed: ${(error as Error).message}`,
-    };
+    });
     logger.warn(
       `RAG API is either not running or not reachable at ${process.env.RAG_API_URL}, you may experience errors with file uploads.`,
     );
