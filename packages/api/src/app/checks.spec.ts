@@ -234,6 +234,9 @@ describe('startup safety helpers', () => {
     it('should throw in production when a required secret uses a default value', () => {
       process.env.NODE_ENV = 'production';
       process.env.SEARCH = 'false';
+      process.env.DOMAIN_CLIENT = 'https://chat.example.com';
+      process.env.DOMAIN_SERVER = 'https://chat.example.com';
+      process.env.TRUST_PROXY = '1';
       process.env.CREDS_KEY =
         'f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0';
       process.env.CREDS_IV = 'custom-creds-iv';
@@ -248,6 +251,9 @@ describe('startup safety helpers', () => {
     it('should throw in production when Meilisearch is enabled without a configured master key', () => {
       process.env.NODE_ENV = 'production';
       process.env.SEARCH = 'true';
+      process.env.DOMAIN_CLIENT = 'https://chat.example.com';
+      process.env.DOMAIN_SERVER = 'https://chat.example.com';
+      process.env.TRUST_PROXY = '1';
       process.env.CREDS_KEY = 'custom-creds-key';
       process.env.CREDS_IV = 'custom-creds-iv';
       process.env.JWT_SECRET = 'custom-jwt-secret';
@@ -267,6 +273,68 @@ describe('startup safety helpers', () => {
 
       expect(() => checkVariables()).not.toThrow();
       expect(logger.warn).toHaveBeenCalledWith('Default value for CREDS_KEY is being used.');
+    });
+
+    it('should throw in production when DOMAIN_CLIENT is missing', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.SEARCH = 'false';
+      process.env.CREDS_KEY = 'custom-creds-key';
+      process.env.CREDS_IV = 'custom-creds-iv';
+      process.env.JWT_SECRET = 'custom-jwt-secret';
+      process.env.JWT_REFRESH_SECRET = 'custom-jwt-refresh-secret';
+      process.env.DOMAIN_SERVER = 'https://chat.example.com';
+      process.env.TRUST_PROXY = '1';
+      delete process.env.DOMAIN_CLIENT;
+
+      expect(() => checkVariables()).toThrow(
+        'Production startup blocked due to invalid deployment configuration',
+      );
+    });
+
+    it('should throw in production when DOMAIN_CLIENT still points to localhost', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.SEARCH = 'false';
+      process.env.CREDS_KEY = 'custom-creds-key';
+      process.env.CREDS_IV = 'custom-creds-iv';
+      process.env.JWT_SECRET = 'custom-jwt-secret';
+      process.env.JWT_REFRESH_SECRET = 'custom-jwt-refresh-secret';
+      process.env.DOMAIN_CLIENT = 'http://localhost:3080';
+      process.env.DOMAIN_SERVER = 'https://chat.example.com';
+      process.env.TRUST_PROXY = '1';
+
+      expect(() => checkVariables()).toThrow(
+        'Production startup blocked due to invalid deployment configuration',
+      );
+    });
+
+    it('should throw in production when TRUST_PROXY is unset', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.SEARCH = 'false';
+      process.env.CREDS_KEY = 'custom-creds-key';
+      process.env.CREDS_IV = 'custom-creds-iv';
+      process.env.JWT_SECRET = 'custom-jwt-secret';
+      process.env.JWT_REFRESH_SECRET = 'custom-jwt-refresh-secret';
+      process.env.DOMAIN_CLIENT = 'https://chat.example.com';
+      process.env.DOMAIN_SERVER = 'https://chat.example.com';
+      delete process.env.TRUST_PROXY;
+
+      expect(() => checkVariables()).toThrow(
+        'Production startup blocked due to invalid deployment configuration',
+      );
+    });
+
+    it('should allow valid production deployment settings', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.SEARCH = 'false';
+      process.env.CREDS_KEY = 'custom-creds-key';
+      process.env.CREDS_IV = 'custom-creds-iv';
+      process.env.JWT_SECRET = 'custom-jwt-secret';
+      process.env.JWT_REFRESH_SECRET = 'custom-jwt-refresh-secret';
+      process.env.DOMAIN_CLIENT = 'https://chat.example.com';
+      process.env.DOMAIN_SERVER = 'https://api.example.com';
+      process.env.TRUST_PROXY = '1';
+
+      expect(() => checkVariables()).not.toThrow();
     });
   });
 

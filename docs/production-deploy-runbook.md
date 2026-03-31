@@ -13,6 +13,8 @@ This runbook explains the minimum steps required to deploy this application safe
 ## 2. Prepare required configuration
 
 Create a real `.env` file from `.env.example` and set production values for every required secret.
+Production startup now validates several deploy-critical settings and will fail fast if they still
+look like local development defaults.
 
 ### Required secrets
 
@@ -30,6 +32,22 @@ Set the public URLs that users and browsers will use:
 
 - `DOMAIN_CLIENT=https://your-chat-domain.example`
 - `DOMAIN_SERVER=https://your-chat-domain.example`
+
+Production validation expects these URLs to:
+
+- use `https://`
+- avoid localhost or loopback hosts
+- point at real public origins
+
+### Proxy configuration
+
+If you deploy behind a reverse proxy or load balancer, set `TRUST_PROXY` to a non-zero value that
+matches your proxy hop count.
+
+For a public production deployment:
+
+- do not leave `TRUST_PROXY=0`
+- confirm forwarded headers are passed correctly by your ingress or reverse proxy
 
 ### MongoDB credentials
 
@@ -137,7 +155,23 @@ Start the deployed stack:
 npm run start:deployed
 ```
 
-## 7. Verify health before exposing traffic
+## 7. Run the smoke check
+
+After startup, run the deployment smoke check:
+
+```bash
+npm run smoke:deployed
+```
+
+The smoke check:
+
+- calls the app health endpoint
+- verifies it returns JSON
+- fails if the app reports `error`
+- warns if the app reports `degraded`
+- prints dependency-level status for MongoDB, Meilisearch, RAG API, and Redis
+
+## 8. Verify health before exposing traffic
 
 Check the structured health endpoint:
 
@@ -160,7 +194,7 @@ Note:
 - Optional dependencies can report a degraded state without failing readiness
 - Required dependencies still fail readiness immediately
 
-## 8. Smoke test critical flows
+## 9. Smoke test critical flows
 
 Verify these flows before launch:
 
@@ -171,7 +205,7 @@ Verify these flows before launch:
 - File upload if enabled
 - Any configured OAuth provider
 
-## 9. Rollback basics
+## 10. Rollback basics
 
 Before each deploy:
 
@@ -186,10 +220,12 @@ If a deploy fails:
 - Restore the previous env file if secrets or URLs changed
 - Restore database snapshots only if a data migration changed state in a non-reversible way
 
-## 10. Operator notes
+## 11. Operator notes
 
 - Production startup now fails if critical secrets are missing or still set to known defaults.
 - Production startup can fail if required permission migrations are still pending.
 - CORS now defaults to `DOMAIN_CLIENT` when `CORS_ALLOWED_ORIGINS` is not explicitly set.
 - Local development still allows localhost-style origins when not running in production.
 - Readiness now distinguishes between required dependency failures and optional feature degradation.
+- Production startup now also fails if public URLs still point at localhost, if domains are not
+  HTTPS, or if `TRUST_PROXY` is left at zero.

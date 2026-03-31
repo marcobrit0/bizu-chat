@@ -74,6 +74,14 @@ function isProductionEnvironment() {
   return process.env.NODE_ENV === 'production';
 }
 
+function isLocalAddress(value: string) {
+  return ['localhost', '127.0.0.1', '::1'].includes(value);
+}
+
+function getUrlOrigin(value: string) {
+  return new URL(value).origin;
+}
+
 function isRagApiRequired() {
   return isEnabled(process.env.REQUIRE_RAG_API);
 }
@@ -309,6 +317,70 @@ export function checkVariables() {
     throw new Error(
       `Production startup blocked due to unsafe secret configuration: ${issues.join(', ')}.`,
     );
+  }
+
+  if (isProductionEnvironment()) {
+    const productionConfigIssues: string[] = [];
+
+    // These URLs are part of the public browser and callback surface, so production
+    // should not boot with localhost or invalid values.
+    const requiredUrls = [
+      { key: 'DOMAIN_CLIENT', allowPath: true },
+      { key: 'DOMAIN_SERVER', allowPath: true },
+    ];
+
+    requiredUrls.forEach(({ key }) => {
+      const rawValue = process.env[key];
+      if (!rawValue) {
+        productionConfigIssues.push(`${key} is missing`);
+        return;
+      }
+
+      try {
+        const parsedUrl = new URL(rawValue);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          productionConfigIssues.push(`${key} must use http or https`);
+          return;
+        }
+
+        if (isLocalAddress(parsedUrl.hostname)) {
+          productionConfigIssues.push(`${key} cannot point to localhost in production`);
+        }
+      } catch {
+        productionConfigIssues.push(`${key} is not a valid URL`);
+      }
+    });
+
+    // An explicit proxy configuration avoids insecure cookies and incorrect IP handling
+    // once the app is behind a real reverse proxy.
+    if (!process.env.TRUST_PROXY) {
+      productionConfigIssues.push('TRUST_PROXY is missing');
+    }
+
+    const configuredOrigins = getConfiguredCorsOrigins();
+    if (configuredOrigins.length === 0) {
+      productionConfigIssues.push('CORS_ALLOWED_ORIGINS or DOMAIN_CLIENT must be set');
+    }
+
+    configuredOrigins.forEach((origin) => {
+      try {
+        const normalizedOrigin = getUrlOrigin(origin);
+        const parsedOrigin = new URL(normalizedOrigin);
+        if (isLocalAddress(parsedOrigin.hostname)) {
+          productionConfigIssues.push(
+            `CORS origin ${normalizedOrigin} cannot point to localhost in production`,
+          );
+        }
+      } catch {
+        productionConfigIssues.push(`CORS origin ${origin} is not a valid URL`);
+      }
+    });
+
+    if (productionConfigIssues.length > 0) {
+      throw new Error(
+        `Production startup blocked due to invalid deployment configuration: ${productionConfigIssues.join(', ')}.`,
+      );
+    }
   }
 
   deprecatedVariables.forEach(({ key, description }) => {
