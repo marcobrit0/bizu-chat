@@ -36,7 +36,7 @@ export function PureMessageActions({
 
   const handleCopy = useCallback(async () => {
     if (!textFromParts) {
-      toast.error("There's no text to copy!");
+      toast.error("Nada para copiar!");
       return;
     }
 

@@ -1,9 +1,9 @@
-import { messages as ui } from "@/lib/i18n/messages";
 "use client";
 
 import { useFormStatus } from "react-dom";
 
 import { LoaderIcon } from "@/components/chat/icons";
+import { messages as ui } from "@/lib/i18n/messages";
 
 import { Button } from "../ui/button";
 
@@ -32,7 +32,9 @@ export function SubmitButton({
       ) : null}
 
       <output aria-live="polite" className="sr-only">
-        {pending || isSuccessful ? ui.actions.submitLoading : ui.actions.submitForm}
+        {pending || isSuccessful
+          ? ui.actions.submitLoading
+          : ui.actions.submitForm}
       </output>
     </Button>
   );
