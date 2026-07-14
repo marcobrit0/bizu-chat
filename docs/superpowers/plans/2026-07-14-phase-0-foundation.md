@@ -503,11 +503,19 @@ export async function checkIpRateLimit(ip: string | undefined) {
     throw new ChatbotError("rate_limit:chat");
   }
 
-  if (typeof count === "number" && count > MAX_MESSAGES) {
+  // Fail closed on an unexpected reply shape too — `typeof count === "number"`
+  // would silently ALLOW the request if redis ever returned a string/BigInt.
+  if (typeof count !== "number" || count > MAX_MESSAGES) {
     throw new ChatbotError("rate_limit:chat");
   }
 }
 ```
+
+> **Note (2026-07-14):** the two snippets above are the corrected versions. As
+> originally drafted this task used bare `catch {}` (which trips ultracite's
+> `useErrorCause` rule) and the fail-open `typeof count === "number" &&` check.
+> Both were caught in review. If you are reading this plan fresh, use the code
+> exactly as shown here.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
