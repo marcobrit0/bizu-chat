@@ -1088,7 +1088,8 @@ git commit -m "ci: typecheck, unit test, and build on every push"
 - [ ] The live OpenRouter key and SMTP credentials are rotated; `.env` is gone
 - [ ] `git add -A --dry-run` stages no `logs/`, `api/`, `client/`, `data/`
 - [ ] `env -u POSTGRES_URL pnpm exec tsx lib/db/migrate.ts` exits **1**
-- [ ] `pnpm test:unit` passes (13 tests across 3 files)
+- [ ] `pnpm test:unit` passes (14 tests across 3 files — 5 blob-path, 6 ratelimit,
+      3 guest; ratelimit gained a 6th test for the fail-open fix)
 - [ ] `grep -rn guestRegex` returns nothing
 - [ ] `lib/db/migrations/meta/0000_snapshot.json` exists, and a second
       `drizzle-kit generate` reports **no changes**
