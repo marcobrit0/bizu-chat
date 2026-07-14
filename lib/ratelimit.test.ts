@@ -76,4 +76,21 @@ describe("checkIpRateLimit", () => {
     const { checkIpRateLimit } = await loadModule();
     await expect(checkIpRateLimit("1.2.3.4")).rejects.toThrow();
   });
+
+  it("fails closed when exec resolves to an unexpected shape", async () => {
+    process.env.REDIS_URL = "redis://localhost:6379";
+    connectMock.mockResolvedValueOnce(undefined);
+    createClientMock.mockReturnValue({
+      connect: connectMock,
+      isReady: true,
+      multi: () => ({
+        incr: () => ({
+          expire: () => ({ exec: async () => ["11"] }),
+        }),
+      }),
+      on: vi.fn(),
+    });
+    const { checkIpRateLimit } = await loadModule();
+    await expect(checkIpRateLimit("1.2.3.4")).rejects.toThrow();
+  });
 });

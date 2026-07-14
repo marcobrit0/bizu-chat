@@ -66,7 +66,7 @@ export async function checkIpRateLimit(ip: string | undefined) {
     throw new ChatbotError("rate_limit:chat", { cause: error });
   }
 
-  if (typeof count === "number" && count > MAX_MESSAGES) {
+  if (typeof count !== "number" || count > MAX_MESSAGES) {
     throw new ChatbotError("rate_limit:chat");
   }
 }
