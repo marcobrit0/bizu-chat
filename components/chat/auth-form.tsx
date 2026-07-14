@@ -1,0 +1,55 @@
+import Form from "next/form";
+
+import { messages as ui } from "@/lib/i18n/messages";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+
+// Shared email/password fields for login and register.
+export function AuthForm({
+  action,
+  children,
+  defaultEmail = "",
+}: {
+  action: NonNullable<
+    string | ((formData: FormData) => void | Promise<void>) | undefined
+  >;
+  children: React.ReactNode;
+  defaultEmail?: string;
+}) {
+  return (
+    <Form action={action} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label className="font-normal text-muted-foreground" htmlFor="email">
+          {ui.auth.email}
+        </Label>
+        <Input
+          autoComplete="email"
+          autoFocus
+          className="h-10 rounded-lg border-border/50 bg-muted/50 text-sm transition-colors focus:border-foreground/20 focus:bg-muted"
+          defaultValue={defaultEmail}
+          id="email"
+          name="email"
+          placeholder={ui.auth.emailPlaceholder}
+          required
+          type="email"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label className="font-normal text-muted-foreground" htmlFor="password">
+          {ui.auth.password}
+        </Label>
+        <Input
+          className="h-10 rounded-lg border-border/50 bg-muted/50 text-sm transition-colors focus:border-foreground/20 focus:bg-muted"
+          id="password"
+          name="password"
+          placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+          required
+          type="password"
+        />
+      </div>
+
+      {children}
+    </Form>
+  );
+}
