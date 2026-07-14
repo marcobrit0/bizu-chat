@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
+import { buildBlobKey } from "@/lib/blob-path";
 
 const FileSchema = z.object({
   file: z
@@ -45,13 +46,17 @@ export async function POST(request: Request) {
     }
 
     const filename = (formData.get("file") as File).name;
-    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
     const fileBuffer = await file.arrayBuffer();
 
     try {
-      const data = await put(`${safeName}`, fileBuffer, {
-        access: "public",
-      });
+      const data = await put(
+        buildBlobKey(session.user.id, filename),
+        fileBuffer,
+        {
+          access: "public",
+          addRandomSuffix: true,
+        }
+      );
 
       return NextResponse.json(data);
     } catch {
