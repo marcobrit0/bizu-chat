@@ -19,8 +19,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { guestRegex } from "@/lib/constants";
-import { LoaderIcon } from "./icons";
 import { messages as ui } from "@/lib/i18n/messages";
+import { LoaderIcon } from "./icons";
 import { toast } from "./toast";
 
 function emailToHue(email: string): number {

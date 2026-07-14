@@ -1,10 +1,10 @@
 import equal from "fast-deep-equal";
 import { memo, useCallback } from "react";
 import { toast } from "sonner";
-import { messages as ui } from "@/lib/i18n/messages";
 import { useSWRConfig } from "swr";
 import { useCopyToClipboard } from "usehooks-ts";
 import type { Vote } from "@/lib/db/schema";
+import { messages as ui } from "@/lib/i18n/messages";
 import type { ChatMessage } from "@/lib/types";
 import {
   MessageAction as Action,

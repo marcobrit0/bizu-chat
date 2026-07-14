@@ -38,9 +38,7 @@ function PureDocumentToolResult({
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       if (isReadonly) {
-        toast.error(
-          ui.document.sharedViewUnsupported
-        );
+        toast.error(ui.document.sharedViewUnsupported);
         return;
       }
 
@@ -108,9 +106,7 @@ function PureDocumentToolCall({
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       if (isReadonly) {
-        toast.error(
-          ui.document.sharedViewUnsupported
-        );
+        toast.error(ui.document.sharedViewUnsupported);
         return;
       }
 

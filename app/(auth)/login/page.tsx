@@ -49,9 +49,7 @@ export default function Page() {
       <h1 className="text-2xl font-semibold tracking-tight">
         {ui.auth.welcomeBack}
       </h1>
-      <p className="text-sm text-muted-foreground">
-        {ui.auth.signInContinue}
-      </p>
+      <p className="text-sm text-muted-foreground">{ui.auth.signInContinue}</p>
       <AuthForm action={handleSubmit} defaultEmail={email}>
         <SubmitButton isSuccessful={isSuccessful}>
           {ui.auth.signIn}

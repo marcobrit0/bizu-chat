@@ -32,6 +32,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { messages as ui } from "@/lib/i18n/messages";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +44,6 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { messages as ui } from "@/lib/i18n/messages";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -140,7 +140,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       tooltip={ui.sidebar.deleteAllTooltip}
                     >
                       <TrashIcon className="size-4" />
-                      <span className="text-[13px]">{ui.sidebar.deleteAll}</span>
+                      <span className="text-[13px]">
+                        {ui.sidebar.deleteAll}
+                      </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
