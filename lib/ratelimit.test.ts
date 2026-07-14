@@ -5,6 +5,8 @@ const createClientMock = vi.fn();
 
 /** Must stay above the module's CONNECT_DEADLINE_MS. */
 const PAST_CONNECT_DEADLINE_MS = 5000;
+/** Must stay above the module's EXEC_DEADLINE_MS. */
+const PAST_EXEC_DEADLINE_MS = 2000;
 
 vi.mock("redis", () => ({
   createClient: (...args: unknown[]) => createClientMock(...args),
@@ -147,6 +149,37 @@ describe("checkIpRateLimit", () => {
     await assertion;
 
     // The half-open client is reclaimed rather than left retrying in the dark.
+    expect(destroyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects rather than hanging when exec never settles", async () => {
+    vi.useFakeTimers();
+    process.env.REDIS_URL = "redis://localhost:6379";
+    connectMock.mockResolvedValueOnce(undefined);
+    const destroyMock = vi.fn();
+    createClientMock.mockReturnValue({
+      connect: connectMock,
+      destroy: destroyMock,
+      isOpen: true,
+      isReady: true,
+      multi: () => ({
+        incr: () => ({
+          // A server that completes the handshake and then goes silent on
+          // MULTI: exec() never settles. This is the cached-ready-client path,
+          // which the connect deadline does not guard.
+          expire: () => ({ exec: () => new Promise<never>(() => undefined) }),
+        }),
+      }),
+      on: vi.fn(),
+    });
+    const { checkIpRateLimit } = await loadModule();
+
+    const pending = checkIpRateLimit("1.2.3.4");
+    const assertion = expect(pending).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(PAST_EXEC_DEADLINE_MS);
+    await assertion;
+
+    // The wedged client is discarded so the limiter recovers when Redis returns.
     expect(destroyMock).toHaveBeenCalledTimes(1);
   });
 

@@ -24,6 +24,20 @@ const MAX_RECONNECT_BACKOFF_MS = 500;
  * CONNECT_TIMEOUT_MS so the client's own, more specific error usually wins.
  */
 const CONNECT_DEADLINE_MS = 3000;
+/**
+ * Backstop for every command round-trip. node-redis leaves `socket.timeout`
+ * undefined and we must not set it: it is an *idle* socket timeout, and this
+ * limiter's socket is idle between requests by design, so it would tear down
+ * healthy connections. Without an explicit deadline a peer that completes the
+ * handshake then goes silent (wedged proxy, half-open NAT, blocked server)
+ * leaves `exec()` pending forever on the cached-ready-client path, which serves
+ * nearly every request in a warm lambda.
+ *
+ * 1s is ~2 orders of magnitude above a healthy in-region round-trip
+ * (single-digit ms), so a slow-but-alive Redis cannot trip it into spurious
+ * 429s, while still failing closed far inside the function timeout.
+ */
+const EXEC_DEADLINE_MS = 1000;
 
 type RedisClient = ReturnType<typeof createClient>;
 
@@ -51,6 +65,19 @@ function connectWithDeadline(client: RedisClient): Promise<RedisClient> {
   return Promise.race([client.connect().then(() => client), deadline]).finally(
     () => clearTimeout(timer)
   );
+}
+
+/** Same race as `connectWithDeadline`, for the hot-path command round-trip. */
+function execWithDeadline<T>(exec: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Redis exec exceeded ${EXEC_DEADLINE_MS}ms`)),
+      EXEC_DEADLINE_MS
+    );
+  });
+
+  return Promise.race([exec, deadline]).finally(() => clearTimeout(timer));
 }
 
 function getClient(): Promise<RedisClient> | null {
@@ -113,11 +140,13 @@ export async function checkIpRateLimit(ip: string | undefined) {
 
   let count: unknown;
   try {
-    [count] = await redis
-      .multi()
-      .incr(`ip-rate-limit:${ip}`)
-      .expire(`ip-rate-limit:${ip}`, TTL_SECONDS, "NX")
-      .exec();
+    [count] = await execWithDeadline(
+      redis
+        .multi()
+        .incr(`ip-rate-limit:${ip}`)
+        .expire(`ip-rate-limit:${ip}`, TTL_SECONDS, "NX")
+        .exec()
+    );
   } catch (error) {
     // A client that connected and later died stays cached as a resolved-but-
     // dead promise, which would fail every future request forever. Drop it so
