@@ -900,27 +900,40 @@ route and the stated preference is fiction.
 **Do not trust the audit's provider lists — they are a snapshot and drift.**
 Re-verify live.
 
-- [ ] **Step 1: Fetch the real provider list for each configured model**
+- [ ] **Step 1: Fetch the real provider list, pricing and latency for each model**
 
-Requires `AI_GATEWAY_API_KEY`. If it is unavailable, **STOP and report BLOCKED** —
-do not guess provider names.
+**This endpoint is public — no `AI_GATEWAY_API_KEY` required** (verified
+2026-07-15, returns HTTP 200 unauthenticated). It also returns per-provider
+pricing, p50/p95 latency and uptime, so ordering can be a decision from data
+rather than a guess.
 
 ```bash
 for m in deepseek/deepseek-v4-flash alibaba/qwen3.5-flash deepseek/deepseek-v3.2 moonshotai/kimi-k2.5 alibaba/qwen3.6-plus; do
   echo "=== $m ==="
-  curl -s -H "Authorization: Bearer $AI_GATEWAY_API_KEY" \
-    "https://ai-gateway.vercel.sh/v1/models/$m/endpoints" \
-    | grep -oE '"provider":"[^"]+"' | sort -u
+  curl -s "https://ai-gateway.vercel.sh/v1/models/$m/endpoints" \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; [print(f"  {e[\"provider_name\"]:12s} in=${e[\"pricing\"][\"prompt\"]} out=${e[\"pricing\"][\"completion\"]} p50={e[\"latency_last_1h\"][\"p50\"]}ms up1d={e[\"uptime_last_1d\"]}") for e in d["endpoints"]]'
 done
 ```
 
-Record the actual output in your report.
+**Record the full actual output in your report.** If a model returns a non-200 or
+an empty endpoint list, **STOP and report BLOCKED** — do not guess provider names.
 
-- [ ] **Step 2: Correct each `gatewayOrder` to name only providers that serve that model**
+For reference, the default model's real providers as of 2026-07-15 were `azure,
+deepinfra, deepseek, fireworks, novita` — **`bedrock`, currently listed first in
+the code, does not serve it.** Confirm this yourself rather than trusting this
+line; the data drifts.
 
-Edit `lib/ai/models.ts` so every `gatewayOrder` entry contains only providers that
-appeared in Step 1's output for that model, preserving the intent (fastest/cheapest
-first). If a model has only one real provider, the array should contain just that one.
+- [ ] **Step 2: Correct each `gatewayOrder` from the data you just fetched**
+
+Edit `lib/ai/models.ts` so every `gatewayOrder` names only providers that appeared
+in Step 1's output for that model. If a model has only one real provider, the array
+holds just that one.
+
+**Ordering policy — Bizu's economics are the whole point of the product, so order
+by cost first, then reliability:** put the cheapest provider first, unless its
+`uptime_last_1d` is below ~99.5% or its p50 latency is more than ~2× the fastest,
+in which case prefer the next cheapest that is healthy. State your reasoning per
+model in the report — this is a judgement call on real numbers, not a lookup.
 
 - [ ] **Step 3: Remove the dead `reasoningEffort` plumbing**
 
