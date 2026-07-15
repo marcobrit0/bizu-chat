@@ -14,3 +14,11 @@ export function generateDummyPassword() {
 
   return hashedPassword;
 }
+
+/**
+ * Collision-safe guest email. `Date.now()` collided when two guests were
+ * provisioned in the same millisecond. Length: 6 + 36 + 11 = 53 <= varchar(64).
+ */
+export function buildGuestEmail() {
+  return `guest-${crypto.randomUUID()}@bizu.local`;
+}

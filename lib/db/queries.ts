@@ -31,7 +31,7 @@ import {
   user,
   vote,
 } from "./schema";
-import { generateHashedPassword } from "./utils";
+import { buildGuestEmail, generateHashedPassword } from "./utils";
 
 const client = postgres(process.env.POSTGRES_URL ?? "");
 const db = drizzle(client);
@@ -57,14 +57,17 @@ export async function createUser(email: string, password: string) {
 }
 
 export async function createGuestUser() {
-  const email = `guest-${Date.now()}`;
+  const email = buildGuestEmail();
   const password = generateHashedPassword(generateUUID());
 
   try {
-    return await db.insert(user).values({ email, password }).returning({
-      email: user.email,
-      id: user.id,
-    });
+    return await db
+      .insert(user)
+      .values({ email, isAnonymous: true, password })
+      .returning({
+        email: user.email,
+        id: user.id,
+      });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

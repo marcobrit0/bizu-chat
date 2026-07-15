@@ -25,3 +25,11 @@ yarn-error.log*
 /playwright/*
 next-env.d.ts
 tsconfig.tsbuildinfo
+.superpowers/
+
+# LibreChat-era debris (pre-Vercel restart) — must never return
+/api/
+/client/
+/data/
+/logs/
+/uploads/
