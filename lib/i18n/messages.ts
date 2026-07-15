@@ -5,6 +5,7 @@
 export const messages = {
   actions: {
     actionFailed: "Falha ao executar a ação",
+    back: "Voltar",
     copied: "Copiado!",
     downvoteFailed: "Falha ao descurtir a resposta.",
     modelUnavailableDemo: "Este modelo não está disponível no demo.",

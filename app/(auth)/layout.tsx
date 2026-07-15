@@ -17,7 +17,7 @@ export default function AuthLayout({
           href="/"
         >
           <ArrowLeftIcon className="size-3.5" />
-          Voltar
+          {ui.actions.back}
         </Link>
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-10">
           <div className="flex flex-col gap-2">
