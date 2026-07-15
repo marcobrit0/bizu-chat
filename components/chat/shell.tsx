@@ -1,22 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useActiveChat } from "@/hooks/use-active-chat";
 import {
   initialArtifactData,
   useArtifact,
   useArtifactSelector,
 } from "@/hooks/use-artifact";
-import { messages as ui } from "@/lib/i18n/messages";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Artifact } from "./artifact";
@@ -44,8 +34,6 @@ export function ChatShell() {
     votes,
     currentModelId,
     setCurrentModelId,
-    showCreditCardAlert,
-    setShowCreditCardAlert,
   } = useActiveChat();
 
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
@@ -101,10 +89,6 @@ export function ChatShell() {
     });
     setInput("");
   }, [editingMessage, input, regenerate, setInput, setMessages]);
-
-  const handleDismissAlert = useCallback(() => {
-    setShowCreditCardAlert(false);
-  }, [setShowCreditCardAlert]);
 
   return (
     <>
@@ -185,25 +169,6 @@ export function ChatShell() {
       </div>
 
       <DataStreamHandler />
-
-      <AlertDialog
-        onOpenChange={setShowCreditCardAlert}
-        open={showCreditCardAlert}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{ui.errors.unavailableTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {ui.errors.unavailable}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleDismissAlert}>
-              {ui.actions.ok}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

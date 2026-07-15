@@ -8,7 +8,6 @@ export const messages = {
     copied: "Copiado!",
     downvoteFailed: "Falha ao descurtir a resposta.",
     modelUnavailableDemo: "Este modelo não está disponível no demo.",
-    ok: "Entendi",
     submitForm: "Enviar formulário",
     submitLoading: "Carregando",
     upvoteFailed: "Falha ao curtir a resposta.",
@@ -75,7 +74,6 @@ export const messages = {
       "Você precisa entrar para ver este documento. Entre e tente novamente.",
     unavailable:
       "O Bizu está temporariamente indisponível. Já estamos trabalhando nisso — tente de novo em alguns minutos.",
-    unavailableTitle: "Serviço indisponível",
   },
 
   greeting: {
