@@ -133,7 +133,13 @@ export function DocumentPreview({
   );
 }
 
-const LoadingSkeleton = ({ artifactKind }: { artifactKind: ArtifactKind }) => (
+const LoadingSkeleton = ({
+  artifactKind,
+}: {
+  // Widened beyond ArtifactKind: legacy documents persisted before the
+  // "image" artifact kind was removed can still report kind "image".
+  artifactKind: ArtifactKind | "image";
+}) => (
   <div className="w-full max-w-[450px]">
     <div className="flex flex-row items-center justify-between gap-2 rounded-t-2xl border border-b-0 border-border/50 px-4 py-3 dark:bg-muted">
       <div className="flex flex-row items-center gap-2.5">
@@ -216,7 +222,9 @@ const PureDocumentHeader = ({
   isStreaming,
 }: {
   title: string;
-  kind: ArtifactKind;
+  // Widened beyond ArtifactKind: legacy documents persisted before the
+  // "image" artifact kind was removed can still report kind "image".
+  kind: ArtifactKind | "image";
   isStreaming: boolean;
 }) => (
   <div className="flex flex-row items-center justify-between gap-2 rounded-t-2xl border border-b-0 border-border/50 px-4 py-3 dark:bg-muted">

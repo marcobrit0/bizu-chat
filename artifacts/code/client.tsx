@@ -15,6 +15,7 @@ import {
   RedoIcon,
   UndoIcon,
 } from "@/components/chat/icons";
+import { messages as ui } from "@/lib/i18n/messages";
 import { generateUUID } from "@/lib/utils";
 
 const OUTPUT_HANDLERS = {
@@ -95,9 +96,9 @@ const codeArtifactContent: Artifact<"code", Metadata>["content"] =
 export const codeArtifact = new Artifact<"code", Metadata>({
   actions: [
     {
-      description: "Execute code",
+      description: ui.artifacts.executeCode,
       icon: <PlayIcon size={18} />,
-      label: "Run",
+      label: ui.artifacts.run,
       onClick: async ({ content, setMetadata }) => {
         const runId = generateUUID();
         const outputContent: ConsoleOutputContent[] = [];
@@ -204,7 +205,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       },
     },
     {
-      description: "View Previous version",
+      description: ui.artifacts.viewPreviousVersion,
       icon: <UndoIcon size={18} />,
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
@@ -218,7 +219,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       },
     },
     {
-      description: "View Next version",
+      description: ui.artifacts.viewNextVersion,
       icon: <RedoIcon size={18} />,
       isDisabled: ({ isCurrentVersion }) => {
         if (isCurrentVersion) {
@@ -232,17 +233,16 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       },
     },
     {
-      description: "Copy code to clipboard",
+      description: ui.artifacts.copyCodeToClipboard,
       icon: <CopyIcon size={18} />,
       onClick: ({ content }) => {
         navigator.clipboard.writeText(content);
-        toast.success("Copied to clipboard!");
+        toast.success(ui.actions.copied);
       },
     },
   ],
   content: codeArtifactContent,
-  description:
-    "Useful for code generation; Code execution is only available for python code.",
+  description: ui.artifacts.codeDescription,
   initialize: ({ setMetadata }) => {
     setMetadata({
       outputs: [],
@@ -266,13 +266,13 @@ export const codeArtifact = new Artifact<"code", Metadata>({
   },
   toolbar: [
     {
-      description: "Add comments",
+      description: ui.artifacts.addComments,
       icon: <MessageIcon />,
       onClick: ({ sendMessage }) => {
         sendMessage({
           parts: [
             {
-              text: "Add comments to the code snippet for understanding",
+              text: ui.artifacts.addCommentsPrompt,
               type: "text",
             },
           ],
@@ -281,13 +281,13 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       },
     },
     {
-      description: "Add logs",
+      description: ui.artifacts.addLogs,
       icon: <LogsIcon />,
       onClick: ({ sendMessage }) => {
         sendMessage({
           parts: [
             {
-              text: "Add logs to the code snippet for debugging",
+              text: ui.artifacts.addLogsPrompt,
               type: "text",
             },
           ],

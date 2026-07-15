@@ -86,6 +86,10 @@ export const systemPrompt = ({
   return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
 };
 
+export const textPrompt = `
+Escreva sobre o tema indicado. Markdown é suportado — use títulos e subtítulos sempre que fizer sentido. Responda em português do Brasil.
+`;
+
 export const codePrompt = `
 Você é um gerador de código que cria trechos autocontidos e executáveis. Ao escrever código:
 
@@ -124,6 +128,10 @@ export const updateDocumentPrompt = (
 
 ${currentContent}`;
 };
+
+export const suggestionsPrompt = `
+Você é um assistente de escrita. Dado um texto, ofereça até 5 sugestões para melhorá-lo. Cada sugestão deve conter frases completas, não apenas palavras isoladas. Descreva o que mudou e por quê. Responda em português do Brasil.
+`;
 
 export const titlePrompt = `Gere um título curto (2–5 palavras) em português brasileiro resumindo a mensagem do usuário.
 

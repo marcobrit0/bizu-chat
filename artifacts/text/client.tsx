@@ -12,6 +12,7 @@ import {
 } from "@/components/chat/icons";
 import { Editor } from "@/components/chat/text-editor";
 import type { Suggestion } from "@/lib/db/schema";
+import { messages as ui } from "@/lib/i18n/messages";
 import { getSuggestions } from "../actions";
 
 type TextArtifactMetadata = {
@@ -21,7 +22,7 @@ type TextArtifactMetadata = {
 export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
   actions: [
     {
-      description: "View changes",
+      description: ui.artifacts.viewChanges,
       icon: <ClockRewind size={18} />,
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
@@ -35,7 +36,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       },
     },
     {
-      description: "View Previous version",
+      description: ui.artifacts.viewPreviousVersion,
       icon: <UndoIcon size={18} />,
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
@@ -49,7 +50,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       },
     },
     {
-      description: "View Next version",
+      description: ui.artifacts.viewNextVersion,
       icon: <RedoIcon size={18} />,
       isDisabled: ({ isCurrentVersion }) => {
         if (isCurrentVersion) {
@@ -63,11 +64,11 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       },
     },
     {
-      description: "Copy to clipboard",
+      description: ui.artifacts.copyToClipboard,
       icon: <CopyIcon size={18} />,
       onClick: ({ content }) => {
         navigator.clipboard.writeText(content);
-        toast.success("Copied to clipboard!");
+        toast.success(ui.actions.copied);
       },
     },
   ],
@@ -117,7 +118,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       </div>
     );
   },
-  description: "Useful for text content, like drafting essays and emails.",
+  description: ui.artifacts.textDescription,
   initialize: async ({ documentId, setMetadata }) => {
     const suggestions = await getSuggestions({ documentId });
 
@@ -149,13 +150,13 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
   },
   toolbar: [
     {
-      description: "Add final polish",
+      description: ui.artifacts.addPolish,
       icon: <PenIcon />,
       onClick: ({ sendMessage }) => {
         sendMessage({
           parts: [
             {
-              text: "Please add final polish and check for grammar, add section titles for better structure, and ensure everything reads smoothly.",
+              text: ui.artifacts.addPolishPrompt,
               type: "text",
             },
           ],
@@ -164,13 +165,13 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       },
     },
     {
-      description: "Request suggestions",
+      description: ui.artifacts.requestSuggestions,
       icon: <MessageIcon />,
       onClick: ({ sendMessage }) => {
         sendMessage({
           parts: [
             {
-              text: "Please add suggestions you have that could improve the writing.",
+              text: ui.artifacts.requestSuggestionsPrompt,
               type: "text",
             },
           ],

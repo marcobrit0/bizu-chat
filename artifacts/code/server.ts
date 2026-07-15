@@ -16,7 +16,7 @@ export const codeDocumentHandler = createDocumentHandler<"code">({
     let draftContent = "";
 
     const { stream } = streamText({
-      instructions: `${codePrompt}\n\nOutput ONLY the code. No explanations, no markdown fences, no wrapping.`,
+      instructions: `${codePrompt}\n\nGere APENAS o código. Sem explicações, sem blocos de markdown, sem texto adicional.`,
       model: getLanguageModel(modelId),
       prompt: title,
     });
@@ -38,7 +38,7 @@ export const codeDocumentHandler = createDocumentHandler<"code">({
     let draftContent = "";
 
     const { stream } = streamText({
-      instructions: `${updateDocumentPrompt(document.content, "code")}\n\nOutput ONLY the complete updated code. No explanations, no markdown fences, no wrapping.`,
+      instructions: `${updateDocumentPrompt(document.content, "code")}\n\nGere APENAS o código completo atualizado. Sem explicações, sem blocos de markdown, sem texto adicional.`,
       model: getLanguageModel(modelId),
       prompt: description,
     });

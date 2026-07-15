@@ -5,6 +5,7 @@ import { getDocumentById, saveSuggestions } from "@/lib/db/queries";
 import type { Suggestion } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
+import { suggestionsPrompt } from "../prompts";
 import { getLanguageModel } from "../providers";
 
 type RequestSuggestionsProps = {
@@ -34,14 +35,17 @@ export const requestSuggestions = ({
         return { error: "Forbidden" };
       }
 
+      if (document.kind === "image") {
+        return { error: "This document kind is no longer supported" };
+      }
+
       const suggestions: Omit<
         Suggestion,
         "userId" | "createdAt" | "documentCreatedAt"
       >[] = [];
 
       const { partialOutputStream } = streamText({
-        instructions:
-          "You are a writing assistant. Given a piece of writing, offer up to 5 suggestions to improve it. Each suggestion must contain full sentences, not just individual words. Describe what changed and why.",
+        instructions: suggestionsPrompt,
         model: getLanguageModel(modelId),
         output: Output.array({
           element: z.object({

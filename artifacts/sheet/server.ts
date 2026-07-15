@@ -9,7 +9,7 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
     let draftContent = "";
 
     const { stream } = streamText({
-      instructions: `${sheetPrompt}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
+      instructions: `${sheetPrompt}\n\nGere APENAS os dados CSV brutos. Sem explicações, sem blocos de markdown.`,
       model: getLanguageModel(modelId),
       prompt: title,
     });
@@ -31,7 +31,7 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
     let draftContent = "";
 
     const { stream } = streamText({
-      instructions: `${updateDocumentPrompt(document.content, "sheet")}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
+      instructions: `${updateDocumentPrompt(document.content, "sheet")}\n\nGere APENAS os dados CSV brutos. Sem explicações, sem blocos de markdown.`,
       model: getLanguageModel(modelId),
       prompt: description,
     });

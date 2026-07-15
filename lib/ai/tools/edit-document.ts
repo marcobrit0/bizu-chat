@@ -24,6 +24,10 @@ export const editDocument = ({ session, dataStream }: EditDocumentProps) =>
         return { error: "Forbidden" };
       }
 
+      if (document.kind === "image") {
+        return { error: "This document kind is no longer supported" };
+      }
+
       if (!document.content) {
         return { error: "Document has no content" };
       }

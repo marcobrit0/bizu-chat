@@ -5,7 +5,9 @@ import type { ArtifactKind } from "./artifact";
 export const DocumentSkeleton = ({
   artifactKind,
 }: {
-  artifactKind: ArtifactKind;
+  // Widened beyond ArtifactKind: legacy documents persisted before the
+  // "image" artifact kind was removed can still report kind "image".
+  artifactKind: ArtifactKind | "image";
 }) =>
   artifactKind === "image" ? (
     <div className="flex h-[calc(100dvh-60px)] w-full flex-col items-center justify-center gap-4">

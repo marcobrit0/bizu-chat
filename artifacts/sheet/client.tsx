@@ -9,13 +9,14 @@ import {
   UndoIcon,
 } from "@/components/chat/icons";
 import { SpreadsheetEditor } from "@/components/chat/sheet-editor";
+import { messages as ui } from "@/lib/i18n/messages";
 
 type Metadata = Record<string, never>;
 
 export const sheetArtifact = new Artifact<"sheet", Metadata>({
   actions: [
     {
-      description: "View Previous version",
+      description: ui.artifacts.viewPreviousVersion,
       icon: <UndoIcon size={18} />,
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
@@ -29,7 +30,7 @@ export const sheetArtifact = new Artifact<"sheet", Metadata>({
       },
     },
     {
-      description: "View Next version",
+      description: ui.artifacts.viewNextVersion,
       icon: <RedoIcon size={18} />,
       isDisabled: ({ isCurrentVersion }) => {
         if (isCurrentVersion) {
@@ -43,7 +44,7 @@ export const sheetArtifact = new Artifact<"sheet", Metadata>({
       },
     },
     {
-      description: "Copy as .csv",
+      description: ui.artifacts.copyAsCsv,
       icon: <CopyIcon />,
       onClick: ({ content }) => {
         const parsed = parse<string[]>(content, { skipEmptyLines: true });
@@ -55,7 +56,7 @@ export const sheetArtifact = new Artifact<"sheet", Metadata>({
         const cleanedCsv = unparse(nonEmptyRows);
 
         navigator.clipboard.writeText(cleanedCsv);
-        toast.success("Copied csv to clipboard!");
+        toast.success(ui.actions.copied);
       },
     },
   ],
@@ -68,7 +69,7 @@ export const sheetArtifact = new Artifact<"sheet", Metadata>({
       status={status}
     />
   ),
-  description: "Useful for working with spreadsheets",
+  description: ui.artifacts.sheetDescription,
   initialize: () => null,
   kind: "sheet",
   onStreamPart: ({ setArtifact, streamPart }) => {
@@ -83,25 +84,23 @@ export const sheetArtifact = new Artifact<"sheet", Metadata>({
   },
   toolbar: [
     {
-      description: "Format and clean data",
+      description: ui.artifacts.formatData,
       icon: <SparklesIcon />,
       onClick: ({ sendMessage }) => {
         sendMessage({
-          parts: [
-            { text: "Can you please format and clean the data?", type: "text" },
-          ],
+          parts: [{ text: ui.artifacts.formatDataPrompt, type: "text" }],
           role: "user",
         });
       },
     },
     {
-      description: "Analyze and visualize data",
+      description: ui.artifacts.analyzeData,
       icon: <LineChartIcon />,
       onClick: ({ sendMessage }) => {
         sendMessage({
           parts: [
             {
-              text: "Can you please analyze and visualize the data by creating a new code artifact in python?",
+              text: ui.artifacts.analyzeDataPrompt,
               type: "text",
             },
           ],

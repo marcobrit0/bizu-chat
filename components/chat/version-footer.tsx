@@ -8,6 +8,7 @@ import { useCallback, useState } from "react";
 import { useSWRConfig } from "swr";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { Document } from "@/lib/db/schema";
+import { messages as ui } from "@/lib/i18n/messages";
 import { cn, getDocumentTimestampByIndex } from "@/lib/utils";
 import { LoaderIcon } from "./icons";
 
@@ -117,7 +118,7 @@ export const VersionFooter = ({
             <ChevronLeftIcon className="size-4" />
           </button>
           <span className="min-w-[4rem] text-center text-xs tabular-nums text-muted-foreground">
-            {currentVersionIndex + 1} of {documents.length}
+            {currentVersionIndex + 1} {ui.artifacts.of} {documents.length}
           </span>
           <button
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
@@ -135,7 +136,7 @@ export const VersionFooter = ({
             mode === "diff" && "bg-muted text-foreground"
           )}
           onClick={handleToggleMode}
-          title="Show changes"
+          title={ui.artifacts.showChanges}
           type="button"
         >
           <DiffIcon className="size-4" />
@@ -149,7 +150,7 @@ export const VersionFooter = ({
           onClick={handleRestore}
           type="button"
         >
-          Restore
+          {ui.artifacts.restore}
           {isMutating ? (
             <div className="animate-spin">
               <LoaderIcon size={14} />
@@ -161,7 +162,7 @@ export const VersionFooter = ({
           onClick={handleLatest}
           type="button"
         >
-          Latest
+          {ui.artifacts.latest}
         </button>
       </div>
     </motion.div>

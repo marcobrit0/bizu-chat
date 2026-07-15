@@ -7,6 +7,7 @@ import {
   Collapsible,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { messages as ui } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
@@ -156,12 +157,22 @@ export type ReasoningTriggerProps = ComponentProps<
 
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
   if (isStreaming || duration === 0) {
-    return <Shimmer className="font-medium" duration={1}>Thinking...</Shimmer>;
+    return (
+      <Shimmer className="font-medium" duration={1}>
+        {ui.artifacts.thinking}
+      </Shimmer>
+    );
   }
   if (duration === undefined) {
-    return <p>Thought for a few seconds</p>;
+    return <p>{ui.artifacts.thoughtForAFewSeconds}</p>;
   }
-  return <p>Thought for {duration} seconds</p>;
+  return (
+    <p>
+      {ui.artifacts.thoughtForPrefix}
+      {duration}
+      {ui.artifacts.thoughtForSuffix}
+    </p>
+  );
 };
 
 export const ReasoningTrigger = memo(

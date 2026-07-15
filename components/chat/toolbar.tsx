@@ -22,6 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { messages as ui } from "@/lib/i18n/messages";
 import type { ChatMessage } from "@/lib/types";
 import { type ArtifactKind, artifactDefinitions } from "./artifact";
 import type { ArtifactToolbarItem } from "./create-artifact";
@@ -43,14 +44,7 @@ type ToolProps = {
   }) => void;
 };
 
-const READING_LEVELS = [
-  "Elementary",
-  "Middle School",
-  "Keep current level",
-  "High School",
-  "College",
-  "Graduate",
-];
+const READING_LEVELS = ui.artifacts.readingLevels;
 
 const Tool = ({
   description,
@@ -190,7 +184,7 @@ const ReadingLevelSelector = ({
       sendMessage({
         parts: [
           {
-            text: `Please adjust the reading level to ${READING_LEVELS[currentLevel]} level.`,
+            text: `${ui.artifacts.adjustReadingLevelPromptPrefix}${READING_LEVELS[currentLevel]}${ui.artifacts.adjustReadingLevelPromptSuffix}`,
             type: "text",
           },
         ],
@@ -305,13 +299,13 @@ const createFixErrorTool = (
   consoleOutput: string,
   documentId?: string
 ): ArtifactToolbarItem => ({
-  description: "Fix error",
+  description: ui.artifacts.fixError,
   icon: <WrenchIcon className="size-4" />,
   onClick: ({ sendMessage: send }) => {
     send({
       parts: [
         {
-          text: `Fix the error in the existing script${documentId ? ` (id: ${documentId})` : ""} using updateDocument. Do not create a new script. Console error:\n\n${consoleOutput}`,
+          text: `${ui.artifacts.fixErrorPromptPrefix}${documentId ? ` (id: ${documentId})` : ""}${ui.artifacts.fixErrorPromptSuffix}\n\n${consoleOutput}`,
           type: "text",
         },
       ],

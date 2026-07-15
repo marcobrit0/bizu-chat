@@ -32,6 +32,10 @@ export const updateDocument = ({
         return { error: "Forbidden" };
       }
 
+      if (document.kind === "image") {
+        return { error: "This document kind is no longer supported" };
+      }
+
       dataStream.write({
         data: null,
         transient: true,

@@ -14,6 +14,62 @@ export const messages = {
     upvoteFailed: "Falha ao curtir a resposta.",
   },
 
+  artifacts: {
+    addComments: "Adicionar comentários",
+    addCommentsPrompt:
+      "Adicione comentários ao trecho de código para facilitar o entendimento. Responda em português do Brasil.",
+    addLogs: "Adicionar logs",
+    addLogsPrompt:
+      "Adicione logs ao trecho de código para facilitar a depuração. Responda em português do Brasil.",
+    addPolish: "Dar um acabamento final",
+    addPolishPrompt:
+      "Dê um acabamento final ao texto: revise a gramática, adicione títulos de seção para melhorar a estrutura e garanta que tudo flua bem. Responda em português do Brasil.",
+    adjustReadingLevelPromptPrefix: "Ajuste o nível de leitura para: ",
+    adjustReadingLevelPromptSuffix: ". Responda em português do Brasil.",
+    analyzeData: "Analisar e visualizar dados",
+    analyzeDataPrompt:
+      "Você pode analisar e visualizar os dados criando um novo artefato de código em Python? Responda em português do Brasil.",
+    codeDescription:
+      "Útil para gerar código; a execução de código está disponível apenas para Python.",
+    copyAsCsv: "Copiar como .csv",
+    copyCodeToClipboard: "Copiar código",
+    copyToClipboard: "Copiar",
+    executeCode: "Executar código",
+    fixError: "Corrigir erro",
+    fixErrorPromptPrefix: "Corrija o erro no script existente",
+    fixErrorPromptSuffix:
+      " usando updateDocument. Não crie um novo script. Responda em português do Brasil. Erro do console:",
+    formatData: "Formatar e limpar dados",
+    formatDataPrompt:
+      "Você pode formatar e limpar os dados, por favor? Responda em português do Brasil.",
+    latest: "Mais recente",
+    of: "de",
+    readingLevels: [
+      "Ensino fundamental I",
+      "Ensino fundamental II",
+      "Manter o nível atual",
+      "Ensino médio",
+      "Graduação",
+      "Pós-graduação",
+    ],
+    requestSuggestions: "Pedir sugestões",
+    requestSuggestionsPrompt:
+      "Adicione sugestões que possam melhorar o texto. Responda em português do Brasil.",
+    restore: "Restaurar",
+    run: "Executar",
+    sheetDescription: "Útil para trabalhar com planilhas.",
+    showChanges: "Ver alterações",
+    textDescription:
+      "Útil para conteúdo em texto, como redigir textos e e-mails.",
+    thinking: "Pensando...",
+    thoughtForAFewSeconds: "Pensou por alguns segundos",
+    thoughtForPrefix: "Pensou por ",
+    thoughtForSuffix: " segundos",
+    viewChanges: "Ver alterações",
+    viewNextVersion: "Ver próxima versão",
+    viewPreviousVersion: "Ver versão anterior",
+  },
+
   auth: {
     accountCreated: "Conta criada!",
     accountExists: "Esta conta já existe!",
@@ -88,6 +144,7 @@ export const messages = {
     deleteAll: "Excluir todos",
     deleteAllChats: "Excluir todos os chats?",
     deleteThisChat: "Excluir este chat?",
+    editingMessage: "Editando mensagem",
     editMessage: "Edite sua mensagem...",
     pastedImage: "Imagem colada",
     pasteUploadFailed: "Falha ao enviar imagem(ns) colada(s)",

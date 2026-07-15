@@ -118,7 +118,9 @@ function PureArtifactActions({
             action={action}
             actionContext={actionContext}
             disabled={disabled}
-            isActive={mode === "diff" && action.description === "View changes"}
+            isActive={
+              mode === "diff" && action.description === ui.artifacts.viewChanges
+            }
             key={action.description}
             setIsLoading={setIsLoading}
           />
