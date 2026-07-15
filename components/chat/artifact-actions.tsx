@@ -89,8 +89,11 @@ function PureArtifactActions({
     (definition) => definition.kind === artifact.kind
   );
 
+  // Unknown/legacy artifact kind: fail soft. PureArtifact already bails
+  // out before rendering this component in that case, but guard here too
+  // since this component isn't only reachable through PureArtifact.
   if (!artifactDefinition) {
-    throw new Error("Artifact definition not found!");
+    return null;
   }
 
   const actionContext: ArtifactActionContext = {

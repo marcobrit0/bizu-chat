@@ -18,6 +18,7 @@ import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { Document, Vote } from "@/lib/db/schema";
+import { messages as ui } from "@/lib/i18n/messages";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { fetcher } from "@/lib/utils";
 import { useSidebar } from "../ui/sidebar";
@@ -287,12 +288,8 @@ function PureArtifact({
     (definition) => definition.kind === artifact.kind
   );
 
-  if (!artifactDefinition) {
-    throw new Error("Artifact definition not found!");
-  }
-
   useEffect(() => {
-    if (artifact.documentId !== "init" && artifactDefinition.initialize) {
+    if (artifact.documentId !== "init" && artifactDefinition?.initialize) {
       artifactDefinition.initialize({
         documentId: artifact.documentId,
         setMetadata,
@@ -311,6 +308,20 @@ function PureArtifact({
 
   if (!artifact.isVisible) {
     return null;
+  }
+
+  // Unknown/legacy artifact kind (e.g. a pre-existing "image" document):
+  // fail soft instead of crashing the chat page, since there is no
+  // app/error.tsx boundary to catch a throw here.
+  if (!artifactDefinition) {
+    return (
+      <div
+        className="flex h-dvh w-full items-center justify-center bg-sidebar text-center text-sm text-muted-foreground"
+        data-testid="artifact"
+      >
+        {ui.artifacts.unsupportedContentType}
+      </div>
+    );
   }
 
   const consoleError =

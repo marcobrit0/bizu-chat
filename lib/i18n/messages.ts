@@ -28,7 +28,7 @@ export const messages = {
     adjustReadingLevelPromptSuffix: ". Responda em português do Brasil.",
     analyzeData: "Analisar e visualizar dados",
     analyzeDataPrompt:
-      "Você pode analisar e visualizar os dados criando um novo artefato de código em Python? Responda em português do Brasil.",
+      "Analise e visualize os dados criando um novo artefato de código em Python. Responda em português do Brasil.",
     codeDescription:
       "Útil para gerar código; a execução de código está disponível apenas para Python.",
     copyAsCsv: "Copiar como .csv",
@@ -41,7 +41,7 @@ export const messages = {
       " usando updateDocument. Não crie um novo script. Responda em português do Brasil. Erro do console:",
     formatData: "Formatar e limpar dados",
     formatDataPrompt:
-      "Você pode formatar e limpar os dados, por favor? Responda em português do Brasil.",
+      "Formate e limpe os dados. Responda em português do Brasil.",
     latest: "Mais recente",
     of: "de",
     readingLevels: [
@@ -60,11 +60,13 @@ export const messages = {
     sheetDescription: "Útil para trabalhar com planilhas.",
     showChanges: "Ver alterações",
     textDescription:
-      "Útil para conteúdo em texto, como redigir textos e e-mails.",
+      "Útil para conteúdo em texto, como redigir redações e e-mails.",
     thinking: "Pensando...",
     thoughtForAFewSeconds: "Pensou por alguns segundos",
     thoughtForPrefix: "Pensou por ",
     thoughtForSuffix: " segundos",
+    thoughtForSuffixSingular: " segundo",
+    unsupportedContentType: "Tipo de conteúdo não suportado.",
     viewChanges: "Ver alterações",
     viewNextVersion: "Ver próxima versão",
     viewPreviousVersion: "Ver versão anterior",

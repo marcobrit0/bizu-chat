@@ -16,14 +16,7 @@ import { cn, fetcher } from "@/lib/utils";
 import type { ArtifactKind, UIArtifact } from "./artifact";
 import { CodeEditor } from "./code-editor";
 import { InlineDocumentSkeleton } from "./document-skeleton";
-import {
-  CodeIcon,
-  FileIcon,
-  FullscreenIcon,
-  ImageIcon,
-  LoaderIcon,
-} from "./icons";
-import { ImageEditor } from "./image-editor";
+import { CodeIcon, FileIcon, FullscreenIcon, LoaderIcon } from "./icons";
 import { SpreadsheetEditor } from "./sheet-editor";
 import { Editor } from "./text-editor";
 
@@ -116,6 +109,13 @@ export function DocumentPreview({
     return <LoadingSkeleton artifactKind={artifact.kind} />;
   }
 
+  // Legacy document persisted before the "image" artifact kind was
+  // removed: there's no artifact definition left to open it with (see
+  // components/chat/artifact.tsx), so don't render a clickable preview.
+  if (document.kind === "image") {
+    return null;
+  }
+
   return (
     <div className="relative w-full max-w-[450px] cursor-pointer">
       <HitboxLayer
@@ -134,11 +134,9 @@ export function DocumentPreview({
 }
 
 const LoadingSkeleton = ({
-  artifactKind,
+  artifactKind: _artifactKind,
 }: {
-  // Widened beyond ArtifactKind: legacy documents persisted before the
-  // "image" artifact kind was removed can still report kind "image".
-  artifactKind: ArtifactKind | "image";
+  artifactKind: ArtifactKind;
 }) => (
   <div className="w-full max-w-[450px]">
     <div className="flex flex-row items-center justify-between gap-2 rounded-t-2xl border border-b-0 border-border/50 px-4 py-3 dark:bg-muted">
@@ -148,15 +146,9 @@ const LoadingSkeleton = ({
       </div>
       <div className="w-8" />
     </div>
-    {artifactKind === "image" ? (
-      <div className="overflow-hidden rounded-b-2xl border border-t-0 border-border/50 bg-muted">
-        <div className="h-[257px] w-full animate-pulse bg-muted-foreground/10" />
-      </div>
-    ) : (
-      <div className="h-[257px] overflow-hidden rounded-b-2xl border border-t-0 border-border/50 bg-muted p-6">
-        <InlineDocumentSkeleton />
-      </div>
-    )}
+    <div className="h-[257px] overflow-hidden rounded-b-2xl border border-t-0 border-border/50 bg-muted p-6">
+      <InlineDocumentSkeleton />
+    </div>
   </div>
 );
 
@@ -222,9 +214,7 @@ const PureDocumentHeader = ({
   isStreaming,
 }: {
   title: string;
-  // Widened beyond ArtifactKind: legacy documents persisted before the
-  // "image" artifact kind was removed can still report kind "image".
-  kind: ArtifactKind | "image";
+  kind: ArtifactKind;
   isStreaming: boolean;
 }) => (
   <div className="flex flex-row items-center justify-between gap-2 rounded-t-2xl border border-b-0 border-border/50 px-4 py-3 dark:bg-muted">
@@ -234,8 +224,6 @@ const PureDocumentHeader = ({
           <div className="animate-spin">
             <LoaderIcon size={14} />
           </div>
-        ) : kind === "image" ? (
-          <ImageIcon size={14} />
         ) : kind === "code" ? (
           <CodeIcon size={14} />
         ) : (
@@ -297,15 +285,6 @@ const DocumentContent = ({ document }: { document: Document }) => {
             <SpreadsheetEditor {...commonProps} />
           </div>
         </div>
-      ) : document.kind === "image" ? (
-        <ImageEditor
-          content={document.content ?? ""}
-          currentVersionIndex={0}
-          isCurrentVersion={true}
-          isInline={true}
-          status={artifact.status}
-          title={document.title}
-        />
       ) : null}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-muted to-transparent dark:from-muted" />
       {document.kind === "code" && (

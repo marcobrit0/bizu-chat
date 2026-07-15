@@ -170,7 +170,9 @@ const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
     <p>
       {ui.artifacts.thoughtForPrefix}
       {duration}
-      {ui.artifacts.thoughtForSuffix}
+      {duration === 1
+        ? ui.artifacts.thoughtForSuffixSingular
+        : ui.artifacts.thoughtForSuffix}
     </p>
   );
 };
