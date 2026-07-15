@@ -4,15 +4,16 @@ import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
 import { buildBlobKey } from "@/lib/blob-path";
+import { messages as ui } from "@/lib/i18n/messages";
 
 const FileSchema = z.object({
   file: z
     .instanceof(Blob)
     .refine((file) => file.size <= 5 * 1024 * 1024, {
-      message: "File size should be less than 5MB",
+      message: ui.upload.tooLarge,
     })
     .refine((file) => ["image/jpeg", "image/png"].includes(file.type), {
-      message: "File type should be JPEG or PNG",
+      message: ui.upload.invalidType,
     }),
 });
 
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json(data);
     } catch {
-      return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+      return NextResponse.json({ error: ui.upload.failed }, { status: 500 });
     }
   } catch {
     return NextResponse.json(

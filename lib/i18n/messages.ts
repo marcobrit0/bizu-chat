@@ -167,8 +167,18 @@ export const messages = {
   },
 
   message: {
+    // `modelSlowPrefix` + the real model name + `modelSlowSuffix`.
+    // The model name is never translated or rebranded.
+    modelSlowPrefix: "O modelo ",
+    modelSlowSuffix: " pode estar lento ou indisponível no momento...",
     scrollToBottom: "Ir para o final",
+    stillWaiting: "Ainda aguardando...",
+    thinking: "Pensando...",
     waiting: "Aguardando...",
+  },
+
+  preview: {
+    headline: "Como posso ajudar?",
   },
 
   sidebar: {
@@ -209,6 +219,22 @@ export const messages = {
     purge: "Excluir todos os chats",
     rename: "Renomear o chat atual",
     theme: "Alternar tema claro/escuro",
+  },
+
+  tool: {
+    approvalRequested: "Aguardando aprovação",
+    approvalResponded: "Respondido",
+    completed: "Concluído",
+    denied: "Negado",
+    error: "Erro",
+    pending: "Pendente",
+    running: "Executando",
+  },
+
+  upload: {
+    failed: "Falha ao enviar o arquivo. Tente novamente.",
+    invalidType: "O arquivo deve ser JPEG ou PNG.",
+    tooLarge: "O arquivo deve ter menos de 5 MB.",
   },
 
   userNav: {

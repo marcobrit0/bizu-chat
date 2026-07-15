@@ -234,7 +234,7 @@ export async function POST(request: Request) {
           });
         };
 
-        writeWaitingStatus("waiting", "Waiting...");
+        writeWaitingStatus("waiting", ui.message.waiting);
 
         healthCheckTimer = setTimeout(() => {
           getModelAvailability(chatModel)
@@ -242,14 +242,14 @@ export async function POST(request: Request) {
               if (availability === "impacted") {
                 writeWaitingStatus(
                   "health",
-                  `${modelName} may be slow or unavailable right now...`
+                  `${ui.message.modelSlowPrefix}${modelName}${ui.message.modelSlowSuffix}`
                 );
               } else {
-                writeWaitingStatus("still-waiting", "Still waiting...");
+                writeWaitingStatus("still-waiting", ui.message.stillWaiting);
               }
             })
             .catch(() => {
-              writeWaitingStatus("still-waiting", "Still waiting...");
+              writeWaitingStatus("still-waiting", ui.message.stillWaiting);
             });
         }, HEALTH_CHECK_DELAY_MS);
 
@@ -259,7 +259,7 @@ export async function POST(request: Request) {
           }
           hasModelActivity = true;
           clearHealthCheckTimer();
-          writeWaitingStatus("thinking", "Thinking...");
+          writeWaitingStatus("thinking", ui.message.thinking);
         };
 
         const stopWaitingStatus = () => {

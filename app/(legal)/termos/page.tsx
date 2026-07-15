@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  // Unreviewed legal draft — keep it out of search results until a lawyer signs off.
+  robots: { index: false },
   title: "Termos de Uso · Bizu",
 };
 

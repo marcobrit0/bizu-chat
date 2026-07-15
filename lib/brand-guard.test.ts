@@ -13,6 +13,8 @@ const FORBIDDEN = [
   "AI Chatbot Starter Template",
   "Activate AI Gateway",
   "add-credit-card",
+  "credit card",
+  "vercel.com/d?to=",
 ];
 
 function sourceFiles(dir: string): string[] {

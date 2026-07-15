@@ -9,6 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { messages as ui } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 import {
   CheckCircleIcon,
@@ -46,13 +47,13 @@ export type ToolHeaderProps = {
 );
 
 const statusLabels: Record<ToolPart["state"], string> = {
-  "approval-requested": "Awaiting Approval",
-  "approval-responded": "Responded",
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-denied": "Denied",
-  "output-error": "Error",
+  "approval-requested": ui.tool.approvalRequested,
+  "approval-responded": ui.tool.approvalResponded,
+  "input-available": ui.tool.running,
+  "input-streaming": ui.tool.pending,
+  "output-available": ui.tool.completed,
+  "output-denied": ui.tool.denied,
+  "output-error": ui.tool.error,
 };
 
 const statusIcons: Record<ToolPart["state"], ReactNode> = {
