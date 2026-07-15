@@ -41,6 +41,7 @@ import {
 } from "@/lib/db/queries";
 import type { DBMessage } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
+import { messages as ui } from "@/lib/i18n/messages";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage, WaitingStatusData } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
@@ -389,15 +390,10 @@ export async function POST(request: Request) {
         }
       },
       onError: (error) => {
-        if (
-          error instanceof Error &&
-          error.message?.includes(
-            "AI Gateway requires a valid credit card on file to service requests"
-          )
-        ) {
-          return "AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.";
-        }
-        return "Oops, an error occurred!";
+        // The AI Gateway billing error is the owner's problem, not the user's —
+        // surface it in logs, never in the UI.
+        console.error("[chat] stream error", error);
+        return ui.errors.unavailable;
       },
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
     });
@@ -430,15 +426,10 @@ export async function POST(request: Request) {
       return error.toResponse();
     }
 
-    if (
-      error instanceof Error &&
-      error.message?.includes(
-        "AI Gateway requires a valid credit card on file to service requests"
-      )
-    ) {
-      return new ChatbotError("bad_request:activate_gateway").toResponse();
-    }
-
+    // Any upstream/provider failure (including AI Gateway billing errors,
+    // which are the owner's problem, not the user's) is logged here and
+    // surfaced to the user only as a generic outage — never with vendor
+    // specifics.
     console.error("Unhandled error in chat API:", error, { vercelId });
     return new ChatbotError("offline:chat").toResponse();
   }

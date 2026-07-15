@@ -8,6 +8,7 @@ export const messages = {
     copied: "Copiado!",
     downvoteFailed: "Falha ao descurtir a resposta.",
     modelUnavailableDemo: "Este modelo não está disponível no demo.",
+    ok: "Entendi",
     submitForm: "Enviar formulário",
     submitLoading: "Carregando",
     upvoteFailed: "Falha ao curtir a resposta.",
@@ -49,8 +50,6 @@ export const messages = {
   },
 
   errors: {
-    activateGateway:
-      "O AI Gateway exige um cartão de crédito válido para atender solicitações. Adicione um cartão em https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card para liberar seus créditos gratuitos.",
     badRequestApi:
       "Não foi possível processar a solicitação. Verifique os dados e tente de novo.",
     badRequestDocument:
@@ -74,6 +73,9 @@ export const messages = {
       "Você precisa entrar para ver este chat. Entre e tente novamente.",
     unauthorizedDocument:
       "Você precisa entrar para ver este documento. Entre e tente novamente.",
+    unavailable:
+      "O Bizu está temporariamente indisponível. Já estamos trabalhando nisso — tente de novo em alguns minutos.",
+    unavailableTitle: "Serviço indisponível",
   },
 
   greeting: {

@@ -17,15 +17,13 @@ export type Surface =
   | "history"
   | "vote"
   | "document"
-  | "suggestions"
-  | "activate_gateway";
+  | "suggestions";
 
 export type ErrorCode = `${ErrorType}:${Surface}`;
 
 export type ErrorVisibility = "response" | "log" | "none";
 
 export const visibilityBySurface: Record<Surface, ErrorVisibility> = {
-  activate_gateway: "response",
   api: "response",
   auth: "response",
   chat: "response",
@@ -90,9 +88,6 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
   switch (errorCode) {
     case "bad_request:api":
       return ui.errors.badRequestApi;
-
-    case "bad_request:activate_gateway":
-      return ui.errors.activateGateway;
 
     case "unauthorized:auth":
       return ui.errors.unauthorizedAuth;

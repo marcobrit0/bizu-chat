@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -17,6 +16,7 @@ import {
   useArtifact,
   useArtifactSelector,
 } from "@/hooks/use-artifact";
+import { messages as ui } from "@/lib/i18n/messages";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Artifact } from "./artifact";
@@ -102,13 +102,9 @@ export function ChatShell() {
     setInput("");
   }, [editingMessage, input, regenerate, setInput, setMessages]);
 
-  const handleActivateGateway = useCallback(() => {
-    window.open(
-      "https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card",
-      "_blank"
-    );
-    window.location.href = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`;
-  }, []);
+  const handleDismissAlert = useCallback(() => {
+    setShowCreditCardAlert(false);
+  }, [setShowCreditCardAlert]);
 
   return (
     <>
@@ -196,17 +192,14 @@ export function ChatShell() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Activate AI Gateway</AlertDialogTitle>
+            <AlertDialogTitle>{ui.errors.unavailableTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              This application requires{" "}
-              {process.env.NODE_ENV === "production" ? "the owner" : "you"} to
-              activate Vercel AI Gateway.
+              {ui.errors.unavailable}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleActivateGateway}>
-              Activate
+            <AlertDialogAction onClick={handleDismissAlert}>
+              {ui.actions.ok}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
