@@ -11,8 +11,8 @@ export const isTestEnvironment = Boolean(
 export const DUMMY_PASSWORD = generateDummyPassword();
 
 export const suggestions = [
-  "Quais as vantagens de usar Next.js?",
-  "Escreva um código que demonstre o algoritmo de Dijkstra",
-  "Me ajuda a escrever uma redação sobre o Vale do Silício",
-  "Como está o tempo em São Paulo?",
+  "Escreva um e-mail profissional pedindo aumento de salário",
+  "Explique o que é CDB e Tesouro Direto para quem nunca investiu",
+  "Crie um plano de treino de 3 dias por semana para iniciantes",
+  "Resuma este texto em 5 tópicos e me diga o que é mais importante",
 ];
