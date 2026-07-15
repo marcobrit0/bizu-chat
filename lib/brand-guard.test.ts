@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const ROOTS = ["app", "components", "lib", "artifacts"];
+const ROOTS = ["app", "components", "hooks", "lib", "artifacts"];
 const EXTENSIONS = [".ts", ".tsx"];
 
 // Strings that must never reach a Bizu user.
