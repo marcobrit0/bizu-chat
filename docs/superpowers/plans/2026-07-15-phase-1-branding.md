@@ -498,8 +498,26 @@ Then in the same file, replace `handleActivateGateway` with:
 ```tsx
   const handleDismissAlert = useCallback(() => {
     setShowCreditCardAlert(false);
-  }, []);
+  }, [setShowCreditCardAlert]);
 ```
+
+> **Note (2026-07-15):** this snippet originally had `[]` deps, which fails
+> ultracite's `useExhaustiveDependencies` rule. Corrected above.
+>
+> **Also:** the brief's file list was incomplete. `lib/errors.ts` holds a
+> dangling reference to `activateGateway`, and `app/(chat)/api/chat/route.ts`'s
+> **outer catch** carries a second copy of the same vendor string via
+> `ChatbotError("bad_request:activate_gateway")`. Both must go, or Step 4's grep
+> cannot pass. Removing the outer-catch branch also fixes a silent failure: it
+> `return`ed *before* `console.error`, so gateway billing errors were never
+> logged at all.
+>
+> **Consequence:** once the stream stops returning the English gateway string,
+> the `showCreditCardAlert` trigger in `hooks/use-active-chat.tsx` is dead and
+> the dialog above becomes unreachable. The whole alert path is therefore
+> deleted in a follow-up commit — the `else` branch's toast of
+> `ui.errors.unavailable` is the live path and is sufficient. If you are
+> implementing this fresh, skip the dialog rewrite and delete the path outright.
 
 Delete `handleActivateGateway` and any now-unused imports it pulled in
 (`AlertDialogCancel` may also become unused — `pnpm check` will tell you).
@@ -507,10 +525,15 @@ Delete `handleActivateGateway` and any now-unused imports it pulled in
 - [ ] **Step 4: Verify no vendor string can reach a user**
 
 ```bash
-grep -rniE "activate ai gateway|credit card|vercel\.com/d\?to=|add-credit-card" --include="*.tsx" --include="*.ts" ./app ./components ./lib; echo "exit=$?"
+grep -rniE "activate ai gateway|credit card|vercel\.com/d\?to=|add-credit-card" --include="*.tsx" --include="*.ts" ./app ./components ./lib ./hooks; echo "exit=$?"
 ```
 
 Expected: no output, `exit=1`.
+
+> **Note (2026-07-15):** `./hooks` was missing from this grep originally, which
+> gave false confidence — `hooks/use-active-chat.tsx` holds the English
+> credit-card literal as a match condition. It is never rendered, so it is not a
+> leak, but the scan must cover it.
 
 - [ ] **Step 5: Verify types, lint, build**
 
