@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  MessageSquareIcon,
-  PanelLeftIcon,
-  PenSquareIcon,
-  TrashIcon,
-} from "lucide-react";
+import { PanelLeftIcon, PenSquareIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "next-auth";
@@ -13,6 +8,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
+import { BizuMark } from "@/components/brand/bizu-mark";
 import {
   getChatHistoryPaginationKey,
   SidebarHistory,
@@ -95,7 +91,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   tooltip={ui.sidebar.brandTooltip}
                 >
                   <Link href="/" onClick={closeMobile}>
-                    <MessageSquareIcon className="size-4 text-sidebar-foreground/50" />
+                    <BizuMark size={16} />
                   </Link>
                 </SidebarMenuButton>
                 <Tooltip>
