@@ -37,9 +37,9 @@ export const messages = {
       "Chat com inteligência artificial usando modelos econômicos — feito para o Brasil.",
     metadataBase: "https://bizu.chat",
     name: "Bizu",
-    privacyUrl: "https://bizu.chat/privacidade",
+    privacyUrl: "/privacidade",
     tagline: "Seu assistente de IA acessível",
-    termsUrl: "https://bizu.chat/termos",
+    termsUrl: "/termos",
   },
 
   document: {
