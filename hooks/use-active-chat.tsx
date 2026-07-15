@@ -25,6 +25,7 @@ import { useAutoResume } from "@/hooks/use-auto-resume";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
+import { messages as ui } from "@/lib/i18n/messages";
 import type { ChatMessage } from "@/lib/types";
 import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 
@@ -119,7 +120,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         toast({ description: error.message, type: "error" });
       } else {
         toast({
-          description: error.message || "Oops, an error occurred!",
+          description: error.message || ui.errors.generic,
           type: "error",
         });
       }
