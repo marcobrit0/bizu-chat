@@ -6,7 +6,7 @@ export const DEFAULT_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 // Cheap/fast model used to generate short chat titles from the first message.
 export const titleModel = {
   description: "Modelo rápido para gerar títulos de conversas",
-  gatewayOrder: ["bedrock", "deepinfra"],
+  gatewayOrder: ["deepinfra", "deepseek", "fireworks", "novita", "azure"],
   id: "deepseek/deepseek-v4-flash",
   name: "DeepSeek V4 Flash",
   provider: "deepseek",
@@ -24,42 +24,41 @@ export type ChatModel = {
   provider: string;
   description: string;
   gatewayOrder?: string[];
-  reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
 };
 
 // User-facing picker: prioritize cost-efficient Chinese models.
 export const chatModels: ChatModel[] = [
   {
     description: "Rápido e econômico — ideal para o dia a dia",
-    gatewayOrder: ["bedrock", "deepinfra"],
+    gatewayOrder: ["deepinfra", "deepseek", "fireworks", "novita", "azure"],
     id: "deepseek/deepseek-v4-flash",
     name: "DeepSeek V4 Flash",
     provider: "deepseek",
   },
   {
     description: "Alternativa rápida da Alibaba (Qwen)",
-    gatewayOrder: ["alibaba", "fireworks"],
+    gatewayOrder: ["alibaba"],
     id: "alibaba/qwen3.5-flash",
     name: "Qwen 3.5 Flash",
     provider: "alibaba",
   },
   {
     description: "Equilíbrio entre qualidade e custo",
-    gatewayOrder: ["bedrock", "deepinfra"],
+    gatewayOrder: ["deepinfra", "deepseek", "novita", "bedrock"],
     id: "deepseek/deepseek-v3.2",
     name: "DeepSeek V3.2",
     provider: "deepseek",
   },
   {
     description: "Excelente em contexto longo e qualidade",
-    gatewayOrder: ["fireworks", "bedrock"],
+    gatewayOrder: ["moonshotai", "novita", "baseten", "bedrock", "fireworks"],
     id: "moonshotai/kimi-k2.5",
     name: "Kimi K2.5",
     provider: "moonshotai",
   },
   {
     description: "Modelo mais capaz para tarefas difíceis",
-    gatewayOrder: ["alibaba", "fireworks"],
+    gatewayOrder: ["togetherai", "alibaba"],
     id: "alibaba/qwen3.6-plus",
     name: "Qwen 3.6 Plus",
     provider: "alibaba",
