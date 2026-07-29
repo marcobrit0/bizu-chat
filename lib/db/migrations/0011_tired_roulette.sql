@@ -10,6 +10,27 @@ CREATE TABLE "DocumentOwner" (
 --> statement-breakpoint
 ALTER TABLE "BlobDeletion" ADD COLUMN "claimedAt" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "DocumentOwner" ADD CONSTRAINT "DocumentOwner_userId_User_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+LOCK TABLE "Document" IN SHARE ROW EXCLUSIVE MODE;
+--> statement-breakpoint
+CREATE FUNCTION "public"."ensure_document_owner"()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+	INSERT INTO "public"."DocumentOwner" ("id", "userId")
+	VALUES (NEW."id", NEW."userId")
+	ON CONFLICT ("id") DO NOTHING;
+
+	RETURN NEW;
+END
+$$;
+--> statement-breakpoint
+CREATE TRIGGER "Document_ensure_owner"
+BEFORE INSERT ON "Document"
+FOR EACH ROW
+EXECUTE FUNCTION "public"."ensure_document_owner"();
+--> statement-breakpoint
 DO $$
 BEGIN
 	IF EXISTS (

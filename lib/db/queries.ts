@@ -1551,13 +1551,45 @@ export async function deletePendingBlobDeletion({ id }: { id: string }) {
 
 export async function updateChatVisibilityById({
   chatId,
+  userId,
   visibility,
 }: {
   chatId: string;
+  userId: string;
   visibility: "private" | "public";
 }) {
   try {
-    return await db.update(chat).set({ visibility }).where(eq(chat.id, chatId));
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [writableUser] = await transaction
+        .select({ id: user.id })
+        .from(user)
+        .where(
+          and(
+            eq(user.id, userId),
+            isNull(user.deletingAt),
+            isNull(user.chatsDeletingAt)
+          )
+        );
+
+      if (writableUser) {
+        return await transaction
+          .update(chat)
+          .set({ visibility })
+          .where(
+            and(
+              eq(chat.id, chatId),
+              eq(chat.userId, userId),
+              isNull(chat.deletingAt)
+            )
+          )
+          .returning({ id: chat.id });
+      }
+
+      return [];
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

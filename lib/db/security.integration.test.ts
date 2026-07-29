@@ -535,6 +535,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     const ownerId = randomUUID();
     const otherUserId = randomUUID();
     const documentId = randomUUID();
+    const legacyDocumentId = randomUUID();
 
     await sql`
       INSERT INTO "User" ("id", "email")
@@ -542,6 +543,24 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
         (${ownerId}, ${`document-owner-${ownerId}@example.test`}),
         (${otherUserId}, ${`document-other-${otherUserId}@example.test`})
     `;
+    await sql`
+      INSERT INTO "Document"
+        ("id", "createdAt", "text", "title", "userId")
+      VALUES (
+        ${legacyDocumentId},
+        now(),
+        'text',
+        'Legacy writer document',
+        ${ownerId}
+      )
+    `;
+    const [legacyOwner] = await sql`
+      SELECT "userId"
+      FROM "DocumentOwner"
+      WHERE "id" = ${legacyDocumentId}
+    `;
+    expect(legacyOwner?.userId).toBe(ownerId);
+
     const [ownerDocument] = await saveDocument({
       content: "owner content",
       id: documentId,
@@ -602,7 +621,8 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
 
   test("account erasure makes bounded forward progress before final deletion", async () => {
     process.env.POSTGRES_URL = integrationDatabaseUrl;
-    const { deleteUserById, markUserForDeletion } = await import("./queries");
+    const { deleteUserById, markUserForDeletion, updateChatVisibilityById } =
+      await import("./queries");
     const userId = randomUUID();
     const blobPrefix = `uploads/${userId}/`;
 
@@ -641,6 +661,26 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     `;
 
     await markUserForDeletion({ id: userId });
+    const [remainingChat] = await sql`
+      SELECT "id"
+      FROM "Chat"
+      WHERE "userId" = ${userId}
+      LIMIT 1
+    `;
+    await expect(
+      updateChatVisibilityById({
+        chatId: remainingChat.id,
+        userId,
+        visibility: "public",
+      })
+    ).resolves.toEqual([]);
+    const [privateChat] = await sql`
+      SELECT "visibility"
+      FROM "Chat"
+      WHERE "id" = ${remainingChat.id}
+    `;
+    expect(privateChat?.visibility).toBe("private");
+
     await expect(
       deleteUserById({ blobUrls: [blobPrefix], id: userId })
     ).resolves.toEqual({ complete: false });
