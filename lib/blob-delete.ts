@@ -116,8 +116,21 @@ export const drainPendingBlobDeletionsBestEffort = async (userId: string) => {
   }
 };
 
-export const drainAllPendingBlobDeletions = async () => {
+const drainAllReadyBlobDeletions = async (
+  deletedCount: number
+): Promise<number> => {
   const pendingDeletions = await getPendingBlobDeletions();
 
-  return await drainBlobDeletions(pendingDeletions);
+  if (pendingDeletions.length > 0) {
+    await drainBlobDeletions(pendingDeletions);
+
+    return await drainAllReadyBlobDeletions(
+      deletedCount + pendingDeletions.length
+    );
+  }
+
+  return deletedCount;
 };
+
+export const drainAllPendingBlobDeletions = async () =>
+  await drainAllReadyBlobDeletions(0);

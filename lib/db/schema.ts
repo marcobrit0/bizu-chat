@@ -41,6 +41,7 @@ export type User = InferSelectModel<typeof user>;
 export const blobDeletion = pgTable(
   "BlobDeletion",
   {
+    claimedAt: timestamp("claimedAt", { withTimezone: true }),
     createdAt: timestamp("createdAt", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -132,6 +133,10 @@ export const vote = pgTable(
     messageId: uuid("messageId").notNull(),
   },
   (table) => ({
+    messageIdx: index("Vote_v2_messageId_chatId_idx").on(
+      table.messageId,
+      table.chatId
+    ),
     messageRef: foreignKey({
       columns: [table.messageId, table.chatId],
       foreignColumns: [message.id, message.chatId],
@@ -141,6 +146,23 @@ export const vote = pgTable(
 );
 
 export type Vote = InferSelectModel<typeof vote>;
+
+export const documentOwner = pgTable(
+  "DocumentOwner",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    idUserUnique: unique("DocumentOwner_id_userId_unique").on(
+      table.id,
+      table.userId
+    ),
+    userIdx: index("DocumentOwner_userId_idx").on(table.userId),
+  })
+);
 
 export const document = pgTable(
   "Document",
@@ -161,6 +183,10 @@ export const document = pgTable(
       "Document_kind_check",
       sql`${table.kind} IN ('text', 'code', 'image', 'sheet')`
     ),
+    ownerRef: foreignKey({
+      columns: [table.id, table.userId],
+      foreignColumns: [documentOwner.id, documentOwner.userId],
+    }).onDelete("cascade"),
     pk: primaryKey({ columns: [table.id, table.createdAt] }),
     userDocumentUnique: unique("Document_id_createdAt_userId_unique").on(
       table.id,

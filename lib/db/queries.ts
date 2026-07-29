@@ -30,6 +30,7 @@ import {
   chat,
   type DBMessage,
   document,
+  documentOwner,
   message,
   type Suggestion,
   stream,
@@ -448,7 +449,7 @@ export async function saveMessages({
         .where(
           and(
             eq(blobDeletion.userId, userId),
-            gt(blobDeletion.readyAt, new Date())
+            isNotNull(blobDeletion.claimedAt)
           )
         );
       const pendingUrls = new Set(pendingRows.flatMap(({ urls }) => urls));
@@ -514,7 +515,7 @@ export async function updateMessage({
         .where(
           and(
             eq(blobDeletion.userId, userId),
-            gt(blobDeletion.readyAt, new Date())
+            isNotNull(blobDeletion.claimedAt)
           )
         );
       const pendingUrls = new Set(pendingRows.flatMap(({ urls }) => urls));
@@ -613,6 +614,11 @@ export async function saveDocument({
         .where(and(eq(user.id, userId), isNull(user.deletingAt)));
 
       if (writableUser) {
+        await transaction
+          .insert(documentOwner)
+          .values({ id, userId })
+          .onConflictDoNothing();
+
         return await transaction
           .insert(document)
           .values({
@@ -692,12 +698,18 @@ export async function updateDocumentContent({
   }
 }
 
-export async function getDocumentsById({ id }: { id: string }) {
+export async function getDocumentsById({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
   try {
     const documents = await db
       .select()
       .from(document)
-      .where(eq(document.id, id))
+      .where(and(eq(document.id, id), eq(document.userId, userId)))
       .orderBy(asc(document.createdAt));
 
     return documents;
@@ -706,12 +718,18 @@ export async function getDocumentsById({ id }: { id: string }) {
   }
 }
 
-export async function getDocumentById({ id }: { id: string }) {
+export async function getDocumentById({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
   try {
     const [selectedDocument] = await db
       .select()
       .from(document)
-      .where(eq(document.id, id))
+      .where(and(eq(document.id, id), eq(document.userId, userId)))
       .orderBy(desc(document.createdAt));
 
     return selectedDocument;
@@ -723,23 +741,22 @@ export async function getDocumentById({ id }: { id: string }) {
 export async function deleteDocumentsByIdAfterTimestamp({
   id,
   timestamp,
+  userId,
 }: {
   id: string;
   timestamp: Date;
+  userId: string;
 }) {
   try {
-    await db
-      .delete(suggestion)
-      .where(
-        and(
-          eq(suggestion.documentId, id),
-          gt(suggestion.documentCreatedAt, timestamp)
-        )
-      );
-
     return await db
       .delete(document)
-      .where(and(eq(document.id, id), gt(document.createdAt, timestamp)))
+      .where(
+        and(
+          eq(document.id, id),
+          eq(document.userId, userId),
+          gt(document.createdAt, timestamp)
+        )
+      )
       .returning();
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
@@ -999,7 +1016,8 @@ export async function completeBlobUpload({
           and(
             eq(blobDeletion.id, id),
             eq(blobDeletion.userId, userId),
-            eq(blobDeletion.readyAt, expectedReadyAt)
+            eq(blobDeletion.readyAt, expectedReadyAt),
+            isNull(blobDeletion.claimedAt)
           )
         )
         .returning({ id: blobDeletion.id });
@@ -1110,6 +1128,7 @@ export async function claimPendingBlobDeletion({
           await transaction
             .update(blobDeletion)
             .set({
+              claimedAt: new Date(),
               readyAt: new Date(Date.now() + BLOB_DELETION_LEASE_MS),
               urls: claimedIdentifiers,
             })
@@ -1147,6 +1166,7 @@ export async function completePendingBlobDeletion({
         return await transaction
           .update(blobDeletion)
           .set({
+            claimedAt: null,
             readyAt: new Date(Date.now() + UNRESOLVED_BLOB_RETRY_MS),
             urls: unresolvedIdentifiers,
           })

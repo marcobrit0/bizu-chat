@@ -22,7 +22,12 @@ export const requestSuggestions = ({
     description:
       "Request writing suggestions for an existing document artifact. Only use this when the user explicitly asks to improve or get suggestions for a document they have already created. Never use for general questions.",
     execute: async ({ documentId }) => {
-      const document = await getDocumentById({ id: documentId });
+      const document = session.user?.id
+        ? await getDocumentById({
+            id: documentId,
+            userId: session.user.id,
+          })
+        : null;
 
       if (!document?.content) {
         return {

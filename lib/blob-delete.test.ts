@@ -240,7 +240,10 @@ describe("blob deletion outbox", () => {
       urls: ["https://blob.test/uploads/user-1/a.png"],
       userId: "user-1",
     };
-    mocks.getPendingBlobDeletions.mockResolvedValue([deletion]);
+    mocks.getPendingBlobDeletions
+      .mockResolvedValueOnce([deletion])
+      .mockResolvedValueOnce([deletion])
+      .mockResolvedValueOnce([]);
     mocks.del
       .mockRejectedValueOnce(new Error("blob unavailable"))
       .mockResolvedValueOnce(undefined);
@@ -256,6 +259,27 @@ describe("blob deletion outbox", () => {
     expect(mocks.getPendingBlobDeletions).toHaveBeenNthCalledWith(2);
     expect(mocks.claimPendingBlobDeletion).toHaveBeenCalledTimes(2);
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledOnce();
+  });
+
+  test("an independent worker drains every ready outbox page", async () => {
+    const deletion = (index: number) => ({
+      createdAt: new Date(),
+      id: `deletion-${index}`,
+      urls: [`https://blob.test/uploads/user-${index}/image.png`],
+      userId: `user-${index}`,
+    });
+    mocks.del.mockResolvedValue(undefined);
+    mocks.getPendingBlobDeletions
+      .mockResolvedValueOnce(
+        Array.from({ length: 100 }, (_, index) => deletion(index))
+      )
+      .mockResolvedValueOnce([deletion(100)])
+      .mockResolvedValueOnce([]);
+
+    await expect(drainAllPendingBlobDeletions()).resolves.toBe(101);
+
+    expect(mocks.getPendingBlobDeletions).toHaveBeenCalledTimes(3);
+    expect(mocks.completePendingBlobDeletion).toHaveBeenCalledTimes(101);
   });
 
   test("accepts only Blob URLs owned by the message author", async () => {

@@ -14,7 +14,9 @@ export const editDocument = ({ session, dataStream }: EditDocumentProps) =>
     description:
       "Make a targeted edit to an existing artifact by finding and replacing an exact string. Preferred over updateDocument for small changes. The old_string must match exactly.",
     execute: async ({ id, old_string, new_string, replace_all }) => {
-      const document = await getDocumentById({ id });
+      const document = session.user?.id
+        ? await getDocumentById({ id, userId: session.user.id })
+        : null;
 
       if (!document) {
         return { error: "Document not found" };

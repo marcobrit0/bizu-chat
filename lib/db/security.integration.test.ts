@@ -63,6 +63,10 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       VALUES (${randomUUID()}, ${ownerChatId}, ${now})
     `;
     await sql`
+      INSERT INTO "DocumentOwner" ("id", "userId")
+      VALUES (${documentId}, ${ownerId})
+    `;
+    await sql`
       INSERT INTO "Document"
         ("id", "createdAt", "text", "title", "userId")
       VALUES (${documentId}, ${now}, 'text', 'Owner document', ${ownerId})
@@ -437,6 +441,121 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     `;
     expect(pendingIntents).toHaveLength(0);
 
+    await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
+  });
+
+  test("a document id has one database-enforced owner", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const {
+      deleteDocumentsByIdAfterTimestamp,
+      getDocumentsById,
+      saveDocument,
+    } = await import("./queries");
+    const ownerId = randomUUID();
+    const otherUserId = randomUUID();
+    const documentId = randomUUID();
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES
+        (${ownerId}, ${`document-owner-${ownerId}@example.test`}),
+        (${otherUserId}, ${`document-other-${otherUserId}@example.test`})
+    `;
+    await saveDocument({
+      content: "owner content",
+      id: documentId,
+      kind: "text",
+      title: "Owner document",
+      userId: ownerId,
+    });
+
+    await expect(
+      saveDocument({
+        content: "other content",
+        id: documentId,
+        kind: "text",
+        title: "Other document",
+        userId: otherUserId,
+      })
+    ).rejects.toThrow();
+    await expect(
+      getDocumentsById({ id: documentId, userId: otherUserId })
+    ).resolves.toEqual([]);
+    await expect(
+      deleteDocumentsByIdAfterTimestamp({
+        id: documentId,
+        timestamp: new Date(0),
+        userId: otherUserId,
+      })
+    ).resolves.toEqual([]);
+
+    await sql`DELETE FROM "User" WHERE "id" IN (${ownerId}, ${otherUserId})`;
+  });
+
+  test("an expired deletion lease still blocks blob reattachment", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const {
+      claimPendingBlobDeletion,
+      completePendingBlobDeletion,
+      saveMessages,
+    } = await import("./queries");
+    const userId = randomUUID();
+    const chatId = randomUUID();
+    const blobUrl = `https://blob.test/uploads/${userId}/claimed.png`;
+    const deletionId = randomUUID();
+    const now = new Date();
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`claimed-${userId}@example.test`})
+    `;
+    await sql`
+      INSERT INTO "Chat" ("id", "createdAt", "title", "userId")
+      VALUES (${chatId}, ${now}, 'Claimed blob chat', ${userId})
+    `;
+    await sql`
+      INSERT INTO "BlobDeletion" ("id", "readyAt", "urls", "userId")
+      VALUES (${deletionId}, ${now}, ${sql.json([blobUrl])}, ${userId})
+    `;
+
+    await expect(
+      claimPendingBlobDeletion({
+        id: deletionId,
+        resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
+        userId,
+      })
+    ).resolves.toEqual({
+      deletableUrls: [blobUrl],
+      unresolvedIdentifiers: [],
+    });
+    await sql`
+      UPDATE "BlobDeletion"
+      SET "readyAt" = now() - interval '1 minute'
+      WHERE "id" = ${deletionId}
+    `;
+
+    await expect(
+      saveMessages({
+        messages: [
+          {
+            attachments: [],
+            chatId,
+            createdAt: new Date(),
+            id: randomUUID(),
+            parts: [{ type: "file", url: blobUrl }],
+            role: "user",
+          },
+        ],
+        userId,
+        validateBlobUrls: async () => true,
+      })
+    ).rejects.toThrow();
+
+    await completePendingBlobDeletion({
+      id: deletionId,
+      unresolvedIdentifiers: [],
+      userId,
+    });
     await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
   });
 });

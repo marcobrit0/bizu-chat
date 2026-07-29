@@ -20,7 +20,9 @@ export const updateDocument = ({
     description:
       "Full rewrite of an existing artifact. Only use for major changes where most content needs replacing. Prefer editDocument for targeted changes.",
     execute: async ({ id, description }) => {
-      const document = await getDocumentById({ id });
+      const document = session.user?.id
+        ? await getDocumentById({ id, userId: session.user.id })
+        : null;
 
       if (!document) {
         return {

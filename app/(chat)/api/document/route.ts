@@ -33,7 +33,10 @@ export async function GET(request: Request) {
     return new ChatbotError("unauthorized:document").toResponse();
   }
 
-  const documents = await getDocumentsById({ id });
+  const documents = await getDocumentsById({
+    id,
+    userId: session.user.id,
+  });
 
   const [document] = documents;
 
@@ -81,7 +84,10 @@ export async function POST(request: Request) {
     ).toResponse();
   }
 
-  const documents = await getDocumentsById({ id });
+  const documents = await getDocumentsById({
+    id,
+    userId: session.user.id,
+  });
 
   if (documents.length > 0) {
     const [doc] = documents;
@@ -136,9 +142,16 @@ export async function DELETE(request: Request) {
     return new ChatbotError("unauthorized:document").toResponse();
   }
 
-  const documents = await getDocumentsById({ id });
+  const documents = await getDocumentsById({
+    id,
+    userId: session.user.id,
+  });
 
   const [document] = documents;
+
+  if (!document) {
+    return new ChatbotError("not_found:document").toResponse();
+  }
 
   if (document.userId !== session.user.id) {
     return new ChatbotError("forbidden:document").toResponse();
@@ -156,6 +169,7 @@ export async function DELETE(request: Request) {
   const documentsDeleted = await deleteDocumentsByIdAfterTimestamp({
     id,
     timestamp: parsedTimestamp,
+    userId: session.user.id,
   });
 
   return Response.json(documentsDeleted, { status: 200 });
