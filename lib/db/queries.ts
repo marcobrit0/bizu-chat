@@ -8,10 +8,12 @@ import {
   eq,
   gt,
   gte,
+  isNull,
   lt,
   ne,
   or,
   type SQL,
+  sql,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -66,7 +68,11 @@ export async function getUser(email: string): Promise<User[]> {
 export async function getUserById({ id }: { id: string }) {
   try {
     const [selectedUser] = await db
-      .select({ id: user.id })
+      .select({
+        chatsDeletingAt: user.chatsDeletingAt,
+        deletingAt: user.deletingAt,
+        id: user.id,
+      })
       .from(user)
       .where(eq(user.id, id));
 
@@ -117,12 +123,32 @@ export async function saveChat({
   visibility: VisibilityType;
 }) {
   try {
-    return await db.insert(chat).values({
-      createdAt: new Date(),
-      id,
-      title,
-      userId,
-      visibility,
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [writableUser] = await transaction
+        .select({ id: user.id })
+        .from(user)
+        .where(
+          and(
+            eq(user.id, userId),
+            isNull(user.deletingAt),
+            isNull(user.chatsDeletingAt)
+          )
+        );
+
+      if (writableUser) {
+        return await transaction.insert(chat).values({
+          createdAt: new Date(),
+          id,
+          title,
+          userId,
+          visibility,
+        });
+      }
+
+      return [];
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", {
@@ -142,15 +168,31 @@ export async function deleteChatById({
 }) {
   try {
     return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const otherRows = await transaction
+        .select({ attachments: message.attachments })
+        .from(message)
+        .innerJoin(chat, eq(message.chatId, chat.id))
+        .where(and(eq(chat.userId, userId), ne(chat.id, id)));
+      const referencedElsewhere = new Set(
+        otherRows.flatMap(({ attachments }) =>
+          extractAttachmentUrls(attachments)
+        )
+      );
+      const unsharedBlobUrls = blobUrls.filter(
+        (url) => !referencedElsewhere.has(url)
+      );
       const [deletedChat] = await transaction
         .delete(chat)
         .where(and(eq(chat.id, id), eq(chat.userId, userId)))
         .returning();
 
-      if (deletedChat && blobUrls.length > 0) {
+      if (deletedChat && unsharedBlobUrls.length > 0) {
         await transaction
           .insert(blobDeletion)
-          .values({ urls: blobUrls, userId });
+          .values({ urls: unsharedBlobUrls, userId });
       }
 
       return deletedChat;
@@ -169,6 +211,9 @@ export async function deleteAllChatsByUserId({
 }) {
   try {
     return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
       const deletedChats = await transaction
         .delete(chat)
         .where(eq(chat.userId, userId))
@@ -179,6 +224,11 @@ export async function deleteAllChatsByUserId({
           .insert(blobDeletion)
           .values({ urls: blobUrls, userId });
       }
+
+      await transaction
+        .update(user)
+        .set({ chatsDeletingAt: null })
+        .where(eq(user.id, userId));
 
       return { deletedCount: deletedChats.length };
     });
@@ -293,7 +343,35 @@ export async function getChatById({ id }: { id: string }) {
 
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {
   try {
-    return await db.insert(message).values(messages);
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`
+          SELECT pg_advisory_xact_lock(
+            hashtextextended("userId"::text, 0)
+          )
+          FROM "Chat"
+          WHERE "id" = ${messages[0]?.chatId}
+        `
+      );
+      const [writableChat] = await transaction
+        .select({ id: chat.id })
+        .from(chat)
+        .innerJoin(user, eq(chat.userId, user.id))
+        .where(
+          and(
+            eq(chat.id, messages[0]?.chatId ?? ""),
+            isNull(chat.deletingAt),
+            isNull(user.deletingAt),
+            isNull(user.chatsDeletingAt)
+          )
+        );
+
+      if (writableChat) {
+        return await transaction.insert(message).values(messages);
+      }
+
+      return [];
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", {
       cause: error,
@@ -540,23 +618,55 @@ export async function getAttachmentUrlsByChatId({
   }
 }
 
-export async function getAttachmentUrlsByOtherChats({
-  chatId,
+export async function markChatForDeletion({
+  id,
   userId,
 }: {
-  chatId: string;
+  id: string;
   userId: string;
 }) {
   try {
-    const rows = await db
-      .select({ attachments: message.attachments })
-      .from(message)
-      .innerJoin(chat, eq(message.chatId, chat.id))
-      .where(and(eq(chat.userId, userId), ne(chat.id, chatId)));
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [markedChat] = await transaction
+        .update(chat)
+        .set({ deletingAt: new Date() })
+        .where(
+          and(eq(chat.id, id), eq(chat.userId, userId), isNull(chat.deletingAt))
+        )
+        .returning({ id: chat.id });
 
-    return rows.flatMap(({ attachments }) =>
-      extractAttachmentUrls(attachments)
-    );
+      return markedChat;
+    });
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function markAllChatsForDeletion({ userId }: { userId: string }) {
+  try {
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      await transaction
+        .update(user)
+        .set({ chatsDeletingAt: new Date() })
+        .where(
+          and(
+            eq(user.id, userId),
+            isNull(user.chatsDeletingAt),
+            isNull(user.deletingAt)
+          )
+        );
+
+      return await transaction
+        .update(chat)
+        .set({ deletingAt: new Date() })
+        .where(and(eq(chat.userId, userId), isNull(chat.deletingAt)));
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
@@ -570,11 +680,23 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   timestamp: Date;
 }) {
   try {
-    return await db
-      .delete(message)
-      .where(
-        and(eq(message.chatId, chatId), gte(message.createdAt, timestamp))
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`
+          SELECT pg_advisory_xact_lock(
+            hashtextextended("userId"::text, 0)
+          )
+          FROM "Chat"
+          WHERE "id" = ${chatId}
+        `
       );
+
+      return await transaction
+        .delete(message)
+        .where(
+          and(eq(message.chatId, chatId), gte(message.createdAt, timestamp))
+        );
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
@@ -607,13 +729,46 @@ export async function deleteUserById({
   }
 }
 
-export async function getPendingBlobDeletions({ userId }: { userId: string }) {
+export async function markUserForDeletion({ id }: { id: string }) {
+  try {
+    const [markedUser] = await db
+      .update(user)
+      .set({ deletingAt: new Date() })
+      .where(and(eq(user.id, id), isNull(user.deletingAt)))
+      .returning({ id: user.id });
+
+    return markedUser;
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function queueBlobDeletion({
+  urls,
+  userId,
+}: {
+  urls: string[];
+  userId: string;
+}) {
+  try {
+    return await db.insert(blobDeletion).values({ urls, userId });
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function getPendingBlobDeletions({
+  userId,
+}: {
+  userId?: string;
+} = {}) {
   try {
     return await db
       .select()
       .from(blobDeletion)
-      .where(eq(blobDeletion.userId, userId))
-      .orderBy(asc(blobDeletion.createdAt));
+      .where(userId ? eq(blobDeletion.userId, userId) : undefined)
+      .orderBy(asc(blobDeletion.createdAt))
+      .limit(100);
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

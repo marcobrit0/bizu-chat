@@ -17,7 +17,11 @@ vi.mock("@/lib/db/queries", () => ({
   getPendingBlobDeletions: mocks.getPendingBlobDeletions,
 }));
 
-import { drainPendingBlobDeletions, getOwnedUserBlobUrls } from "./blob-delete";
+import {
+  drainAllPendingBlobDeletions,
+  drainPendingBlobDeletions,
+  getOwnedUserBlobUrls,
+} from "./blob-delete";
 
 describe("blob deletion outbox", () => {
   beforeEach(() => {
@@ -79,5 +83,31 @@ describe("blob deletion outbox", () => {
       "blob unavailable"
     );
     expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
+  });
+
+  test("an independent worker retries a failed account deletion", async () => {
+    const deletion = {
+      createdAt: new Date(),
+      id: "deletion-1",
+      urls: ["https://blob.test/uploads/user-1/a.png"],
+      userId: "user-1",
+    };
+    mocks.getPendingBlobDeletions.mockResolvedValue([deletion]);
+    mocks.del
+      .mockRejectedValueOnce(new Error("blob unavailable"))
+      .mockResolvedValueOnce(undefined);
+
+    await expect(drainPendingBlobDeletions("user-1")).rejects.toThrow(
+      "blob unavailable"
+    );
+    await expect(drainAllPendingBlobDeletions()).resolves.toBe(1);
+
+    expect(mocks.getPendingBlobDeletions).toHaveBeenNthCalledWith(1, {
+      userId: "user-1",
+    });
+    expect(mocks.getPendingBlobDeletions).toHaveBeenNthCalledWith(2);
+    expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
+      id: "deletion-1",
+    });
   });
 });

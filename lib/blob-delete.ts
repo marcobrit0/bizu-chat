@@ -38,9 +38,9 @@ export const getOwnedUserBlobUrls = async (
   return ownedUrls.filter((url) => requested.has(url));
 };
 
-export const drainPendingBlobDeletions = async (userId: string) => {
-  const pendingDeletions = await getPendingBlobDeletions({ userId });
-
+const drainBlobDeletions = async (
+  pendingDeletions: Awaited<ReturnType<typeof getPendingBlobDeletions>>
+) => {
   await Promise.all(
     pendingDeletions.map(async ({ id, urls }) => {
       if (urls.length > 0) {
@@ -50,4 +50,18 @@ export const drainPendingBlobDeletions = async (userId: string) => {
       await deletePendingBlobDeletion({ id });
     })
   );
+
+  return pendingDeletions.length;
+};
+
+export const drainPendingBlobDeletions = async (userId: string) => {
+  const pendingDeletions = await getPendingBlobDeletions({ userId });
+
+  return await drainBlobDeletions(pendingDeletions);
+};
+
+export const drainAllPendingBlobDeletions = async () => {
+  const pendingDeletions = await getPendingBlobDeletions();
+
+  return await drainBlobDeletions(pendingDeletions);
 };

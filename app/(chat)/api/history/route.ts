@@ -4,7 +4,11 @@ import {
   drainPendingBlobDeletions,
   getAllUserBlobUrls,
 } from "@/lib/blob-delete";
-import { deleteAllChatsByUserId, getChatsByUserId } from "@/lib/db/queries";
+import {
+  deleteAllChatsByUserId,
+  getChatsByUserId,
+  markAllChatsForDeletion,
+} from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 
 export async function GET(request: NextRequest) {
@@ -48,6 +52,7 @@ export async function DELETE() {
   }
 
   await drainPendingBlobDeletions(session.user.id);
+  await markAllChatsForDeletion({ userId: session.user.id });
   const blobUrls = await getAllUserBlobUrls(session.user.id);
   const result = await deleteAllChatsByUserId({
     blobUrls,

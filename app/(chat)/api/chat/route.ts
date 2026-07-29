@@ -36,10 +36,10 @@ import {
   createStreamId,
   deleteChatById,
   getAttachmentUrlsByChatId,
-  getAttachmentUrlsByOtherChats,
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  markChatForDeletion,
   saveChat,
   saveMessages,
   updateChatTitleById,
@@ -471,21 +471,9 @@ export async function DELETE(request: Request) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
-  const [attachmentUrls, otherAttachmentUrls] = await Promise.all([
-    getAttachmentUrlsByChatId({ chatId: id }),
-    getAttachmentUrlsByOtherChats({
-      chatId: id,
-      userId: session.user.id,
-    }),
-  ]);
-  const referencedElsewhere = new Set(otherAttachmentUrls);
-  const unsharedAttachmentUrls = attachmentUrls.filter(
-    (url) => !referencedElsewhere.has(url)
-  );
-  const blobUrls = await getOwnedUserBlobUrls(
-    session.user.id,
-    unsharedAttachmentUrls
-  );
+  await markChatForDeletion({ id, userId: session.user.id });
+  const attachmentUrls = await getAttachmentUrlsByChatId({ chatId: id });
+  const blobUrls = await getOwnedUserBlobUrls(session.user.id, attachmentUrls);
   const deletedChat = await deleteChatById({
     blobUrls,
     id,

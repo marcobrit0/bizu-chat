@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
+import { drainPendingBlobDeletions } from "@/lib/blob-delete";
 import { buildBlobKey } from "@/lib/blob-path";
-import { getUserById } from "@/lib/db/queries";
+import { getUserById, queueBlobDeletion } from "@/lib/db/queries";
 
 const FileSchema = z.object({
   file: z
@@ -23,7 +24,12 @@ export async function POST(request: Request) {
     ? await getUserById({ id: session.user.id })
     : null;
 
-  if (!session?.user || !currentUser) {
+  if (
+    !session?.user ||
+    !currentUser ||
+    currentUser.deletingAt ||
+    currentUser.chatsDeletingAt
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -62,7 +68,23 @@ export async function POST(request: Request) {
         }
       );
 
-      return NextResponse.json(data);
+      const userAfterUpload = await getUserById({ id: session.user.id });
+
+      if (
+        userAfterUpload &&
+        !userAfterUpload.deletingAt &&
+        !userAfterUpload.chatsDeletingAt
+      ) {
+        return NextResponse.json(data);
+      }
+
+      await queueBlobDeletion({
+        urls: [data.url],
+        userId: session.user.id,
+      });
+      await drainPendingBlobDeletions(session.user.id);
+
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     } catch {
       return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }

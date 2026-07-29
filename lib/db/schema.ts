@@ -15,9 +15,11 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("User", {
+  chatsDeletingAt: timestamp("chatsDeletingAt", { withTimezone: true }),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  deletingAt: timestamp("deletingAt", { withTimezone: true }),
   email: varchar("email", { length: 64 }).notNull().unique(),
   emailVerified: boolean("emailVerified").notNull().default(false),
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -56,6 +58,7 @@ export const chat = pgTable(
   "Chat",
   {
     createdAt: timestamp("createdAt", { withTimezone: true }).notNull(),
+    deletingAt: timestamp("deletingAt", { withTimezone: true }),
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     title: text("title").notNull(),
     userId: uuid("userId")

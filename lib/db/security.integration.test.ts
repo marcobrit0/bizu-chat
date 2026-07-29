@@ -3,12 +3,11 @@ import postgres from "postgres";
 import { afterAll, describe, expect, test } from "vitest";
 
 const testDatabaseUrl = process.env.TEST_POSTGRES_URL;
-const sql = postgres(
-  testDatabaseUrl ?? "postgres://integration-test-disabled",
-  {
-    max: 1,
-  }
-);
+const integrationDatabaseUrl =
+  testDatabaseUrl ?? "postgres://integration-test-disabled";
+const sql = postgres(integrationDatabaseUrl, {
+  max: 1,
+});
 
 describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
   afterAll(async () => {
@@ -159,5 +158,128 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
 
     await sql`DELETE FROM "BlobDeletion" WHERE "id" = ${blobDeletionId}`;
     await sql`DELETE FROM "User" WHERE "id" = ${otherUserId}`;
+  });
+
+  test("serialises concurrent deletion of chats sharing one blob", async () => {
+    const firstSql = postgres(integrationDatabaseUrl, { max: 1 });
+    const secondSql = postgres(integrationDatabaseUrl, { max: 1 });
+    const userId = randomUUID();
+    const firstChatId = randomUUID();
+    const secondChatId = randomUUID();
+    const sharedUrl = `https://blob.test/uploads/${userId}/shared.png`;
+    const now = new Date();
+    let releaseFirst: () => void = () => undefined;
+    let signalFirstLocked: () => void = () => undefined;
+    let signalSecondStarted: () => void = () => undefined;
+    const holdFirst = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const firstLocked = new Promise<void>((resolve) => {
+      signalFirstLocked = resolve;
+    });
+    const secondStarted = new Promise<void>((resolve) => {
+      signalSecondStarted = resolve;
+    });
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`shared-${userId}@example.test`})
+    `;
+    await sql`
+      INSERT INTO "Chat" ("id", "createdAt", "title", "userId")
+      VALUES
+        (${firstChatId}, ${now}, 'First chat', ${userId}),
+        (${secondChatId}, ${now}, 'Second chat', ${userId})
+    `;
+    await sql`
+      INSERT INTO "Message_v2"
+        ("id", "chatId", "createdAt", "role", "parts", "attachments")
+      VALUES
+        (
+          ${randomUUID()},
+          ${firstChatId},
+          ${now},
+          'user',
+          '[]',
+          ${sql.json([{ url: sharedUrl }])}
+        ),
+        (
+          ${randomUUID()},
+          ${secondChatId},
+          ${now},
+          'user',
+          '[]',
+          ${sql.json([{ url: sharedUrl }])}
+        )
+    `;
+
+    const deleteChat = async (
+      transaction: postgres.TransactionSql,
+      chatId: string
+    ) => {
+      await transaction`
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${userId}::text, 0)
+        )
+      `;
+      const otherRows = await transaction`
+        SELECT "attachments"
+        FROM "Message_v2"
+        INNER JOIN "Chat" ON "Message_v2"."chatId" = "Chat"."id"
+        WHERE "Chat"."userId" = ${userId}
+          AND "Chat"."id" <> ${chatId}
+      `;
+      const referencedElsewhere = otherRows.some(({ attachments }) =>
+        Array.isArray(attachments)
+          ? attachments.some(
+              (attachment) =>
+                typeof attachment === "object" &&
+                attachment !== null &&
+                attachment.url === sharedUrl
+            )
+          : false
+      );
+
+      if (!referencedElsewhere) {
+        await transaction`
+          INSERT INTO "BlobDeletion" ("urls", "userId")
+          VALUES (${transaction.json([sharedUrl])}, ${userId})
+        `;
+      }
+
+      await transaction`DELETE FROM "Chat" WHERE "id" = ${chatId}`;
+    };
+
+    const firstDeletion = firstSql.begin(async (transaction) => {
+      await transaction`
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${userId}::text, 0)
+        )
+      `;
+      signalFirstLocked();
+      await holdFirst;
+
+      await deleteChat(transaction, firstChatId);
+    });
+    await firstLocked;
+    const secondDeletion = secondSql.begin(async (transaction) => {
+      signalSecondStarted();
+      await deleteChat(transaction, secondChatId);
+    });
+    await secondStarted;
+    releaseFirst();
+    await Promise.all([firstDeletion, secondDeletion]);
+
+    const deletionRows = await sql`
+      SELECT "urls"
+      FROM "BlobDeletion"
+      WHERE "userId" = ${userId}
+    `;
+    expect(deletionRows).toHaveLength(1);
+    expect(deletionRows[0]?.urls).toEqual([sharedUrl]);
+
+    await sql`DELETE FROM "BlobDeletion" WHERE "userId" = ${userId}`;
+    await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
+    await Promise.all([firstSql.end(), secondSql.end()]);
   });
 });
