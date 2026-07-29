@@ -100,6 +100,41 @@ describe("blob deletion outbox", () => {
     });
   });
 
+  test("retries an unresolved crash-recovery pathname", async () => {
+    const pathname = "uploads/user-1/recovery.png";
+    const deletion = {
+      createdAt: new Date(),
+      id: "deletion-1",
+      readyAt: new Date(),
+      urls: [pathname],
+      userId: "user-1",
+    };
+    mocks.getPendingBlobDeletions.mockResolvedValue([deletion]);
+    mocks.list
+      .mockResolvedValueOnce({
+        blobs: [],
+        cursor: null,
+        hasMore: false,
+      })
+      .mockResolvedValueOnce({
+        blobs: [{ pathname, url: `https://blob.test/${pathname}` }],
+        cursor: null,
+        hasMore: false,
+      });
+
+    await expect(drainPendingBlobDeletions("user-1")).resolves.toBe(1);
+
+    expect(mocks.del).not.toHaveBeenCalled();
+    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
+
+    await expect(drainPendingBlobDeletions("user-1")).resolves.toBe(1);
+
+    expect(mocks.del).toHaveBeenCalledWith([`https://blob.test/${pathname}`]);
+    expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
+      id: "deletion-1",
+    });
+  });
+
   test("keeps the outbox row when blob deletion fails", async () => {
     mocks.getPendingBlobDeletions.mockResolvedValue([
       {

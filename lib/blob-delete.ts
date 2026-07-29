@@ -43,27 +43,31 @@ const drainBlobDeletions = async (
 ) => {
   await Promise.all(
     pendingDeletions.map(async ({ id, urls }) => {
-      const resolvedUrls = (
-        await Promise.all(
-          urls.map(async (identifier) => {
-            if (identifier.startsWith("https://")) {
-              return [identifier];
-            }
+      const resolvedIdentifiers = await Promise.all(
+        urls.map(async (identifier) => {
+          if (identifier.startsWith("https://")) {
+            return { resolved: true, urls: [identifier] };
+          }
 
-            const page = await list({ limit: 1000, prefix: identifier });
+          const page = await list({ limit: 1000, prefix: identifier });
+          const matchingUrls = page.blobs
+            .filter((blob) => blob.pathname === identifier)
+            .map((blob) => blob.url);
 
-            return page.blobs
-              .filter((blob) => blob.pathname === identifier)
-              .map((blob) => blob.url);
-          })
-        )
-      ).flat();
+          return { resolved: matchingUrls.length > 0, urls: matchingUrls };
+        })
+      );
+      const resolvedUrls = resolvedIdentifiers.flatMap(
+        ({ urls: identifierUrls }) => identifierUrls
+      );
 
       if (resolvedUrls.length > 0) {
         await del(resolvedUrls);
       }
 
-      await deletePendingBlobDeletion({ id });
+      if (resolvedIdentifiers.every(({ resolved }) => resolved)) {
+        await deletePendingBlobDeletion({ id });
+      }
     })
   );
 
