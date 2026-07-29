@@ -30,3 +30,5 @@ WHERE NOT EXISTS (
     AND document."createdAt" = suggestion."documentCreatedAt"
     AND document."userId" = suggestion."userId"
 );
+
+SET statement_timeout = DEFAULT;

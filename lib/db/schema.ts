@@ -45,10 +45,17 @@ export const blobDeletion = pgTable(
       .notNull()
       .defaultNow(),
     id: uuid("id").primaryKey().notNull().defaultRandom(),
+    readyAt: timestamp("readyAt", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     urls: json("urls").$type<string[]>().notNull(),
     userId: uuid("userId").notNull(),
   },
   (table) => ({
+    readyCreatedAtIdx: index("BlobDeletion_readyAt_createdAt_idx").on(
+      table.readyAt,
+      table.createdAt
+    ),
     userCreatedAtIdx: index("BlobDeletion_userId_createdAt_idx").on(
       table.userId,
       table.createdAt

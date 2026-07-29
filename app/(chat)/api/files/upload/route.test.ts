@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getUserById: vi.fn(),
   put: vi.fn(),
   queueBlobDeletion: vi.fn(),
+  updatePendingBlobDeletion: vi.fn(),
 }));
 
 vi.mock("@/app/(auth)/auth", () => ({ auth: mocks.auth }));
@@ -18,6 +19,7 @@ vi.mock("@/lib/db/queries", () => ({
   deletePendingBlobDeletion: mocks.deletePendingBlobDeletion,
   getUserById: mocks.getUserById,
   queueBlobDeletion: mocks.queueBlobDeletion,
+  updatePendingBlobDeletion: mocks.updatePendingBlobDeletion,
 }));
 vi.mock("@vercel/blob", () => ({ put: mocks.put }));
 
@@ -73,6 +75,10 @@ describe("file upload authentication", () => {
     expect(mocks.queueBlobDeletion).toHaveBeenCalledBefore(mocks.put);
     expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
       id: "intent-1",
+    });
+    expect(mocks.updatePendingBlobDeletion).toHaveBeenCalledWith({
+      id: "intent-1",
+      urls: [`https://blob.test/uploads/${userId}/image.png`],
     });
   });
 
@@ -183,5 +189,39 @@ describe("file upload authentication", () => {
 
     expect(response.status).toBe(500);
     expect(mocks.put).not.toHaveBeenCalled();
+  });
+
+  test("retains the pathname intent when canonical URL persistence fails", async () => {
+    const userId = "00000000-0000-0000-0000-000000000001";
+    mocks.auth.mockResolvedValue({ user: { id: userId } });
+    mocks.getUserById.mockResolvedValue({
+      chatDeletionGeneration: 0,
+      chatsDeletingAt: null,
+      deletingAt: null,
+      id: userId,
+    });
+    mocks.queueBlobDeletion.mockResolvedValue([{ id: "intent-1" }]);
+    mocks.put.mockResolvedValue({
+      url: `https://blob.test/uploads/${userId}/recover.png`,
+    });
+    mocks.updatePendingBlobDeletion.mockRejectedValue(
+      new Error("database unavailable")
+    );
+    const formData = new FormData();
+    formData.set(
+      "file",
+      new File(["image"], "recover.png", { type: "image/png" })
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/files/upload", {
+        body: formData,
+        method: "POST",
+      })
+    );
+
+    expect(response.status).toBe(500);
+    expect(mocks.queueBlobDeletion).toHaveBeenCalledOnce();
+    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
   });
 });

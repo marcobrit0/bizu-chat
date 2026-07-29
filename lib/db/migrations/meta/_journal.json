@@ -64,6 +64,13 @@
       "when": 1785317048899,
       "tag": "0008_chat-deletion-generation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785319949439,
+      "tag": "0009_blob-deletion-readiness",
+      "breakpoints": true
     }
   ]
 }

@@ -43,8 +43,24 @@ const drainBlobDeletions = async (
 ) => {
   await Promise.all(
     pendingDeletions.map(async ({ id, urls }) => {
-      if (urls.length > 0) {
-        await del(urls);
+      const resolvedUrls = (
+        await Promise.all(
+          urls.map(async (identifier) => {
+            if (identifier.startsWith("https://")) {
+              return [identifier];
+            }
+
+            const page = await list({ limit: 1000, prefix: identifier });
+
+            return page.blobs
+              .filter((blob) => blob.pathname === identifier)
+              .map((blob) => blob.url);
+          })
+        )
+      ).flat();
+
+      if (resolvedUrls.length > 0) {
+        await del(resolvedUrls);
       }
 
       await deletePendingBlobDeletion({ id });

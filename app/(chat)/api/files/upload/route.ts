@@ -10,6 +10,7 @@ import {
   deletePendingBlobDeletion,
   getUserById,
   queueBlobDeletion,
+  updatePendingBlobDeletion,
 } from "@/lib/db/queries";
 
 const FileSchema = z.object({
@@ -22,6 +23,8 @@ const FileSchema = z.object({
       message: "File type should be JPEG or PNG",
     }),
 });
+
+const UPLOAD_INTENT_RECOVERY_DELAY_MS = 15 * 60 * 1000;
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -69,6 +72,7 @@ export async function POST(request: Request) {
       `${randomUUID()}-${filename}`
     );
     const [deletionIntent] = await queueBlobDeletion({
+      readyAt: new Date(Date.now() + UPLOAD_INTENT_RECOVERY_DELAY_MS),
       urls: [pathname],
       userId: session.user.id,
     });
@@ -77,6 +81,10 @@ export async function POST(request: Request) {
       const data = await put(pathname, fileBuffer, {
         access: "public",
         addRandomSuffix: false,
+      });
+      await updatePendingBlobDeletion({
+        id: deletionIntent.id,
+        urls: [data.url],
       });
 
       const userAfterUpload = await getUserById({ id: session.user.id });

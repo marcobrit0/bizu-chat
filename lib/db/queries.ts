@@ -10,6 +10,7 @@ import {
   gte,
   isNull,
   lt,
+  lte,
   ne,
   or,
   type SQL,
@@ -832,17 +833,36 @@ export async function markUserForDeletion({ id }: { id: string }) {
 }
 
 export async function queueBlobDeletion({
+  readyAt,
   urls,
   userId,
 }: {
+  readyAt?: Date;
   urls: string[];
   userId: string;
 }) {
   try {
     return await db
       .insert(blobDeletion)
-      .values({ urls, userId })
+      .values({ readyAt, urls, userId })
       .returning({ id: blobDeletion.id });
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function updatePendingBlobDeletion({
+  id,
+  urls,
+}: {
+  id: string;
+  urls: string[];
+}) {
+  try {
+    return await db
+      .update(blobDeletion)
+      .set({ readyAt: new Date(), urls })
+      .where(eq(blobDeletion.id, id));
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
@@ -854,10 +874,12 @@ export async function getPendingBlobDeletions({
   userId?: string;
 } = {}) {
   try {
+    const ready = lte(blobDeletion.readyAt, new Date());
+
     return await db
       .select()
       .from(blobDeletion)
-      .where(userId ? eq(blobDeletion.userId, userId) : undefined)
+      .where(userId ? and(eq(blobDeletion.userId, userId), ready) : ready)
       .orderBy(asc(blobDeletion.createdAt))
       .limit(100);
   } catch (error) {
