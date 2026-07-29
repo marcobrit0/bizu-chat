@@ -7,10 +7,9 @@ import { auth } from "@/app/(auth)/auth";
 import { drainPendingBlobDeletionsBestEffort } from "@/lib/blob-delete";
 import { buildBlobKey } from "@/lib/blob-path";
 import {
-  deletePendingBlobDeletion,
+  completeBlobUpload,
   getUserById,
   queueBlobDeletion,
-  updatePendingBlobDeletion,
 } from "@/lib/db/queries";
 
 const FileSchema = z.object({
@@ -31,8 +30,6 @@ export async function POST(request: Request) {
   const currentUser = session?.user
     ? await getUserById({ id: session.user.id })
     : null;
-  const initialChatDeletionGeneration =
-    currentUser?.chatDeletionGeneration ?? null;
 
   if (
     !session?.user ||
@@ -42,6 +39,8 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const initialChatDeletionGeneration = currentUser.chatDeletionGeneration;
 
   if (request.body === null) {
     return new Response("Request body is empty", { status: 400 });
@@ -82,21 +81,14 @@ export async function POST(request: Request) {
         access: "public",
         addRandomSuffix: false,
       });
-      await updatePendingBlobDeletion({
+      const uploadCompleted = await completeBlobUpload({
+        chatDeletionGeneration: initialChatDeletionGeneration,
         id: deletionIntent.id,
-        urls: [data.url],
+        url: data.url,
+        userId: session.user.id,
       });
 
-      const userAfterUpload = await getUserById({ id: session.user.id });
-
-      if (
-        userAfterUpload &&
-        !userAfterUpload.deletingAt &&
-        !userAfterUpload.chatsDeletingAt &&
-        userAfterUpload.chatDeletionGeneration === initialChatDeletionGeneration
-      ) {
-        await deletePendingBlobDeletion({ id: deletionIntent.id });
-
+      if (uploadCompleted) {
         return NextResponse.json(data);
       }
 

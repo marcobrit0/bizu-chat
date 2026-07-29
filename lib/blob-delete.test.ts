@@ -2,22 +2,25 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   del: vi.fn(),
-  deletePendingBlobDeletion: vi.fn(),
   getPendingBlobDeletions: vi.fn(),
+  head: vi.fn(),
   list: vi.fn(),
+  processPendingBlobDeletion: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@vercel/blob", () => ({
   del: mocks.del,
+  head: mocks.head,
   list: mocks.list,
 }));
 vi.mock("@/lib/db/queries", () => ({
-  deletePendingBlobDeletion: mocks.deletePendingBlobDeletion,
   getPendingBlobDeletions: mocks.getPendingBlobDeletions,
+  processPendingBlobDeletion: mocks.processPendingBlobDeletion,
 }));
 
 import {
+  areOwnedUserBlobUrlsAvailable,
   drainAllPendingBlobDeletions,
   drainPendingBlobDeletions,
   drainPendingBlobDeletionsBestEffort,
@@ -27,6 +30,25 @@ import {
 describe("blob deletion outbox", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.processPendingBlobDeletion.mockImplementation(
+      async ({
+        deleteUrls,
+        resolvedIdentifiers,
+      }: {
+        deleteUrls: (urls: string[]) => Promise<void>;
+        resolvedIdentifiers: { identifier: string; url: string | null }[];
+      }) => {
+        const resolvedUrls = resolvedIdentifiers.flatMap(({ url }) =>
+          url ? [url] : []
+        );
+
+        if (resolvedUrls.length > 0) {
+          await deleteUrls(resolvedUrls);
+        }
+
+        return true;
+      }
+    );
   });
 
   test("only queues requested URLs owned by the user prefix", async () => {
@@ -57,15 +79,22 @@ describe("blob deletion outbox", () => {
       },
     ]);
     mocks.del.mockResolvedValue(undefined);
-    mocks.deletePendingBlobDeletion.mockResolvedValue(undefined);
 
     await drainPendingBlobDeletions("user-1");
 
     expect(mocks.del).toHaveBeenCalledWith([
       "https://blob.test/uploads/user-1/a.png",
     ]);
-    expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
+    expect(mocks.processPendingBlobDeletion).toHaveBeenCalledWith({
+      deleteUrls: mocks.del,
       id: "deletion-1",
+      resolvedIdentifiers: [
+        {
+          identifier: "https://blob.test/uploads/user-1/a.png",
+          url: "https://blob.test/uploads/user-1/a.png",
+        },
+      ],
+      userId: "user-1",
     });
   });
 
@@ -95,8 +124,11 @@ describe("blob deletion outbox", () => {
 
     expect(mocks.list).toHaveBeenCalledWith({ limit: 1000, prefix: pathname });
     expect(mocks.del).toHaveBeenCalledWith([blobUrl]);
-    expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
+    expect(mocks.processPendingBlobDeletion).toHaveBeenCalledWith({
+      deleteUrls: mocks.del,
       id: "deletion-1",
+      resolvedIdentifiers: [{ identifier: pathname, url: blobUrl }],
+      userId: "user-1",
     });
   });
 
@@ -125,13 +157,23 @@ describe("blob deletion outbox", () => {
     await expect(drainPendingBlobDeletions("user-1")).resolves.toBe(1);
 
     expect(mocks.del).not.toHaveBeenCalled();
-    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
+    expect(mocks.processPendingBlobDeletion).toHaveBeenLastCalledWith({
+      deleteUrls: mocks.del,
+      id: "deletion-1",
+      resolvedIdentifiers: [{ identifier: pathname, url: null }],
+      userId: "user-1",
+    });
 
     await expect(drainPendingBlobDeletions("user-1")).resolves.toBe(1);
 
     expect(mocks.del).toHaveBeenCalledWith([`https://blob.test/${pathname}`]);
-    expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
+    expect(mocks.processPendingBlobDeletion).toHaveBeenLastCalledWith({
+      deleteUrls: mocks.del,
       id: "deletion-1",
+      resolvedIdentifiers: [
+        { identifier: pathname, url: `https://blob.test/${pathname}` },
+      ],
+      userId: "user-1",
     });
   });
 
@@ -149,7 +191,7 @@ describe("blob deletion outbox", () => {
     await expect(drainPendingBlobDeletions("user-1")).rejects.toThrow(
       "blob unavailable"
     );
-    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
+    expect(mocks.processPendingBlobDeletion).toHaveBeenCalledOnce();
   });
 
   test("does not fail committed erasure when immediate blob deletion fails", async () => {
@@ -166,7 +208,7 @@ describe("blob deletion outbox", () => {
     await expect(drainPendingBlobDeletionsBestEffort("user-1")).resolves.toBe(
       0
     );
-    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
+    expect(mocks.processPendingBlobDeletion).toHaveBeenCalledOnce();
   });
 
   test("an independent worker retries a failed account deletion", async () => {
@@ -190,8 +232,27 @@ describe("blob deletion outbox", () => {
       userId: "user-1",
     });
     expect(mocks.getPendingBlobDeletions).toHaveBeenNthCalledWith(2);
-    expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
-      id: "deletion-1",
-    });
+    expect(mocks.processPendingBlobDeletion).toHaveBeenCalledTimes(2);
+  });
+
+  test("checks owned Blob URLs before a message references them", async () => {
+    const userId = "user-1";
+    const ownedUrl = `https://blob.test/uploads/${userId}/image.png`;
+    mocks.head.mockResolvedValue({ url: ownedUrl });
+
+    await expect(
+      areOwnedUserBlobUrlsAvailable(userId, [
+        ownedUrl,
+        "https://external.test/image.png",
+      ])
+    ).resolves.toBe(true);
+
+    expect(mocks.head).toHaveBeenCalledWith(ownedUrl);
+
+    mocks.head.mockRejectedValue(new Error("missing"));
+
+    await expect(
+      areOwnedUserBlobUrlsAvailable(userId, [ownedUrl])
+    ).resolves.toBe(false);
   });
 });

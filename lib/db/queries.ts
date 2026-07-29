@@ -8,6 +8,7 @@ import {
   eq,
   gt,
   gte,
+  isNotNull,
   isNull,
   lt,
   lte,
@@ -201,9 +202,11 @@ export async function deleteChatById({
 
 export async function deleteAllChatsByUserId({
   blobUrls,
+  chatDeletionGeneration,
   userId,
 }: {
   blobUrls: string[];
+  chatDeletionGeneration: number;
   userId: string;
 }) {
   try {
@@ -211,23 +214,44 @@ export async function deleteAllChatsByUserId({
       await transaction.execute(
         sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
       );
-      const deletedChats = await transaction
-        .delete(chat)
-        .where(eq(chat.userId, userId))
-        .returning();
+      const [activeDeletion] = await transaction
+        .select({ id: user.id })
+        .from(user)
+        .where(
+          and(
+            eq(user.id, userId),
+            eq(user.chatDeletionGeneration, chatDeletionGeneration),
+            isNotNull(user.chatsDeletingAt),
+            isNull(user.deletingAt)
+          )
+        );
 
-      if (deletedChats.length > 0 && blobUrls.length > 0) {
+      if (activeDeletion) {
+        const deletedChats = await transaction
+          .delete(chat)
+          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
+          .returning();
+
+        if (deletedChats.length > 0 && blobUrls.length > 0) {
+          await transaction
+            .insert(blobDeletion)
+            .values({ urls: blobUrls, userId });
+        }
+
         await transaction
-          .insert(blobDeletion)
-          .values({ urls: blobUrls, userId });
+          .update(user)
+          .set({ chatsDeletingAt: null })
+          .where(
+            and(
+              eq(user.id, userId),
+              eq(user.chatDeletionGeneration, chatDeletionGeneration)
+            )
+          );
+
+        return { deletedCount: deletedChats.length };
       }
 
-      await transaction
-        .update(user)
-        .set({ chatsDeletingAt: null })
-        .where(eq(user.id, userId));
-
-      return { deletedCount: deletedChats.length };
+      return { deletedCount: 0 };
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
@@ -380,7 +404,13 @@ export async function assertChatWritable({
   }
 }
 
-export async function saveMessages({ messages }: { messages: DBMessage[] }) {
+export async function saveMessages({
+  messages,
+  validateBlobUrls,
+}: {
+  messages: DBMessage[];
+  validateBlobUrls: (userId: string, urls: string[]) => Promise<boolean>;
+}) {
   try {
     return await db.transaction(async (transaction) => {
       await transaction.execute(
@@ -393,7 +423,7 @@ export async function saveMessages({ messages }: { messages: DBMessage[] }) {
         `
       );
       const [writableChat] = await transaction
-        .select({ id: chat.id })
+        .select({ id: chat.id, userId: chat.userId })
         .from(chat)
         .innerJoin(user, eq(chat.userId, user.id))
         .where(
@@ -405,7 +435,14 @@ export async function saveMessages({ messages }: { messages: DBMessage[] }) {
           )
         );
 
-      if (writableChat) {
+      const attachmentUrls = messages.flatMap(({ attachments, parts }) =>
+        extractMessageAttachmentUrls(attachments, parts)
+      );
+      const blobsAvailable = writableChat
+        ? await validateBlobUrls(writableChat.userId, attachmentUrls)
+        : false;
+
+      if (writableChat && blobsAvailable) {
         return await transaction.insert(message).values(messages);
       }
 
@@ -422,15 +459,56 @@ export async function saveMessages({ messages }: { messages: DBMessage[] }) {
 }
 
 export async function updateMessage({
+  chatId,
   id,
   parts,
+  userId,
+  validateBlobUrls,
 }: {
+  chatId: string;
   id: string;
   parts: DBMessage["parts"];
+  userId: string;
+  validateBlobUrls: (userId: string, urls: string[]) => Promise<boolean>;
 }) {
   try {
-    return await db.update(message).set({ parts }).where(eq(message.id, id));
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [writableMessage] = await transaction
+        .select({ id: message.id })
+        .from(message)
+        .innerJoin(chat, eq(message.chatId, chat.id))
+        .innerJoin(user, eq(chat.userId, user.id))
+        .where(
+          and(
+            eq(message.id, id),
+            eq(message.chatId, chatId),
+            eq(chat.userId, userId),
+            isNull(chat.deletingAt),
+            isNull(user.deletingAt),
+            isNull(user.chatsDeletingAt)
+          )
+        );
+      const attachmentUrls = extractMessageAttachmentUrls([], parts);
+      const blobsAvailable = writableMessage
+        ? await validateBlobUrls(userId, attachmentUrls)
+        : false;
+
+      if (writableMessage && blobsAvailable) {
+        return await transaction
+          .update(message)
+          .set({ parts })
+          .where(and(eq(message.id, id), eq(message.chatId, chatId)));
+      }
+
+      throw new ChatbotError("forbidden:chat");
+    });
   } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
     throw new ChatbotError("bad_request:database", {
       cause: error,
     });
@@ -746,10 +824,29 @@ export async function markAllChatsForDeletion({ userId }: { userId: string }) {
           )
         );
 
-      return await transaction
-        .update(chat)
-        .set({ deletingAt: new Date() })
-        .where(and(eq(chat.userId, userId), isNull(chat.deletingAt)));
+      const [activeDeletion] = await transaction
+        .select({
+          chatDeletionGeneration: user.chatDeletionGeneration,
+        })
+        .from(user)
+        .where(
+          and(
+            eq(user.id, userId),
+            isNotNull(user.chatsDeletingAt),
+            isNull(user.deletingAt)
+          )
+        );
+
+      if (activeDeletion) {
+        await transaction
+          .update(chat)
+          .set({ deletingAt: new Date() })
+          .where(and(eq(chat.userId, userId), isNull(chat.deletingAt)));
+
+        return activeDeletion.chatDeletionGeneration;
+      }
+
+      return null;
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
@@ -851,18 +948,49 @@ export async function queueBlobDeletion({
   }
 }
 
-export async function updatePendingBlobDeletion({
+export async function completeBlobUpload({
+  chatDeletionGeneration,
   id,
-  urls,
+  url,
+  userId,
 }: {
+  chatDeletionGeneration: number;
   id: string;
-  urls: string[];
+  url: string;
+  userId: string;
 }) {
   try {
-    return await db
-      .update(blobDeletion)
-      .set({ readyAt: new Date(), urls })
-      .where(eq(blobDeletion.id, id));
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [updatedIntent] = await transaction
+        .update(blobDeletion)
+        .set({ readyAt: new Date(), urls: [url] })
+        .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)))
+        .returning({ id: blobDeletion.id });
+      const [writableUser] = updatedIntent
+        ? await transaction
+            .select({ id: user.id })
+            .from(user)
+            .where(
+              and(
+                eq(user.id, userId),
+                eq(user.chatDeletionGeneration, chatDeletionGeneration),
+                isNull(user.deletingAt),
+                isNull(user.chatsDeletingAt)
+              )
+            )
+        : [];
+
+      if (writableUser) {
+        await transaction
+          .delete(blobDeletion)
+          .where(eq(blobDeletion.id, updatedIntent.id));
+      }
+
+      return Boolean(writableUser);
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
@@ -882,6 +1010,69 @@ export async function getPendingBlobDeletions({
       .where(userId ? and(eq(blobDeletion.userId, userId), ready) : ready)
       .orderBy(asc(blobDeletion.createdAt))
       .limit(100);
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function processPendingBlobDeletion({
+  deleteUrls,
+  id,
+  resolvedIdentifiers,
+  userId,
+}: {
+  deleteUrls: (urls: string[]) => Promise<void>;
+  id: string;
+  resolvedIdentifiers: { identifier: string; url: string | null }[];
+  userId: string;
+}) {
+  try {
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [pendingDeletion] = await transaction
+        .select({ id: blobDeletion.id })
+        .from(blobDeletion)
+        .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)));
+
+      if (pendingDeletion) {
+        const messageRows = await transaction
+          .select({
+            attachments: message.attachments,
+            parts: message.parts,
+          })
+          .from(message)
+          .innerJoin(chat, eq(message.chatId, chat.id))
+          .where(eq(chat.userId, userId));
+        const referencedUrls = new Set(
+          messageRows.flatMap(({ attachments, parts }) =>
+            extractMessageAttachmentUrls(attachments, parts)
+          )
+        );
+        const deletableUrls = resolvedIdentifiers.flatMap(({ url }) =>
+          url && !referencedUrls.has(url) ? [url] : []
+        );
+        const unresolvedIdentifiers = resolvedIdentifiers.flatMap(
+          ({ identifier, url }) => (url ? [] : [identifier])
+        );
+
+        if (deletableUrls.length > 0) {
+          await deleteUrls(deletableUrls);
+        }
+
+        if (unresolvedIdentifiers.length > 0) {
+          await transaction
+            .update(blobDeletion)
+            .set({ urls: unresolvedIdentifiers })
+            .where(eq(blobDeletion.id, id));
+        } else {
+          await transaction.delete(blobDeletion).where(eq(blobDeletion.id, id));
+        }
+      }
+
+      return Boolean(pendingDeletion);
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

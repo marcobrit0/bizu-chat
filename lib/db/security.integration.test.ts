@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
-import { afterAll, describe, expect, test } from "vitest";
+import { afterAll, describe, expect, test, vi } from "vitest";
 import { extractMessageAttachmentUrls } from "@/lib/message-attachments";
+
+vi.mock("server-only", () => ({}));
 
 const testDatabaseUrl = process.env.TEST_POSTGRES_URL;
 const integrationDatabaseUrl =
@@ -275,5 +277,127 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     await sql`DELETE FROM "BlobDeletion" WHERE "userId" = ${userId}`;
     await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
     await Promise.all([firstSql.end(), secondSql.end()]);
+  });
+
+  test("a stale history-deletion retry preserves newly created chats", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const { deleteAllChatsByUserId, markAllChatsForDeletion, saveChat } =
+      await import("./queries");
+    const userId = randomUUID();
+    const oldChatId = randomUUID();
+    const newChatId = randomUUID();
+    const now = new Date();
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`history-${userId}@example.test`})
+    `;
+    await sql`
+      INSERT INTO "Chat" ("id", "createdAt", "title", "userId")
+      VALUES (${oldChatId}, ${now}, 'Old chat', ${userId})
+    `;
+
+    const chatDeletionGeneration = await markAllChatsForDeletion({ userId });
+    await deleteAllChatsByUserId({
+      blobUrls: [],
+      chatDeletionGeneration: chatDeletionGeneration ?? 0,
+      userId,
+    });
+    await saveChat({
+      id: newChatId,
+      title: "New chat",
+      userId,
+      visibility: "private",
+    });
+    await deleteAllChatsByUserId({
+      blobUrls: [],
+      chatDeletionGeneration: chatDeletionGeneration ?? 0,
+      userId,
+    });
+
+    const remainingChats = await sql`
+      SELECT "id"
+      FROM "Chat"
+      WHERE "userId" = ${userId}
+    `;
+    expect(remainingChats).toEqual([{ id: newChatId }]);
+
+    await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
+  });
+
+  test("a blob re-referenced before drain is preserved", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const { deleteChatById, processPendingBlobDeletion, saveMessages } =
+      await import("./queries");
+    const userId = randomUUID();
+    const deletedChatId = randomUUID();
+    const preservedChatId = randomUUID();
+    const blobUrl = `https://blob.test/uploads/${userId}/shared.png`;
+    const now = new Date();
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`re-reference-${userId}@example.test`})
+    `;
+    await sql`
+      INSERT INTO "Chat" ("id", "createdAt", "title", "userId")
+      VALUES
+        (${deletedChatId}, ${now}, 'Deleted chat', ${userId}),
+        (${preservedChatId}, ${now}, 'Preserved chat', ${userId})
+    `;
+    await sql`
+      INSERT INTO "Message_v2"
+        ("id", "chatId", "createdAt", "role", "parts", "attachments")
+      VALUES (
+        ${randomUUID()},
+        ${deletedChatId},
+        ${now},
+        'user',
+        ${sql.json([{ type: "file", url: blobUrl }])},
+        '[]'
+      )
+    `;
+
+    await deleteChatById({
+      blobUrls: [blobUrl],
+      id: deletedChatId,
+      userId,
+    });
+    await saveMessages({
+      messages: [
+        {
+          attachments: [],
+          chatId: preservedChatId,
+          createdAt: new Date(),
+          id: randomUUID(),
+          parts: [{ type: "file", url: blobUrl }],
+          role: "user",
+        },
+      ],
+      validateBlobUrls: async () => true,
+    });
+    const [pendingDeletion] = await sql`
+      SELECT "id"
+      FROM "BlobDeletion"
+      WHERE "userId" = ${userId}
+    `;
+    const deleteUrls = vi.fn();
+
+    await processPendingBlobDeletion({
+      deleteUrls,
+      id: pendingDeletion?.id,
+      resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
+      userId,
+    });
+
+    expect(deleteUrls).not.toHaveBeenCalled();
+    const remainingDeletions = await sql`
+      SELECT "id"
+      FROM "BlobDeletion"
+      WHERE "userId" = ${userId}
+    `;
+    expect(remainingDeletions).toHaveLength(0);
+
+    await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
   });
 });

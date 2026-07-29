@@ -1,9 +1,9 @@
 import "server-only";
 
-import { del, list } from "@vercel/blob";
+import { del, head, list } from "@vercel/blob";
 import {
-  deletePendingBlobDeletion,
   getPendingBlobDeletions,
+  processPendingBlobDeletion,
 } from "@/lib/db/queries";
 
 const userBlobPrefix = (userId: string) => `uploads/${userId}/`;
@@ -38,36 +38,50 @@ export const getOwnedUserBlobUrls = async (
   return ownedUrls.filter((url) => requested.has(url));
 };
 
+export const areOwnedUserBlobUrlsAvailable = async (
+  userId: string,
+  requestedUrls: string[]
+) => {
+  const ownedPathPrefix = `/uploads/${userId}/`;
+  const ownedUrls = requestedUrls.filter(
+    (url) =>
+      URL.canParse(url) && new URL(url).pathname.startsWith(ownedPathPrefix)
+  );
+
+  try {
+    await Promise.all(ownedUrls.map((url) => head(url)));
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const drainBlobDeletions = async (
   pendingDeletions: Awaited<ReturnType<typeof getPendingBlobDeletions>>
 ) => {
   await Promise.all(
-    pendingDeletions.map(async ({ id, urls }) => {
+    pendingDeletions.map(async ({ id, urls, userId }) => {
       const resolvedIdentifiers = await Promise.all(
         urls.map(async (identifier) => {
           if (identifier.startsWith("https://")) {
-            return { resolved: true, urls: [identifier] };
+            return { identifier, url: identifier };
           }
 
           const page = await list({ limit: 1000, prefix: identifier });
-          const matchingUrls = page.blobs
-            .filter((blob) => blob.pathname === identifier)
-            .map((blob) => blob.url);
+          const matchingBlob = page.blobs.find(
+            (blob) => blob.pathname === identifier
+          );
 
-          return { resolved: matchingUrls.length > 0, urls: matchingUrls };
+          return { identifier, url: matchingBlob?.url ?? null };
         })
       );
-      const resolvedUrls = resolvedIdentifiers.flatMap(
-        ({ urls: identifierUrls }) => identifierUrls
-      );
-
-      if (resolvedUrls.length > 0) {
-        await del(resolvedUrls);
-      }
-
-      if (resolvedIdentifiers.every(({ resolved }) => resolved)) {
-        await deletePendingBlobDeletion({ id });
-      }
+      await processPendingBlobDeletion({
+        deleteUrls: del,
+        id,
+        resolvedIdentifiers,
+        userId,
+      });
     })
   );
 

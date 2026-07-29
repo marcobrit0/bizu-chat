@@ -2,12 +2,11 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
-  deletePendingBlobDeletion: vi.fn(),
+  completeBlobUpload: vi.fn(),
   drainPendingBlobDeletionsBestEffort: vi.fn(),
   getUserById: vi.fn(),
   put: vi.fn(),
   queueBlobDeletion: vi.fn(),
-  updatePendingBlobDeletion: vi.fn(),
 }));
 
 vi.mock("@/app/(auth)/auth", () => ({ auth: mocks.auth }));
@@ -16,10 +15,9 @@ vi.mock("@/lib/blob-delete", () => ({
     mocks.drainPendingBlobDeletionsBestEffort,
 }));
 vi.mock("@/lib/db/queries", () => ({
-  deletePendingBlobDeletion: mocks.deletePendingBlobDeletion,
+  completeBlobUpload: mocks.completeBlobUpload,
   getUserById: mocks.getUserById,
   queueBlobDeletion: mocks.queueBlobDeletion,
-  updatePendingBlobDeletion: mocks.updatePendingBlobDeletion,
 }));
 vi.mock("@vercel/blob", () => ({ put: mocks.put }));
 
@@ -55,6 +53,7 @@ describe("file upload authentication", () => {
     mocks.auth.mockResolvedValue({ user: { id: userId } });
     mocks.getUserById.mockResolvedValue(activeUser);
     mocks.queueBlobDeletion.mockResolvedValue([{ id: "intent-1" }]);
+    mocks.completeBlobUpload.mockResolvedValue(true);
     mocks.put.mockResolvedValue({
       url: `https://blob.test/uploads/${userId}/image.png`,
     });
@@ -73,12 +72,11 @@ describe("file upload authentication", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.queueBlobDeletion).toHaveBeenCalledBefore(mocks.put);
-    expect(mocks.deletePendingBlobDeletion).toHaveBeenCalledWith({
+    expect(mocks.completeBlobUpload).toHaveBeenCalledWith({
+      chatDeletionGeneration: 0,
       id: "intent-1",
-    });
-    expect(mocks.updatePendingBlobDeletion).toHaveBeenCalledWith({
-      id: "intent-1",
-      urls: [`https://blob.test/uploads/${userId}/image.png`],
+      url: `https://blob.test/uploads/${userId}/image.png`,
+      userId,
     });
   });
 
@@ -86,19 +84,13 @@ describe("file upload authentication", () => {
     const userId = "00000000-0000-0000-0000-000000000001";
     const blobUrl = `https://blob.test/uploads/${userId}/late.png`;
     mocks.auth.mockResolvedValue({ user: { id: userId } });
-    mocks.getUserById
-      .mockResolvedValueOnce({
-        chatDeletionGeneration: 0,
-        chatsDeletingAt: null,
-        deletingAt: null,
-        id: userId,
-      })
-      .mockResolvedValueOnce({
-        chatDeletionGeneration: 0,
-        chatsDeletingAt: null,
-        deletingAt: new Date(),
-        id: userId,
-      });
+    mocks.getUserById.mockResolvedValue({
+      chatDeletionGeneration: 0,
+      chatsDeletingAt: null,
+      deletingAt: null,
+      id: userId,
+    });
+    mocks.completeBlobUpload.mockResolvedValue(false);
     mocks.put.mockResolvedValue({ url: blobUrl });
     mocks.queueBlobDeletion.mockResolvedValue([{ id: "intent-1" }]);
     mocks.drainPendingBlobDeletionsBestEffort.mockResolvedValue(1);
@@ -118,7 +110,6 @@ describe("file upload authentication", () => {
     expect(response.status).toBe(401);
     expect(mocks.queueBlobDeletion).toHaveBeenCalledOnce();
     expect(mocks.put).toHaveBeenCalledOnce();
-    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
     expect(mocks.drainPendingBlobDeletionsBestEffort).toHaveBeenCalledWith(
       userId
     );
@@ -128,19 +119,13 @@ describe("file upload authentication", () => {
     const userId = "00000000-0000-0000-0000-000000000001";
     const blobUrl = `https://blob.test/uploads/${userId}/late-history.png`;
     mocks.auth.mockResolvedValue({ user: { id: userId } });
-    mocks.getUserById
-      .mockResolvedValueOnce({
-        chatDeletionGeneration: 4,
-        chatsDeletingAt: null,
-        deletingAt: null,
-        id: userId,
-      })
-      .mockResolvedValueOnce({
-        chatDeletionGeneration: 5,
-        chatsDeletingAt: null,
-        deletingAt: null,
-        id: userId,
-      });
+    mocks.getUserById.mockResolvedValue({
+      chatDeletionGeneration: 4,
+      chatsDeletingAt: null,
+      deletingAt: null,
+      id: userId,
+    });
+    mocks.completeBlobUpload.mockResolvedValue(false);
     mocks.put.mockResolvedValue({ url: blobUrl });
     mocks.queueBlobDeletion.mockResolvedValue([{ id: "intent-1" }]);
     mocks.drainPendingBlobDeletionsBestEffort.mockResolvedValue(1);
@@ -159,7 +144,6 @@ describe("file upload authentication", () => {
 
     expect(response.status).toBe(401);
     expect(mocks.queueBlobDeletion).toHaveBeenCalledOnce();
-    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
   });
 
   test("does not upload when the durable deletion intent cannot be written", async () => {
@@ -204,7 +188,7 @@ describe("file upload authentication", () => {
     mocks.put.mockResolvedValue({
       url: `https://blob.test/uploads/${userId}/recover.png`,
     });
-    mocks.updatePendingBlobDeletion.mockRejectedValue(
+    mocks.completeBlobUpload.mockRejectedValue(
       new Error("database unavailable")
     );
     const formData = new FormData();
@@ -222,6 +206,5 @@ describe("file upload authentication", () => {
 
     expect(response.status).toBe(500);
     expect(mocks.queueBlobDeletion).toHaveBeenCalledOnce();
-    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
   });
 });

@@ -28,6 +28,7 @@ import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import {
+  areOwnedUserBlobUrlsAvailable,
   drainPendingBlobDeletionsBestEffort,
   getOwnedUserBlobUrls,
 } from "@/lib/blob-delete";
@@ -200,6 +201,7 @@ export async function POST(request: Request) {
             role: "user",
           },
         ],
+        validateBlobUrls: areOwnedUserBlobUrlsAvailable,
       });
     }
 
@@ -366,8 +368,11 @@ export async function POST(request: Request) {
               );
               if (existingMsg) {
                 await updateMessage({
+                  chatId: id,
                   id: finishedMsg.id,
                   parts: finishedMsg.parts,
+                  userId: session.user.id,
+                  validateBlobUrls: areOwnedUserBlobUrlsAvailable,
                 });
                 return;
               }
@@ -383,6 +388,7 @@ export async function POST(request: Request) {
                     role: finishedMsg.role,
                   },
                 ],
+                validateBlobUrls: areOwnedUserBlobUrlsAvailable,
               });
             })
           );
@@ -396,6 +402,7 @@ export async function POST(request: Request) {
               parts: currentMessage.parts,
               role: currentMessage.role,
             })),
+            validateBlobUrls: areOwnedUserBlobUrlsAvailable,
           });
         }
       },

@@ -51,13 +51,21 @@ export async function DELETE() {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
-  await markAllChatsForDeletion({ userId: session.user.id });
-  const blobUrls = await getAllUserBlobUrls(session.user.id);
-  const result = await deleteAllChatsByUserId({
-    blobUrls,
+  const chatDeletionGeneration = await markAllChatsForDeletion({
     userId: session.user.id,
   });
-  await drainPendingBlobDeletionsBestEffort(session.user.id);
 
-  return Response.json(result, { status: 200 });
+  if (chatDeletionGeneration !== null) {
+    const blobUrls = await getAllUserBlobUrls(session.user.id);
+    const result = await deleteAllChatsByUserId({
+      blobUrls,
+      chatDeletionGeneration,
+      userId: session.user.id,
+    });
+    await drainPendingBlobDeletionsBestEffort(session.user.id);
+
+    return Response.json(result, { status: 200 });
+  }
+
+  return Response.json({ deletedCount: 0 }, { status: 200 });
 }
