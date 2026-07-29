@@ -172,6 +172,7 @@ describe("blob deletion outbox", () => {
     ]);
     mocks.list.mockResolvedValue({
       blobs: [{ url: firstUrl }, { url: secondUrl }],
+      cursor: "next-page",
       hasMore: true,
     });
 
@@ -182,8 +183,77 @@ describe("blob deletion outbox", () => {
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith({
       claimToken: "00000000-0000-0000-0000-000000000001",
+      continuationCursor: "next-page",
       continuationIdentifiers: [prefix],
       id: "deletion-1",
+      unresolvedIdentifiers: [],
+      userId,
+    });
+  });
+
+  test("uses the persisted cursor for the next user-prefix page", async () => {
+    const userId = "user-1";
+    const prefix = `uploads/${userId}/`;
+    const blobUrl = `https://blob.test/${prefix}later.png`;
+    mocks.getPendingBlobDeletions.mockResolvedValue([
+      {
+        createdAt: new Date(),
+        cursor: "next-page",
+        id: "deletion-1",
+        urls: [prefix],
+        userId,
+      },
+    ]);
+    mocks.list.mockResolvedValue({
+      blobs: [{ url: blobUrl }],
+      hasMore: false,
+    });
+
+    await drainPendingBlobDeletions(userId);
+
+    expect(mocks.list).toHaveBeenCalledWith({
+      abortSignal: expect.any(AbortSignal),
+      cursor: "next-page",
+      limit: 1000,
+      prefix,
+    });
+    expect(mocks.del).toHaveBeenCalledWith([blobUrl], {
+      abortSignal: expect.any(AbortSignal),
+    });
+  });
+
+  test("persists exact identifiers beyond one bounded claim", async () => {
+    const userId = "user-1";
+    const urls = Array.from(
+      { length: 101 },
+      (_, index) => `https://blob.test/uploads/${userId}/${index}.png`
+    );
+    mocks.getPendingBlobDeletions.mockResolvedValue([
+      {
+        createdAt: new Date(),
+        id: "deletion-1",
+        urls,
+        userId,
+      },
+    ]);
+
+    await drainPendingBlobDeletions(userId);
+
+    expect(mocks.claimPendingBlobDeletion).toHaveBeenCalledWith({
+      id: "deletion-1",
+      remainingIdentifiers: [urls[100]],
+      resolvedIdentifiers: urls.slice(0, 100).map((url) => ({
+        continuation: false,
+        identifier: url,
+        url,
+      })),
+      userId,
+    });
+    expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
+      continuationIdentifiers: [],
+      id: "deletion-1",
+      remainingIdentifiers: [urls[100]],
       unresolvedIdentifiers: [],
       userId,
     });

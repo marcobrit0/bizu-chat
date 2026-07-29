@@ -1175,10 +1175,12 @@ const UNRESOLVED_BLOB_RETRY_MS = 15 * 60 * 1000;
 
 export async function claimPendingBlobDeletion({
   id,
+  remainingIdentifiers = [],
   resolvedIdentifiers,
   userId,
 }: {
   id: string;
+  remainingIdentifiers?: string[];
   resolvedIdentifiers: {
     continuation: boolean;
     identifier: string;
@@ -1237,6 +1239,7 @@ export async function claimPendingBlobDeletion({
             ...deletableIdentifiers,
             ...unresolvedIdentifiers,
             ...continuationIdentifiers,
+            ...remainingIdentifiers,
           ]),
         ];
 
@@ -1285,14 +1288,18 @@ export async function claimPendingBlobDeletion({
 
 export async function completePendingBlobDeletion({
   claimToken,
+  continuationCursor = null,
   continuationIdentifiers,
   id,
+  remainingIdentifiers = [],
   unresolvedIdentifiers,
   userId,
 }: {
   claimToken: string;
+  continuationCursor?: string | null;
   continuationIdentifiers: string[];
   id: string;
+  remainingIdentifiers?: string[];
   unresolvedIdentifiers: string[];
   userId: string;
 }) {
@@ -1314,21 +1321,27 @@ export async function completePendingBlobDeletion({
 
       if (pendingDeletion) {
         const attempts =
-          pendingDeletion.attempts + (unresolvedIdentifiers.length > 0 ? 1 : 0);
+          unresolvedIdentifiers.length > 0 ? pendingDeletion.attempts + 1 : 0;
         const exhausted = attempts >= MAX_UNRESOLVED_BLOB_ATTEMPTS;
-        const remainingIdentifiers = exhausted
-          ? continuationIdentifiers
-          : [...continuationIdentifiers, ...unresolvedIdentifiers];
+        const persistedIdentifiers = exhausted
+          ? [...continuationIdentifiers, ...remainingIdentifiers]
+          : [
+              ...continuationIdentifiers,
+              ...remainingIdentifiers,
+              ...unresolvedIdentifiers,
+            ];
 
-        if (remainingIdentifiers.length > 0) {
+        if (persistedIdentifiers.length > 0) {
           return await transaction
             .update(blobDeletion)
             .set({
               attempts: exhausted ? 0 : attempts,
               claimedAt: null,
               claimToken: null,
+              cursor:
+                continuationIdentifiers.length > 0 ? continuationCursor : null,
               readyAt: new Date(Date.now() + UNRESOLVED_BLOB_RETRY_MS),
-              urls: remainingIdentifiers,
+              urls: persistedIdentifiers,
             })
             .where(
               and(

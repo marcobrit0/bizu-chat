@@ -47,6 +47,7 @@ export const blobDeletion = pgTable(
     createdAt: timestamp("createdAt", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    cursor: text("cursor"),
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     readyAt: timestamp("readyAt", { withTimezone: true })
       .notNull()

@@ -21,6 +21,7 @@ const BLOB_OPERATION_TIMEOUT_MS = 30_000;
 const BLOB_ROW_CONCURRENCY = 5;
 const BLOB_DELETE_BATCH_SIZE = 100;
 const BLOB_IDENTIFIER_CONCURRENCY = 5;
+const MAX_BLOB_IDENTIFIERS_PER_CLAIM = 100;
 const MAX_BLOB_DELETIONS_PER_DRAIN = 1000;
 
 const processInBatches = async <T>(
@@ -38,10 +39,16 @@ const processInBatches = async <T>(
 
 const resolveBlobIdentifiers = async (
   userId: string,
-  identifiers: string[]
-): Promise<
-  { continuation: boolean; identifier: string; url: string | null }[]
-> => {
+  identifiers: string[],
+  cursor?: string
+): Promise<{
+  continuationCursor: string | null;
+  resolvedIdentifiers: {
+    continuation: boolean;
+    identifier: string;
+    url: string | null;
+  }[];
+}> => {
   const batch = identifiers.slice(0, BLOB_IDENTIFIER_CONCURRENCY);
 
   if (batch.length > 0) {
@@ -50,24 +57,46 @@ const resolveBlobIdentifiers = async (
         if (identifier === userBlobPrefix(userId)) {
           const page = await list({
             abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
+            ...(cursor ? { cursor } : {}),
             limit: 1000,
             prefix: identifier,
           });
 
-          return [
-            ...page.blobs.map((blob) => ({
+          if (page.hasMore && page.cursor) {
+            return {
+              continuationCursor: page.cursor,
+              resolvedIdentifiers: [
+                ...page.blobs.map((blob) => ({
+                  continuation: false,
+                  identifier,
+                  url: blob.url,
+                })),
+                { continuation: true, identifier, url: null },
+              ],
+            };
+          }
+
+          if (page.hasMore) {
+            throw new Error("Blob continuation cursor is missing");
+          }
+
+          return {
+            continuationCursor: null,
+            resolvedIdentifiers: page.blobs.map((blob) => ({
               continuation: false,
               identifier,
               url: blob.url,
             })),
-            ...(page.hasMore
-              ? [{ continuation: true, identifier, url: null }]
-              : []),
-          ];
+          };
         }
 
         if (identifier.startsWith("https://")) {
-          return [{ continuation: false, identifier, url: identifier }];
+          return {
+            continuationCursor: null,
+            resolvedIdentifiers: [
+              { continuation: false, identifier, url: identifier },
+            ],
+          };
         }
 
         const page = await list({
@@ -79,26 +108,38 @@ const resolveBlobIdentifiers = async (
           (blob) => blob.pathname === identifier
         );
 
-        return [
-          {
-            continuation: false,
-            identifier,
-            url: matchingBlob?.url ?? null,
-          },
-        ];
+        return {
+          continuationCursor: null,
+          resolvedIdentifiers: [
+            {
+              continuation: false,
+              identifier,
+              url: matchingBlob?.url ?? null,
+            },
+          ],
+        };
       })
     );
+    const remainingResolution = await resolveBlobIdentifiers(
+      userId,
+      identifiers.slice(BLOB_IDENTIFIER_CONCURRENCY),
+      cursor
+    );
 
-    return [
-      ...resolvedBatch.flat(),
-      ...(await resolveBlobIdentifiers(
-        userId,
-        identifiers.slice(BLOB_IDENTIFIER_CONCURRENCY)
-      )),
-    ];
+    return {
+      continuationCursor:
+        resolvedBatch.find(({ continuationCursor }) => continuationCursor)
+          ?.continuationCursor ?? remainingResolution.continuationCursor,
+      resolvedIdentifiers: [
+        ...resolvedBatch.flatMap(
+          ({ resolvedIdentifiers }) => resolvedIdentifiers
+        ),
+        ...remainingResolution.resolvedIdentifiers,
+      ],
+    };
   }
 
-  return [];
+  return { continuationCursor: null, resolvedIdentifiers: [] };
 };
 
 const isOwnedBlobIdentifier = (
@@ -172,12 +213,32 @@ const drainBlobDeletions = async (
     BLOB_ROW_CONCURRENCY,
     async (batch) => {
       await Promise.all(
-        batch.map(async ({ id, urls, userId }) => {
-          const resolvedIdentifiers = (
-            await resolveBlobIdentifiers(userId, urls)
-          ).filter((identifier) => isOwnedBlobIdentifier(userId, identifier));
+        batch.map(async ({ cursor, id, urls, userId }) => {
+          const identifiersToResolve = urls.slice(
+            0,
+            MAX_BLOB_IDENTIFIERS_PER_CLAIM
+          );
+          const remainingIdentifiers = urls
+            .slice(MAX_BLOB_IDENTIFIERS_PER_CLAIM)
+            .filter((identifier) =>
+              isOwnedBlobIdentifier(userId, {
+                identifier,
+                url: identifier.startsWith("https://") ? identifier : null,
+              })
+            );
+          const resolution = await resolveBlobIdentifiers(
+            userId,
+            identifiersToResolve,
+            cursor ?? undefined
+          );
+          const resolvedIdentifiers = resolution.resolvedIdentifiers.filter(
+            (identifier) => isOwnedBlobIdentifier(userId, identifier)
+          );
           const claim = await claimPendingBlobDeletion({
             id,
+            ...(remainingIdentifiers.length > 0
+              ? { remainingIdentifiers }
+              : {}),
             resolvedIdentifiers,
             userId,
           });
@@ -195,8 +256,14 @@ const drainBlobDeletions = async (
 
             await completePendingBlobDeletion({
               claimToken: claim.claimToken,
+              ...(resolution.continuationCursor
+                ? { continuationCursor: resolution.continuationCursor }
+                : {}),
               continuationIdentifiers: claim.continuationIdentifiers,
               id,
+              ...(remainingIdentifiers.length > 0
+                ? { remainingIdentifiers }
+                : {}),
               unresolvedIdentifiers: claim.unresolvedIdentifiers,
               userId,
             });
