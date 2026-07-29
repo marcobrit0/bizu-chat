@@ -406,11 +406,18 @@ export async function assertChatWritable({
 
 export async function saveMessages({
   messages,
+  userId,
   validateBlobUrls,
 }: {
   messages: DBMessage[];
+  userId: string;
   validateBlobUrls: (userId: string, urls: string[]) => Promise<boolean>;
 }) {
+  const attachmentUrls = messages.flatMap(({ attachments, parts }) =>
+    extractMessageAttachmentUrls(attachments, parts)
+  );
+  const blobsAvailable = await validateBlobUrls(userId, attachmentUrls);
+
   try {
     return await db.transaction(async (transaction) => {
       await transaction.execute(
@@ -423,26 +430,33 @@ export async function saveMessages({
         `
       );
       const [writableChat] = await transaction
-        .select({ id: chat.id, userId: chat.userId })
+        .select({ id: chat.id })
         .from(chat)
         .innerJoin(user, eq(chat.userId, user.id))
         .where(
           and(
             eq(chat.id, messages[0]?.chatId ?? ""),
+            eq(chat.userId, userId),
             isNull(chat.deletingAt),
             isNull(user.deletingAt),
             isNull(user.chatsDeletingAt)
           )
         );
-
-      const attachmentUrls = messages.flatMap(({ attachments, parts }) =>
-        extractMessageAttachmentUrls(attachments, parts)
+      const pendingRows = await transaction
+        .select({ urls: blobDeletion.urls })
+        .from(blobDeletion)
+        .where(
+          and(
+            eq(blobDeletion.userId, userId),
+            gt(blobDeletion.readyAt, new Date())
+          )
+        );
+      const pendingUrls = new Set(pendingRows.flatMap(({ urls }) => urls));
+      const referencesPendingBlob = attachmentUrls.some((url) =>
+        pendingUrls.has(url)
       );
-      const blobsAvailable = writableChat
-        ? await validateBlobUrls(writableChat.userId, attachmentUrls)
-        : false;
 
-      if (writableChat && blobsAvailable) {
+      if (writableChat && blobsAvailable && !referencesPendingBlob) {
         return await transaction.insert(message).values(messages);
       }
 
@@ -471,6 +485,9 @@ export async function updateMessage({
   userId: string;
   validateBlobUrls: (userId: string, urls: string[]) => Promise<boolean>;
 }) {
+  const attachmentUrls = extractMessageAttachmentUrls([], parts);
+  const blobsAvailable = await validateBlobUrls(userId, attachmentUrls);
+
   try {
     return await db.transaction(async (transaction) => {
       await transaction.execute(
@@ -491,12 +508,21 @@ export async function updateMessage({
             isNull(user.chatsDeletingAt)
           )
         );
-      const attachmentUrls = extractMessageAttachmentUrls([], parts);
-      const blobsAvailable = writableMessage
-        ? await validateBlobUrls(userId, attachmentUrls)
-        : false;
+      const pendingRows = await transaction
+        .select({ urls: blobDeletion.urls })
+        .from(blobDeletion)
+        .where(
+          and(
+            eq(blobDeletion.userId, userId),
+            gt(blobDeletion.readyAt, new Date())
+          )
+        );
+      const pendingUrls = new Set(pendingRows.flatMap(({ urls }) => urls));
+      const referencesPendingBlob = attachmentUrls.some((url) =>
+        pendingUrls.has(url)
+      );
 
-      if (writableMessage && blobsAvailable) {
+      if (writableMessage && blobsAvailable && !referencesPendingBlob) {
         return await transaction
           .update(message)
           .set({ parts })
@@ -950,11 +976,13 @@ export async function queueBlobDeletion({
 
 export async function completeBlobUpload({
   chatDeletionGeneration,
+  expectedReadyAt,
   id,
   url,
   userId,
 }: {
   chatDeletionGeneration: number;
+  expectedReadyAt: Date;
   id: string;
   url: string;
   userId: string;
@@ -967,7 +995,13 @@ export async function completeBlobUpload({
       const [updatedIntent] = await transaction
         .update(blobDeletion)
         .set({ readyAt: new Date(), urls: [url] })
-        .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)))
+        .where(
+          and(
+            eq(blobDeletion.id, id),
+            eq(blobDeletion.userId, userId),
+            eq(blobDeletion.readyAt, expectedReadyAt)
+          )
+        )
         .returning({ id: blobDeletion.id });
       const [writableUser] = updatedIntent
         ? await transaction
@@ -1015,13 +1049,14 @@ export async function getPendingBlobDeletions({
   }
 }
 
-export async function processPendingBlobDeletion({
-  deleteUrls,
+const BLOB_DELETION_LEASE_MS = 5 * 60 * 1000;
+const UNRESOLVED_BLOB_RETRY_MS = 15 * 60 * 1000;
+
+export async function claimPendingBlobDeletion({
   id,
   resolvedIdentifiers,
   userId,
 }: {
-  deleteUrls: (urls: string[]) => Promise<void>;
   id: string;
   resolvedIdentifiers: { identifier: string; url: string | null }[];
   userId: string;
@@ -1034,7 +1069,13 @@ export async function processPendingBlobDeletion({
       const [pendingDeletion] = await transaction
         .select({ id: blobDeletion.id })
         .from(blobDeletion)
-        .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)));
+        .where(
+          and(
+            eq(blobDeletion.id, id),
+            eq(blobDeletion.userId, userId),
+            lte(blobDeletion.readyAt, new Date())
+          )
+        );
 
       if (pendingDeletion) {
         const messageRows = await transaction
@@ -1053,25 +1094,68 @@ export async function processPendingBlobDeletion({
         const deletableUrls = resolvedIdentifiers.flatMap(({ url }) =>
           url && !referencedUrls.has(url) ? [url] : []
         );
+        const deletableIdentifiers = resolvedIdentifiers.flatMap(
+          ({ identifier, url }) =>
+            url && !referencedUrls.has(url) ? [identifier] : []
+        );
         const unresolvedIdentifiers = resolvedIdentifiers.flatMap(
           ({ identifier, url }) => (url ? [] : [identifier])
         );
+        const claimedIdentifiers = [
+          ...deletableIdentifiers,
+          ...unresolvedIdentifiers,
+        ];
 
-        if (deletableUrls.length > 0) {
-          await deleteUrls(deletableUrls);
-        }
-
-        if (unresolvedIdentifiers.length > 0) {
+        if (claimedIdentifiers.length > 0) {
           await transaction
             .update(blobDeletion)
-            .set({ urls: unresolvedIdentifiers })
+            .set({
+              readyAt: new Date(Date.now() + BLOB_DELETION_LEASE_MS),
+              urls: claimedIdentifiers,
+            })
             .where(eq(blobDeletion.id, id));
         } else {
           await transaction.delete(blobDeletion).where(eq(blobDeletion.id, id));
         }
+
+        return { deletableUrls, unresolvedIdentifiers };
       }
 
-      return Boolean(pendingDeletion);
+      return null;
+    });
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function completePendingBlobDeletion({
+  id,
+  unresolvedIdentifiers,
+  userId,
+}: {
+  id: string;
+  unresolvedIdentifiers: string[];
+  userId: string;
+}) {
+  try {
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+
+      if (unresolvedIdentifiers.length > 0) {
+        return await transaction
+          .update(blobDeletion)
+          .set({
+            readyAt: new Date(Date.now() + UNRESOLVED_BLOB_RETRY_MS),
+            urls: unresolvedIdentifiers,
+          })
+          .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)));
+      }
+
+      return await transaction
+        .delete(blobDeletion)
+        .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)));
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });

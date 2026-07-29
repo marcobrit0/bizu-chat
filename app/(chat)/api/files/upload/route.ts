@@ -70,8 +70,11 @@ export async function POST(request: Request) {
       session.user.id,
       `${randomUUID()}-${filename}`
     );
+    const recoveryReadyAt = new Date(
+      Date.now() + UPLOAD_INTENT_RECOVERY_DELAY_MS
+    );
     const [deletionIntent] = await queueBlobDeletion({
-      readyAt: new Date(Date.now() + UPLOAD_INTENT_RECOVERY_DELAY_MS),
+      readyAt: recoveryReadyAt,
       urls: [pathname],
       userId: session.user.id,
     });
@@ -83,6 +86,7 @@ export async function POST(request: Request) {
       });
       const uploadCompleted = await completeBlobUpload({
         chatDeletionGeneration: initialChatDeletionGeneration,
+        expectedReadyAt: recoveryReadyAt,
         id: deletionIntent.id,
         url: data.url,
         userId: session.user.id,

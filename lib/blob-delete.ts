@@ -2,11 +2,13 @@ import "server-only";
 
 import { del, head, list } from "@vercel/blob";
 import {
+  claimPendingBlobDeletion,
+  completePendingBlobDeletion,
   getPendingBlobDeletions,
-  processPendingBlobDeletion,
 } from "@/lib/db/queries";
 
 const userBlobPrefix = (userId: string) => `uploads/${userId}/`;
+const BLOB_OPERATION_TIMEOUT_MS = 30_000;
 
 const listUserBlobUrls = async (
   userId: string,
@@ -49,7 +51,13 @@ export const areOwnedUserBlobUrlsAvailable = async (
   );
 
   try {
-    await Promise.all(ownedUrls.map((url) => head(url)));
+    await Promise.all(
+      ownedUrls.map((url) =>
+        head(url, {
+          abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
+        })
+      )
+    );
 
     return true;
   } catch {
@@ -76,12 +84,25 @@ const drainBlobDeletions = async (
           return { identifier, url: matchingBlob?.url ?? null };
         })
       );
-      await processPendingBlobDeletion({
-        deleteUrls: del,
+      const claim = await claimPendingBlobDeletion({
         id,
         resolvedIdentifiers,
         userId,
       });
+
+      if (claim) {
+        if (claim.deletableUrls.length > 0) {
+          await del(claim.deletableUrls, {
+            abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
+          });
+        }
+
+        await completePendingBlobDeletion({
+          id,
+          unresolvedIdentifiers: claim.unresolvedIdentifiers,
+          userId,
+        });
+      }
     })
   );
 

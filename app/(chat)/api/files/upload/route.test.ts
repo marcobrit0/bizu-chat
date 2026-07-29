@@ -74,6 +74,7 @@ describe("file upload authentication", () => {
     expect(mocks.queueBlobDeletion).toHaveBeenCalledBefore(mocks.put);
     expect(mocks.completeBlobUpload).toHaveBeenCalledWith({
       chatDeletionGeneration: 0,
+      expectedReadyAt: expect.any(Date),
       id: "intent-1",
       url: `https://blob.test/uploads/${userId}/image.png`,
       userId,

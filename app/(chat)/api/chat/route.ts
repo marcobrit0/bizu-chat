@@ -201,6 +201,7 @@ export async function POST(request: Request) {
             role: "user",
           },
         ],
+        userId: session.user.id,
         validateBlobUrls: areOwnedUserBlobUrlsAvailable,
       });
     }
@@ -388,6 +389,7 @@ export async function POST(request: Request) {
                     role: finishedMsg.role,
                   },
                 ],
+                userId: session.user.id,
                 validateBlobUrls: areOwnedUserBlobUrlsAvailable,
               });
             })
@@ -402,6 +404,7 @@ export async function POST(request: Request) {
               parts: currentMessage.parts,
               role: currentMessage.role,
             })),
+            userId: session.user.id,
             validateBlobUrls: areOwnedUserBlobUrlsAvailable,
           });
         }

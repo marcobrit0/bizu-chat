@@ -327,7 +327,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
 
   test("a blob re-referenced before drain is preserved", async () => {
     process.env.POSTGRES_URL = integrationDatabaseUrl;
-    const { deleteChatById, processPendingBlobDeletion, saveMessages } =
+    const { claimPendingBlobDeletion, deleteChatById, saveMessages } =
       await import("./queries");
     const userId = randomUUID();
     const deletedChatId = randomUUID();
@@ -374,6 +374,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
           role: "user",
         },
       ],
+      userId,
       validateBlobUrls: async () => true,
     });
     const [pendingDeletion] = await sql`
@@ -381,22 +382,60 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       FROM "BlobDeletion"
       WHERE "userId" = ${userId}
     `;
-    const deleteUrls = vi.fn();
 
-    await processPendingBlobDeletion({
-      deleteUrls,
+    const claim = await claimPendingBlobDeletion({
       id: pendingDeletion?.id,
       resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
       userId,
     });
 
-    expect(deleteUrls).not.toHaveBeenCalled();
+    expect(claim).toEqual({
+      deletableUrls: [],
+      unresolvedIdentifiers: [],
+    });
     const remainingDeletions = await sql`
       SELECT "id"
       FROM "BlobDeletion"
       WHERE "userId" = ${userId}
     `;
     expect(remainingDeletions).toHaveLength(0);
+
+    await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
+  });
+
+  test("an unclaimed upload intent completes atomically", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const { completeBlobUpload, queueBlobDeletion } = await import("./queries");
+    const userId = randomUUID();
+    const readyAt = new Date(Date.now() + 15 * 60 * 1000);
+    const pathname = `uploads/${userId}/image.png`;
+    const url = `https://blob.test/${pathname}`;
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`upload-${userId}@example.test`})
+    `;
+    const [intent] = await queueBlobDeletion({
+      readyAt,
+      urls: [pathname],
+      userId,
+    });
+
+    await expect(
+      completeBlobUpload({
+        chatDeletionGeneration: 0,
+        expectedReadyAt: readyAt,
+        id: intent.id,
+        url,
+        userId,
+      })
+    ).resolves.toBe(true);
+    const pendingIntents = await sql`
+      SELECT "id"
+      FROM "BlobDeletion"
+      WHERE "userId" = ${userId}
+    `;
+    expect(pendingIntents).toHaveLength(0);
 
     await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
   });
