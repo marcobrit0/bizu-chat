@@ -5,7 +5,17 @@ import { useRouter } from "next/navigation";
 import type { User } from "next-auth";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +44,7 @@ export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
   const { data, status } = useSession();
   const { setTheme, resolvedTheme } = useTheme();
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
 
   const isGuest = data?.user?.type === "guest";
   const handleThemeSelect = useCallback(() => {
@@ -58,6 +69,32 @@ export function SidebarUserNav({ user }: { user: User }) {
       });
     }
   }, [isGuest, router, status]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/account`,
+        { method: "DELETE" }
+      );
+
+      if (response.ok) {
+        await signOut({ redirectTo: "/" });
+      } else {
+        toast({
+          description: ui.userNav.deleteAccountFailed,
+          type: "error",
+        });
+      }
+    } catch {
+      toast({
+        description: ui.userNav.deleteAccountFailed,
+        type: "error",
+      });
+    }
+  }, []);
+  const handleDeleteAccountSelect = useCallback(() => {
+    setShowDeleteAccountDialog(true);
+  }, []);
 
   return (
     <SidebarMenu>
@@ -116,8 +153,36 @@ export function SidebarUserNav({ user }: { user: User }) {
                 {isGuest ? ui.userNav.loginAccount : ui.userNav.signOut}
               </button>
             </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer text-[13px] text-destructive"
+              data-testid="user-nav-item-delete-account"
+              onSelect={handleDeleteAccountSelect}
+            >
+              {ui.userNav.deleteAccount}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <AlertDialog
+          onOpenChange={setShowDeleteAccountDialog}
+          open={showDeleteAccountDialog}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {ui.userNav.deleteAccountTitle}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {ui.userNav.deleteAccountDescription}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{ui.sidebar.cancel}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteAccount}>
+                {ui.userNav.deleteAccountConfirm}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SidebarMenuItem>
     </SidebarMenu>
   );

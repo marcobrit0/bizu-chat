@@ -27,10 +27,12 @@ import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
+import { deleteUserBlobUrls } from "@/lib/blob-delete";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
   createStreamId,
   deleteChatById,
+  getAttachmentUrlsByChatId,
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
@@ -464,6 +466,8 @@ export async function DELETE(request: Request) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
+  const attachmentUrls = await getAttachmentUrlsByChatId({ chatId: id });
+  await deleteUserBlobUrls(session.user.id, attachmentUrls);
   const deletedChat = await deleteChatById({ id });
 
   return Response.json(deletedChat, { status: 200 });

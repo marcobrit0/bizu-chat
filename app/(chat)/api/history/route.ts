@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/app/(auth)/auth";
+import { deleteAllUserBlobs } from "@/lib/blob-delete";
 import { deleteAllChatsByUserId, getChatsByUserId } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 
@@ -43,6 +44,7 @@ export async function DELETE() {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
+  await deleteAllUserBlobs(session.user.id);
   const result = await deleteAllChatsByUserId({ userId: session.user.id });
 
   return Response.json(result, { status: 200 });
