@@ -1,6 +1,6 @@
 import "server-only";
 
-import { del, head, list } from "@vercel/blob";
+import { del, list } from "@vercel/blob";
 import {
   claimPendingBlobDeletion,
   completePendingBlobDeletion,
@@ -15,6 +15,7 @@ const listUserBlobUrls = async (
   cursor?: string
 ): Promise<string[]> => {
   const page = await list({
+    abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
     cursor,
     limit: 1000,
     prefix: userBlobPrefix(userId),
@@ -44,22 +45,10 @@ export const areOwnedUserBlobUrlsAvailable = async (
   userId: string,
   requestedUrls: string[]
 ) => {
-  const ownedPathPrefix = `/uploads/${userId}/`;
-  const ownedUrls = requestedUrls.filter(
-    (url) =>
-      URL.canParse(url) && new URL(url).pathname.startsWith(ownedPathPrefix)
-  );
-
   try {
-    await Promise.all(
-      ownedUrls.map((url) =>
-        head(url, {
-          abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
-        })
-      )
-    );
+    const ownedUrls = new Set(await listUserBlobUrls(userId));
 
-    return true;
+    return requestedUrls.every((url) => ownedUrls.has(url));
   } catch {
     return false;
   }
@@ -76,7 +65,11 @@ const drainBlobDeletions = async (
             return { identifier, url: identifier };
           }
 
-          const page = await list({ limit: 1000, prefix: identifier });
+          const page = await list({
+            abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
+            limit: 1000,
+            prefix: identifier,
+          });
           const matchingBlob = page.blobs.find(
             (blob) => blob.pathname === identifier
           );

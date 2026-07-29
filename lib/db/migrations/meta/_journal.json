@@ -71,6 +71,13 @@
       "when": 1785319949439,
       "tag": "0009_blob-deletion-readiness",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785322658751,
+      "tag": "0010_powerful_rafael_vega",
+      "breakpoints": true
     }
   ]
 }

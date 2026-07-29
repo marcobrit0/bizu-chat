@@ -201,6 +201,7 @@ export const suggestion = pgTable(
       foreignColumns: [document.id, document.createdAt, document.userId],
     }).onDelete("cascade"),
     pk: primaryKey({ columns: [table.id] }),
+    userIdx: index("Suggestion_userId_idx").on(table.userId),
   })
 );
 

@@ -5,14 +5,12 @@ const mocks = vi.hoisted(() => ({
   completePendingBlobDeletion: vi.fn(),
   del: vi.fn(),
   getPendingBlobDeletions: vi.fn(),
-  head: vi.fn(),
   list: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@vercel/blob", () => ({
   del: mocks.del,
-  head: mocks.head,
   list: mocks.list,
 }));
 vi.mock("@/lib/db/queries", () => ({
@@ -124,7 +122,11 @@ describe("blob deletion outbox", () => {
 
     await drainPendingBlobDeletions("user-1");
 
-    expect(mocks.list).toHaveBeenCalledWith({ limit: 1000, prefix: pathname });
+    expect(mocks.list).toHaveBeenCalledWith({
+      abortSignal: expect.any(AbortSignal),
+      limit: 1000,
+      prefix: pathname,
+    });
     expect(mocks.del).toHaveBeenCalledWith([blobUrl], {
       abortSignal: expect.any(AbortSignal),
     });
@@ -256,26 +258,23 @@ describe("blob deletion outbox", () => {
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledOnce();
   });
 
-  test("checks owned Blob URLs before a message references them", async () => {
+  test("accepts only Blob URLs owned by the message author", async () => {
     const userId = "user-1";
     const ownedUrl = `https://blob.test/uploads/${userId}/image.png`;
-    mocks.head.mockResolvedValue({ url: ownedUrl });
-
-    await expect(
-      areOwnedUserBlobUrlsAvailable(userId, [
-        ownedUrl,
-        "https://external.test/image.png",
-      ])
-    ).resolves.toBe(true);
-
-    expect(mocks.head).toHaveBeenCalledWith(ownedUrl, {
-      abortSignal: expect.any(AbortSignal),
+    mocks.list.mockResolvedValue({
+      blobs: [{ url: ownedUrl }],
+      cursor: null,
+      hasMore: false,
     });
-
-    mocks.head.mockRejectedValue(new Error("missing"));
 
     await expect(
       areOwnedUserBlobUrlsAvailable(userId, [ownedUrl])
+    ).resolves.toBe(true);
+
+    await expect(
+      areOwnedUserBlobUrlsAvailable(userId, [
+        "https://blob.test/uploads/user-2/private.png",
+      ])
     ).resolves.toBe(false);
   });
 });
