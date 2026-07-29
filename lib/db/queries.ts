@@ -8,6 +8,7 @@ import {
   eq,
   gt,
   gte,
+  inArray,
   isNotNull,
   isNull,
   lt,
@@ -48,6 +49,7 @@ const client = postgres(process.env.POSTGRES_URL ?? "", {
   max_lifetime: 60 * 30,
 });
 const db = drizzle(client);
+const DATA_ERASURE_BATCH_SIZE = 100;
 const DATA_ERASURE_RETRY_MS = 15 * 60 * 1000;
 const MAX_UNRESOLVED_BLOB_ATTEMPTS = 3;
 const userBlobPrefix = (userId: string) => `uploads/${userId}/`;
@@ -130,7 +132,15 @@ export async function getPendingChatErasures() {
         userId: chat.userId,
       })
       .from(chat)
-      .where(and(isNotNull(chat.deletingAt), lte(chat.deletingAt, new Date())))
+      .innerJoin(user, eq(chat.userId, user.id))
+      .where(
+        and(
+          isNotNull(chat.deletingAt),
+          lte(chat.deletingAt, new Date()),
+          isNull(user.chatsDeletingAt),
+          isNull(user.deletingAt)
+        )
+      )
       .orderBy(asc(chat.deletingAt))
       .limit(100);
   } catch (error) {
@@ -344,14 +354,20 @@ export async function deleteAllChatsByUserId({
         );
 
       if (activeDeletion) {
+        const selectedChats = await transaction
+          .select({ id: chat.id })
+          .from(chat)
+          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
+          .orderBy(asc(chat.createdAt), asc(chat.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const chatIds = selectedChats.map(({ id }) => id);
         const messageRows = await transaction
           .select({
             attachments: message.attachments,
             parts: message.parts,
           })
           .from(message)
-          .innerJoin(chat, eq(message.chatId, chat.id))
-          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)));
+          .where(inArray(message.chatId, chatIds));
         const blobUrls = [
           ...new Set(
             messageRows.flatMap(({ attachments, parts }) =>
@@ -361,7 +377,7 @@ export async function deleteAllChatsByUserId({
         ];
         const deletedChats = await transaction
           .delete(chat)
-          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
+          .where(inArray(chat.id, chatIds))
           .returning();
 
         if (deletedChats.length > 0 && blobUrls.length > 0) {
@@ -370,20 +386,31 @@ export async function deleteAllChatsByUserId({
             .values({ urls: blobUrls, userId });
         }
 
-        await transaction
-          .update(user)
-          .set({ chatsDeletingAt: null })
-          .where(
-            and(
-              eq(user.id, userId),
-              eq(user.chatDeletionGeneration, chatDeletionGeneration)
-            )
-          );
+        const [remainingChat] = await transaction
+          .select({ id: chat.id })
+          .from(chat)
+          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
+          .limit(1);
 
-        return { deletedCount: deletedChats.length };
+        if (!remainingChat) {
+          await transaction
+            .update(user)
+            .set({ chatsDeletingAt: null })
+            .where(
+              and(
+                eq(user.id, userId),
+                eq(user.chatDeletionGeneration, chatDeletionGeneration)
+              )
+            );
+        }
+
+        return {
+          complete: !remainingChat,
+          deletedCount: deletedChats.length,
+        };
       }
 
-      return { deletedCount: 0 };
+      return { complete: true, deletedCount: 0 };
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
@@ -1070,18 +1097,93 @@ export async function deleteUserById({
 }) {
   try {
     return await db.transaction(async (transaction) => {
-      const [deletedUser] = await transaction
-        .delete(user)
-        .where(eq(user.id, id))
-        .returning({ id: user.id });
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${id}::text, 0))`
+      );
+      const [activeDeletion] = await transaction
+        .select({ id: user.id })
+        .from(user)
+        .where(and(eq(user.id, id), isNotNull(user.deletingAt)));
 
-      if (deletedUser && blobUrls.length > 0) {
-        await transaction
-          .insert(blobDeletion)
-          .values({ urls: blobUrls, userId: id });
+      if (activeDeletion) {
+        const selectedChats = await transaction
+          .select({ id: chat.id })
+          .from(chat)
+          .where(eq(chat.userId, id))
+          .orderBy(asc(chat.createdAt), asc(chat.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const chatIds = selectedChats.map(({ id: chatId }) => chatId);
+        const messageRows = await transaction
+          .select({
+            attachments: message.attachments,
+            parts: message.parts,
+          })
+          .from(message)
+          .where(inArray(message.chatId, chatIds));
+        const attachmentUrls = [
+          ...new Set(
+            messageRows.flatMap(({ attachments, parts }) =>
+              extractMessageAttachmentUrls(attachments, parts)
+            )
+          ),
+        ];
+
+        if (chatIds.length > 0) {
+          await transaction.delete(chat).where(inArray(chat.id, chatIds));
+        }
+
+        if (attachmentUrls.length > 0) {
+          await transaction
+            .insert(blobDeletion)
+            .values({ urls: attachmentUrls, userId: id });
+        }
+
+        const selectedDocumentOwners = await transaction
+          .select({ id: documentOwner.id })
+          .from(documentOwner)
+          .where(eq(documentOwner.userId, id))
+          .orderBy(asc(documentOwner.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const documentIds = selectedDocumentOwners.map(
+          ({ id: documentId }) => documentId
+        );
+
+        if (documentIds.length > 0) {
+          await transaction
+            .delete(documentOwner)
+            .where(inArray(documentOwner.id, documentIds));
+        }
+
+        const [remainingChat] = await transaction
+          .select({ id: chat.id })
+          .from(chat)
+          .where(eq(chat.userId, id))
+          .limit(1);
+        const [remainingDocumentOwner] = await transaction
+          .select({ id: documentOwner.id })
+          .from(documentOwner)
+          .where(eq(documentOwner.userId, id))
+          .limit(1);
+
+        if (!(remainingChat || remainingDocumentOwner)) {
+          const [deletedUser] = await transaction
+            .delete(user)
+            .where(and(eq(user.id, id), isNotNull(user.deletingAt)))
+            .returning({ id: user.id });
+
+          if (deletedUser && blobUrls.length > 0) {
+            await transaction
+              .insert(blobDeletion)
+              .values({ urls: blobUrls, userId: id });
+          }
+
+          return { complete: Boolean(deletedUser) };
+        }
+
+        return { complete: false };
       }
 
-      return deletedUser;
+      return { complete: true };
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });

@@ -346,6 +346,65 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
   });
 
+  test("history erasure clears its marker only after bounded batches finish", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const { deleteAllChatsByUserId, markAllChatsForDeletion } = await import(
+      "./queries"
+    );
+    const userId = randomUUID();
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`history-batch-${userId}@example.test`})
+    `;
+    await sql`
+      INSERT INTO "Chat" ("id", "createdAt", "title", "userId")
+      SELECT
+        md5(${`history-chat-${userId}-`} || batch_number::text)::uuid,
+        now(),
+        'Batched history chat',
+        ${userId}
+      FROM generate_series(1, 101) AS batch_number
+    `;
+
+    const chatDeletionGeneration = await markAllChatsForDeletion({ userId });
+    await expect(
+      deleteAllChatsByUserId({
+        chatDeletionGeneration: chatDeletionGeneration ?? 0,
+        userId,
+      })
+    ).resolves.toEqual({ complete: false, deletedCount: 100 });
+
+    const [pendingUser] = await sql`
+      SELECT "chatsDeletingAt"
+      FROM "User"
+      WHERE "id" = ${userId}
+    `;
+    const [remainingAfterFirstBatch] = await sql`
+      SELECT count(*)::integer AS "count"
+      FROM "Chat"
+      WHERE "userId" = ${userId}
+    `;
+    expect(pendingUser?.chatsDeletingAt).toBeInstanceOf(Date);
+    expect(remainingAfterFirstBatch?.count).toBe(1);
+
+    await expect(
+      deleteAllChatsByUserId({
+        chatDeletionGeneration: chatDeletionGeneration ?? 0,
+        userId,
+      })
+    ).resolves.toEqual({ complete: true, deletedCount: 1 });
+
+    const [completedUser] = await sql`
+      SELECT "chatsDeletingAt"
+      FROM "User"
+      WHERE "id" = ${userId}
+    `;
+    expect(completedUser?.chatsDeletingAt).toBeNull();
+
+    await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
+  });
+
   test("a blob re-referenced before drain is preserved", async () => {
     process.env.POSTGRES_URL = integrationDatabaseUrl;
     const { claimPendingBlobDeletion, deleteChatById, saveMessages } =
@@ -511,6 +570,92 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     ).resolves.toEqual([]);
 
     await sql`DELETE FROM "User" WHERE "id" IN (${ownerId}, ${otherUserId})`;
+  });
+
+  test("account erasure makes bounded forward progress before final deletion", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const { deleteUserById, markUserForDeletion } = await import("./queries");
+    const userId = randomUUID();
+    const blobPrefix = `uploads/${userId}/`;
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`batched-${userId}@example.test`})
+    `;
+    await sql`
+      INSERT INTO "Chat" ("id", "createdAt", "title", "userId")
+      SELECT
+        md5(${`chat-${userId}-`} || batch_number::text)::uuid,
+        now(),
+        'Batched account chat',
+        ${userId}
+      FROM generate_series(1, 101) AS batch_number
+    `;
+    await sql`
+      INSERT INTO "Message_v2"
+        ("id", "chatId", "createdAt", "role", "parts", "attachments")
+      SELECT
+        md5("id"::text || '-message')::uuid,
+        "id",
+        now(),
+        'user',
+        json_build_array(
+          json_build_object(
+            'type',
+            'file',
+            'url',
+            ${`https://blob.test/uploads/${userId}/`} || "id"::text
+          )
+        ),
+        '[]'
+      FROM "Chat"
+      WHERE "userId" = ${userId}
+    `;
+
+    await markUserForDeletion({ id: userId });
+    await expect(
+      deleteUserById({ blobUrls: [blobPrefix], id: userId })
+    ).resolves.toEqual({ complete: false });
+
+    const [pendingUser] = await sql`
+      SELECT "deletingAt"
+      FROM "User"
+      WHERE "id" = ${userId}
+    `;
+    const [remainingAfterFirstBatch] = await sql`
+      SELECT count(*)::integer AS "count"
+      FROM "Chat"
+      WHERE "userId" = ${userId}
+    `;
+    const [firstOutbox] = await sql`
+      SELECT json_array_length("urls") AS "urlCount"
+      FROM "BlobDeletion"
+      WHERE "userId" = ${userId}
+    `;
+    expect(pendingUser?.deletingAt).toBeInstanceOf(Date);
+    expect(remainingAfterFirstBatch?.count).toBe(1);
+    expect(firstOutbox?.urlCount).toBe(100);
+
+    await expect(
+      deleteUserById({ blobUrls: [blobPrefix], id: userId })
+    ).resolves.toEqual({ complete: true });
+
+    const [deletedUser] = await sql`
+      SELECT "id"
+      FROM "User"
+      WHERE "id" = ${userId}
+    `;
+    const [prefixOutbox] = await sql`
+      SELECT "id"
+      FROM "BlobDeletion"
+      WHERE
+        "userId" = ${userId}
+        AND "urls"::jsonb @> jsonb_build_array(${blobPrefix}::text)
+    `;
+    expect(deletedUser).toBeUndefined();
+    expect(prefixOutbox?.id).toBeDefined();
+
+    await sql`DELETE FROM "BlobDeletion" WHERE "userId" = ${userId}`;
   });
 
   test("an expired prefix deletion lease blocks child URL reattachment", async () => {
