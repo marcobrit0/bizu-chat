@@ -30,7 +30,6 @@ import { updateDocument } from "@/lib/ai/tools/update-document";
 import {
   areOwnedUserBlobUrlsAvailable,
   drainPendingBlobDeletionsBestEffort,
-  getOwnedUserBlobUrls,
 } from "@/lib/blob-delete";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
@@ -486,8 +485,7 @@ export async function DELETE(request: Request) {
   }
 
   await markChatForDeletion({ id, userId: session.user.id });
-  const attachmentUrls = await getAttachmentUrlsByChatId({ chatId: id });
-  const blobUrls = await getOwnedUserBlobUrls(session.user.id, attachmentUrls);
+  const blobUrls = await getAttachmentUrlsByChatId({ chatId: id });
   const deletedChat = await deleteChatById({
     blobUrls,
     id,

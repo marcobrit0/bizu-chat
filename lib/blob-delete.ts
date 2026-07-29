@@ -4,14 +4,19 @@ import { del, list } from "@vercel/blob";
 import {
   claimPendingBlobDeletion,
   completePendingBlobDeletion,
+  deferPendingChatErasure,
   deferPendingDataErasure,
   deleteAllChatsByUserId,
+  deleteChatById,
   deleteUserById,
+  getAttachmentUrlsByChatId,
   getPendingBlobDeletions,
+  getPendingChatErasures,
   getPendingDataErasures,
 } from "@/lib/db/queries";
 
 const userBlobPrefix = (userId: string) => `uploads/${userId}/`;
+export const getUserBlobDeletionPrefix = userBlobPrefix;
 const BLOB_OPERATION_TIMEOUT_MS = 30_000;
 const BLOB_ROW_CONCURRENCY = 5;
 const BLOB_DELETE_BATCH_SIZE = 100;
@@ -32,15 +37,37 @@ const processInBatches = async <T>(
 };
 
 const resolveBlobIdentifiers = async (
+  userId: string,
   identifiers: string[]
-): Promise<{ identifier: string; url: string | null }[]> => {
+): Promise<
+  { continuation: boolean; identifier: string; url: string | null }[]
+> => {
   const batch = identifiers.slice(0, BLOB_IDENTIFIER_CONCURRENCY);
 
   if (batch.length > 0) {
     const resolvedBatch = await Promise.all(
       batch.map(async (identifier) => {
+        if (identifier === userBlobPrefix(userId)) {
+          const page = await list({
+            abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
+            limit: 1000,
+            prefix: identifier,
+          });
+
+          return [
+            ...page.blobs.map((blob) => ({
+              continuation: false,
+              identifier,
+              url: blob.url,
+            })),
+            ...(page.hasMore
+              ? [{ continuation: true, identifier, url: null }]
+              : []),
+          ];
+        }
+
         if (identifier.startsWith("https://")) {
-          return { identifier, url: identifier };
+          return [{ continuation: false, identifier, url: identifier }];
         }
 
         const page = await list({
@@ -52,13 +79,20 @@ const resolveBlobIdentifiers = async (
           (blob) => blob.pathname === identifier
         );
 
-        return { identifier, url: matchingBlob?.url ?? null };
+        return [
+          {
+            continuation: false,
+            identifier,
+            url: matchingBlob?.url ?? null,
+          },
+        ];
       })
     );
 
     return [
-      ...resolvedBatch,
+      ...resolvedBatch.flat(),
       ...(await resolveBlobIdentifiers(
+        userId,
         identifiers.slice(BLOB_IDENTIFIER_CONCURRENCY)
       )),
     ];
@@ -80,35 +114,43 @@ const isOwnedBlobIdentifier = (
   return identifier.startsWith(prefix);
 };
 
-const listUserBlobUrls = async (
-  userId: string,
-  cursor?: string
-): Promise<string[]> => {
-  const page = await list({
-    abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
-    cursor,
-    limit: 1000,
-    prefix: userBlobPrefix(userId),
-  });
-  const urls = page.blobs.map((blob) => blob.url);
-
-  if (page.hasMore && page.cursor) {
-    return [...urls, ...(await listUserBlobUrls(userId, page.cursor))];
-  }
-
-  return urls;
-};
-
-export const getAllUserBlobUrls = listUserBlobUrls;
-
-export const getOwnedUserBlobUrls = async (
+const areBlobUrlsAvailable = async (
   userId: string,
   requestedUrls: string[]
-) => {
-  const requested = new Set(requestedUrls);
-  const ownedUrls = await listUserBlobUrls(userId);
+): Promise<boolean> => {
+  const batch = requestedUrls.slice(0, BLOB_IDENTIFIER_CONCURRENCY);
 
-  return ownedUrls.filter((url) => requested.has(url));
+  if (batch.length > 0) {
+    const available = await Promise.all(
+      batch.map(async (url) => {
+        const owned =
+          URL.canParse(url) &&
+          new URL(url).pathname.startsWith(`/${userBlobPrefix(userId)}`);
+
+        if (owned) {
+          const page = await list({
+            abortSignal: AbortSignal.timeout(BLOB_OPERATION_TIMEOUT_MS),
+            limit: 1000,
+            prefix: new URL(url).pathname.slice(1),
+          });
+
+          return page.blobs.some((blob) => blob.url === url);
+        }
+
+        return false;
+      })
+    );
+
+    return (
+      available.every(Boolean) &&
+      (await areBlobUrlsAvailable(
+        userId,
+        requestedUrls.slice(BLOB_IDENTIFIER_CONCURRENCY)
+      ))
+    );
+  }
+
+  return true;
 };
 
 export const areOwnedUserBlobUrlsAvailable = async (
@@ -116,9 +158,7 @@ export const areOwnedUserBlobUrlsAvailable = async (
   requestedUrls: string[]
 ) => {
   try {
-    const ownedUrls = new Set(await listUserBlobUrls(userId));
-
-    return requestedUrls.every((url) => ownedUrls.has(url));
+    return await areBlobUrlsAvailable(userId, requestedUrls);
   } catch {
     return false;
   }
@@ -134,7 +174,7 @@ const drainBlobDeletions = async (
       await Promise.all(
         batch.map(async ({ id, urls, userId }) => {
           const resolvedIdentifiers = (
-            await resolveBlobIdentifiers(urls)
+            await resolveBlobIdentifiers(userId, urls)
           ).filter((identifier) => isOwnedBlobIdentifier(userId, identifier));
           const claim = await claimPendingBlobDeletion({
             id,
@@ -155,6 +195,7 @@ const drainBlobDeletions = async (
 
             await completePendingBlobDeletion({
               claimToken: claim.claimToken,
+              continuationIdentifiers: claim.continuationIdentifiers,
               id,
               unresolvedIdentifiers: claim.unresolvedIdentifiers,
               userId,
@@ -218,7 +259,7 @@ const resumeDataErasures = async (
       batch.map(
         async ({ chatDeletionGeneration, chatsDeletingAt, deletingAt, id }) => {
           try {
-            const blobUrls = await getAllUserBlobUrls(id);
+            const blobUrls = [userBlobPrefix(id)];
 
             if (deletingAt) {
               await deleteUserById({ blobUrls, id });
@@ -262,3 +303,40 @@ const resumeDataErasures = async (
 
 export const resumePendingDataErasures = async () =>
   await resumeDataErasures(await getPendingDataErasures());
+
+const resumeChatErasures = async (
+  pendingErasures: Awaited<ReturnType<typeof getPendingChatErasures>>
+): Promise<number> => {
+  const batch = pendingErasures.slice(0, BLOB_ROW_CONCURRENCY);
+
+  if (batch.length > 0) {
+    const resumed = await Promise.all(
+      batch.map(async ({ id, userId }) => {
+        try {
+          const blobUrls = await getAttachmentUrlsByChatId({ chatId: id });
+          await deleteChatById({ blobUrls, id, userId });
+
+          return 1;
+        } catch {
+          try {
+            await deferPendingChatErasure({ id, userId });
+          } catch {
+            return 0;
+          }
+
+          return 0;
+        }
+      })
+    );
+
+    return (
+      resumed.reduce<number>((total, count) => total + count, 0) +
+      (await resumeChatErasures(pendingErasures.slice(BLOB_ROW_CONCURRENCY)))
+    );
+  }
+
+  return 0;
+};
+
+export const resumePendingChatErasures = async () =>
+  await resumeChatErasures(await getPendingChatErasures());

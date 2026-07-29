@@ -49,6 +49,7 @@ const client = postgres(process.env.POSTGRES_URL ?? "", {
 });
 const db = drizzle(client);
 const DATA_ERASURE_RETRY_MS = 15 * 60 * 1000;
+const MAX_UNRESOLVED_BLOB_ATTEMPTS = 3;
 
 export async function getUser(email: string): Promise<User[]> {
   try {
@@ -105,6 +106,23 @@ export async function getPendingDataErasures() {
   }
 }
 
+export async function getPendingChatErasures() {
+  try {
+    return await db
+      .select({
+        deletingAt: chat.deletingAt,
+        id: chat.id,
+        userId: chat.userId,
+      })
+      .from(chat)
+      .where(and(isNotNull(chat.deletingAt), lte(chat.deletingAt, new Date())))
+      .orderBy(asc(chat.deletingAt))
+      .limit(100);
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
 export async function deferPendingDataErasure({
   accountDeletion,
   id,
@@ -130,6 +148,29 @@ export async function deferPendingDataErasure({
           eq(user.id, id),
           isNull(user.deletingAt),
           isNotNull(user.chatsDeletingAt)
+        )
+      );
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function deferPendingChatErasure({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    return await db
+      .update(chat)
+      .set({ deletingAt: new Date(Date.now() + DATA_ERASURE_RETRY_MS) })
+      .where(
+        and(
+          eq(chat.id, id),
+          eq(chat.userId, userId),
+          isNotNull(chat.deletingAt)
         )
       );
   } catch (error) {
@@ -1138,7 +1179,11 @@ export async function claimPendingBlobDeletion({
   userId,
 }: {
   id: string;
-  resolvedIdentifiers: { identifier: string; url: string | null }[];
+  resolvedIdentifiers: {
+    continuation: boolean;
+    identifier: string;
+    url: string | null;
+  }[];
   userId: string;
 }) {
   try {
@@ -1181,11 +1226,18 @@ export async function claimPendingBlobDeletion({
             url && !referencedUrls.has(url) ? [identifier] : []
         );
         const unresolvedIdentifiers = resolvedIdentifiers.flatMap(
-          ({ identifier, url }) => (url ? [] : [identifier])
+          ({ continuation, identifier, url }) =>
+            url || continuation ? [] : [identifier]
+        );
+        const continuationIdentifiers = resolvedIdentifiers.flatMap(
+          ({ continuation, identifier }) => (continuation ? [identifier] : [])
         );
         const claimedIdentifiers = [
-          ...deletableIdentifiers,
-          ...unresolvedIdentifiers,
+          ...new Set([
+            ...deletableIdentifiers,
+            ...unresolvedIdentifiers,
+            ...continuationIdentifiers,
+          ]),
         ];
 
         if (claimedIdentifiers.length > 0) {
@@ -1218,6 +1270,7 @@ export async function claimPendingBlobDeletion({
 
         return {
           claimToken: claimedIdentifiers.length > 0 ? claimToken : null,
+          continuationIdentifiers,
           deletableUrls,
           unresolvedIdentifiers,
         };
@@ -1232,11 +1285,13 @@ export async function claimPendingBlobDeletion({
 
 export async function completePendingBlobDeletion({
   claimToken,
+  continuationIdentifiers,
   id,
   unresolvedIdentifiers,
   userId,
 }: {
   claimToken: string;
+  continuationIdentifiers: string[];
   id: string;
   unresolvedIdentifiers: string[];
   userId: string;
@@ -1246,16 +1301,46 @@ export async function completePendingBlobDeletion({
       await transaction.execute(
         sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
       );
+      const [pendingDeletion] = await transaction
+        .select({ attempts: blobDeletion.attempts })
+        .from(blobDeletion)
+        .where(
+          and(
+            eq(blobDeletion.id, id),
+            eq(blobDeletion.userId, userId),
+            eq(blobDeletion.claimToken, claimToken)
+          )
+        );
 
-      if (unresolvedIdentifiers.length > 0) {
+      if (pendingDeletion) {
+        const attempts =
+          pendingDeletion.attempts + (unresolvedIdentifiers.length > 0 ? 1 : 0);
+        const exhausted = attempts >= MAX_UNRESOLVED_BLOB_ATTEMPTS;
+        const remainingIdentifiers = exhausted
+          ? continuationIdentifiers
+          : [...continuationIdentifiers, ...unresolvedIdentifiers];
+
+        if (remainingIdentifiers.length > 0) {
+          return await transaction
+            .update(blobDeletion)
+            .set({
+              attempts: exhausted ? 0 : attempts,
+              claimedAt: null,
+              claimToken: null,
+              readyAt: new Date(Date.now() + UNRESOLVED_BLOB_RETRY_MS),
+              urls: remainingIdentifiers,
+            })
+            .where(
+              and(
+                eq(blobDeletion.id, id),
+                eq(blobDeletion.userId, userId),
+                eq(blobDeletion.claimToken, claimToken)
+              )
+            );
+        }
+
         return await transaction
-          .update(blobDeletion)
-          .set({
-            claimedAt: null,
-            claimToken: null,
-            readyAt: new Date(Date.now() + UNRESOLVED_BLOB_RETRY_MS),
-            urls: unresolvedIdentifiers,
-          })
+          .delete(blobDeletion)
           .where(
             and(
               eq(blobDeletion.id, id),
@@ -1265,15 +1350,7 @@ export async function completePendingBlobDeletion({
           );
       }
 
-      return await transaction
-        .delete(blobDeletion)
-        .where(
-          and(
-            eq(blobDeletion.id, id),
-            eq(blobDeletion.userId, userId),
-            eq(blobDeletion.claimToken, claimToken)
-          )
-        );
+      return [];
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });

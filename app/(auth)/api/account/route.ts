@@ -1,7 +1,7 @@
 import { auth } from "@/app/(auth)/auth";
 import {
   drainPendingBlobDeletionsBestEffort,
-  getAllUserBlobUrls,
+  getUserBlobDeletionPrefix,
 } from "@/lib/blob-delete";
 import { deleteUserById, markUserForDeletion } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
@@ -11,7 +11,7 @@ export async function DELETE() {
 
   if (session?.user) {
     await markUserForDeletion({ id: session.user.id });
-    const blobUrls = await getAllUserBlobUrls(session.user.id);
+    const blobUrls = [getUserBlobDeletionPrefix(session.user.id)];
     await deleteUserById({ blobUrls, id: session.user.id });
     await drainPendingBlobDeletionsBestEffort(session.user.id);
 

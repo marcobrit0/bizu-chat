@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   deleteUserById: vi.fn(),
   drainPendingBlobDeletionsBestEffort: vi.fn(),
-  getAllUserBlobUrls: vi.fn(),
+  getUserBlobDeletionPrefix: vi.fn(),
   markUserForDeletion: vi.fn(),
 }));
 
@@ -12,7 +12,7 @@ vi.mock("@/app/(auth)/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/blob-delete", () => ({
   drainPendingBlobDeletionsBestEffort:
     mocks.drainPendingBlobDeletionsBestEffort,
-  getAllUserBlobUrls: mocks.getAllUserBlobUrls,
+  getUserBlobDeletionPrefix: mocks.getUserBlobDeletionPrefix,
 }));
 vi.mock("@/lib/db/queries", () => ({
   deleteUserById: mocks.deleteUserById,
@@ -30,15 +30,17 @@ describe("account erasure", () => {
     const userId = "00000000-0000-0000-0000-000000000001";
     mocks.auth.mockResolvedValue({ user: { id: userId } });
     mocks.markUserForDeletion.mockResolvedValue({ id: userId });
-    mocks.getAllUserBlobUrls.mockResolvedValue([
-      `https://blob.test/uploads/${userId}/avatar.png`,
-    ]);
+    mocks.getUserBlobDeletionPrefix.mockReturnValue(`uploads/${userId}/`);
     mocks.deleteUserById.mockResolvedValue({ id: userId });
     mocks.drainPendingBlobDeletionsBestEffort.mockResolvedValue(0);
 
     const response = await DELETE();
 
     expect(response.status).toBe(204);
+    expect(mocks.deleteUserById).toHaveBeenCalledWith({
+      blobUrls: [`uploads/${userId}/`],
+      id: userId,
+    });
     expect(mocks.deleteUserById).toHaveBeenCalledBefore(
       mocks.drainPendingBlobDeletionsBestEffort
     );

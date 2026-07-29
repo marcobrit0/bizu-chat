@@ -389,12 +389,15 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
 
     const claim = await claimPendingBlobDeletion({
       id: pendingDeletion?.id,
-      resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
+      resolvedIdentifiers: [
+        { continuation: false, identifier: blobUrl, url: blobUrl },
+      ],
       userId,
     });
 
     expect(claim).toEqual({
       claimToken: null,
+      continuationIdentifiers: [],
       deletableUrls: [],
       unresolvedIdentifiers: [],
     });
@@ -521,11 +524,14 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
 
     const firstClaim = await claimPendingBlobDeletion({
       id: deletionId,
-      resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
+      resolvedIdentifiers: [
+        { continuation: false, identifier: blobUrl, url: blobUrl },
+      ],
       userId,
     });
     expect(firstClaim).toEqual({
       claimToken: expect.any(String),
+      continuationIdentifiers: [],
       deletableUrls: [blobUrl],
       unresolvedIdentifiers: [],
     });
@@ -536,11 +542,14 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     `;
     const secondClaim = await claimPendingBlobDeletion({
       id: deletionId,
-      resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
+      resolvedIdentifiers: [
+        { continuation: false, identifier: blobUrl, url: blobUrl },
+      ],
       userId,
     });
     expect(secondClaim).toEqual({
       claimToken: expect.any(String),
+      continuationIdentifiers: [],
       deletableUrls: [blobUrl],
       unresolvedIdentifiers: [],
     });
@@ -565,6 +574,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
 
     await completePendingBlobDeletion({
       claimToken: firstClaim?.claimToken ?? "",
+      continuationIdentifiers: [],
       id: deletionId,
       unresolvedIdentifiers: [],
       userId,
@@ -578,10 +588,68 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
 
     await completePendingBlobDeletion({
       claimToken: secondClaim?.claimToken ?? "",
+      continuationIdentifiers: [],
       id: deletionId,
       unresolvedIdentifiers: [],
       userId,
     });
+    await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
+  });
+
+  test("an unresolved upload intent is discarded after bounded attempts", async () => {
+    process.env.POSTGRES_URL = integrationDatabaseUrl;
+    const {
+      claimPendingBlobDeletion,
+      completePendingBlobDeletion,
+      queueBlobDeletion,
+    } = await import("./queries");
+    const userId = randomUUID();
+    const pathname = `uploads/${userId}/missing.png`;
+
+    await sql`
+      INSERT INTO "User" ("id", "email")
+      VALUES (${userId}, ${`missing-${userId}@example.test`})
+    `;
+    const [intent] = await queueBlobDeletion({
+      urls: [pathname],
+      userId,
+    });
+
+    const exhaustIntent = async (expectedAttempt: number): Promise<void> => {
+      const claim = await claimPendingBlobDeletion({
+        id: intent.id,
+        resolvedIdentifiers: [
+          { continuation: false, identifier: pathname, url: null },
+        ],
+        userId,
+      });
+      await completePendingBlobDeletion({
+        claimToken: claim?.claimToken ?? "",
+        continuationIdentifiers: [],
+        id: intent.id,
+        unresolvedIdentifiers: [pathname],
+        userId,
+      });
+      const [pendingIntent] = await sql`
+        SELECT "attempts"
+        FROM "BlobDeletion"
+        WHERE "id" = ${intent.id}
+      `;
+
+      if (expectedAttempt < 3) {
+        expect(pendingIntent?.attempts).toBe(expectedAttempt);
+        await sql`
+          UPDATE "BlobDeletion"
+          SET "readyAt" = now()
+          WHERE "id" = ${intent.id}
+        `;
+        await exhaustIntent(expectedAttempt + 1);
+      } else {
+        expect(pendingIntent).toBeUndefined();
+      }
+    };
+
+    await exhaustIntent(1);
     await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
   });
 });

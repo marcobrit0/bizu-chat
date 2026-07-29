@@ -1,5 +1,6 @@
 import {
   drainAllPendingBlobDeletions,
+  resumePendingChatErasures,
   resumePendingDataErasures,
 } from "@/lib/blob-delete";
 
@@ -11,9 +12,10 @@ export async function GET(request: Request) {
     authorization === `Bearer ${process.env.CRON_SECRET}`
   ) {
     const resumedCount = await resumePendingDataErasures();
+    const resumedChatCount = await resumePendingChatErasures();
     const deletedCount = await drainAllPendingBlobDeletions();
 
-    return Response.json({ deletedCount, resumedCount });
+    return Response.json({ deletedCount, resumedChatCount, resumedCount });
   }
 
   return new Response("Unauthorized", { status: 401 });

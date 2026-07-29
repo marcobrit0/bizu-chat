@@ -3,11 +3,15 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   claimPendingBlobDeletion: vi.fn(),
   completePendingBlobDeletion: vi.fn(),
+  deferPendingChatErasure: vi.fn(),
   deferPendingDataErasure: vi.fn(),
   del: vi.fn(),
   deleteAllChatsByUserId: vi.fn(),
+  deleteChatById: vi.fn(),
   deleteUserById: vi.fn(),
+  getAttachmentUrlsByChatId: vi.fn(),
   getPendingBlobDeletions: vi.fn(),
+  getPendingChatErasures: vi.fn(),
   getPendingDataErasures: vi.fn(),
   list: vi.fn(),
 }));
@@ -20,10 +24,14 @@ vi.mock("@vercel/blob", () => ({
 vi.mock("@/lib/db/queries", () => ({
   claimPendingBlobDeletion: mocks.claimPendingBlobDeletion,
   completePendingBlobDeletion: mocks.completePendingBlobDeletion,
+  deferPendingChatErasure: mocks.deferPendingChatErasure,
   deferPendingDataErasure: mocks.deferPendingDataErasure,
   deleteAllChatsByUserId: mocks.deleteAllChatsByUserId,
+  deleteChatById: mocks.deleteChatById,
   deleteUserById: mocks.deleteUserById,
+  getAttachmentUrlsByChatId: mocks.getAttachmentUrlsByChatId,
   getPendingBlobDeletions: mocks.getPendingBlobDeletions,
+  getPendingChatErasures: mocks.getPendingChatErasures,
   getPendingDataErasures: mocks.getPendingDataErasures,
 }));
 
@@ -32,7 +40,7 @@ import {
   drainAllPendingBlobDeletions,
   drainPendingBlobDeletions,
   drainPendingBlobDeletionsBestEffort,
-  getOwnedUserBlobUrls,
+  resumePendingChatErasures,
   resumePendingDataErasures,
 } from "./blob-delete";
 
@@ -43,35 +51,25 @@ describe("blob deletion outbox", () => {
       async ({
         resolvedIdentifiers,
       }: {
-        resolvedIdentifiers: { identifier: string; url: string | null }[];
+        resolvedIdentifiers: {
+          continuation: boolean;
+          identifier: string;
+          url: string | null;
+        }[];
       }) => ({
         claimToken: "00000000-0000-0000-0000-000000000001",
+        continuationIdentifiers: resolvedIdentifiers.flatMap(
+          ({ continuation, identifier }) => (continuation ? [identifier] : [])
+        ),
         deletableUrls: resolvedIdentifiers.flatMap(({ url }) =>
           url ? [url] : []
         ),
         unresolvedIdentifiers: resolvedIdentifiers.flatMap(
-          ({ identifier, url }) => (url ? [] : [identifier])
+          ({ continuation, identifier, url }) =>
+            url || continuation ? [] : [identifier]
         ),
       })
     );
-  });
-
-  test("only queues requested URLs owned by the user prefix", async () => {
-    mocks.list.mockResolvedValue({
-      blobs: [
-        { url: "https://blob.test/uploads/user-1/a.png" },
-        { url: "https://blob.test/uploads/user-1/b.png" },
-      ],
-      cursor: null,
-      hasMore: false,
-    });
-
-    await expect(
-      getOwnedUserBlobUrls("user-1", [
-        "https://blob.test/uploads/user-1/a.png",
-        "https://blob.test/uploads/user-2/private.png",
-      ])
-    ).resolves.toEqual(["https://blob.test/uploads/user-1/a.png"]);
   });
 
   test("removes an outbox row only after its blobs are deleted", async () => {
@@ -95,6 +93,7 @@ describe("blob deletion outbox", () => {
       id: "deletion-1",
       resolvedIdentifiers: [
         {
+          continuation: false,
           identifier: "https://blob.test/uploads/user-1/a.png",
           url: "https://blob.test/uploads/user-1/a.png",
         },
@@ -103,6 +102,7 @@ describe("blob deletion outbox", () => {
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith({
       claimToken: "00000000-0000-0000-0000-000000000001",
+      continuationIdentifiers: [],
       id: "deletion-1",
       unresolvedIdentifiers: [],
       userId: "user-1",
@@ -143,14 +143,49 @@ describe("blob deletion outbox", () => {
     });
     expect(mocks.claimPendingBlobDeletion).toHaveBeenCalledWith({
       id: "deletion-1",
-      resolvedIdentifiers: [{ identifier: pathname, url: blobUrl }],
+      resolvedIdentifiers: [
+        { continuation: false, identifier: pathname, url: blobUrl },
+      ],
       userId: "user-1",
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith({
       claimToken: "00000000-0000-0000-0000-000000000001",
+      continuationIdentifiers: [],
       id: "deletion-1",
       unresolvedIdentifiers: [],
       userId: "user-1",
+    });
+  });
+
+  test("persists a user-prefix continuation after one bounded Blob page", async () => {
+    const userId = "user-1";
+    const prefix = `uploads/${userId}/`;
+    const firstUrl = `https://blob.test/${prefix}first.png`;
+    const secondUrl = `https://blob.test/${prefix}second.png`;
+    mocks.getPendingBlobDeletions.mockResolvedValue([
+      {
+        createdAt: new Date(),
+        id: "deletion-1",
+        urls: [prefix],
+        userId,
+      },
+    ]);
+    mocks.list.mockResolvedValue({
+      blobs: [{ url: firstUrl }, { url: secondUrl }],
+      hasMore: true,
+    });
+
+    await drainPendingBlobDeletions(userId);
+
+    expect(mocks.del).toHaveBeenCalledWith([firstUrl, secondUrl], {
+      abortSignal: expect.any(AbortSignal),
+    });
+    expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
+      continuationIdentifiers: [prefix],
+      id: "deletion-1",
+      unresolvedIdentifiers: [],
+      userId,
     });
   });
 
@@ -181,11 +216,14 @@ describe("blob deletion outbox", () => {
     expect(mocks.del).not.toHaveBeenCalled();
     expect(mocks.claimPendingBlobDeletion).toHaveBeenLastCalledWith({
       id: "deletion-1",
-      resolvedIdentifiers: [{ identifier: pathname, url: null }],
+      resolvedIdentifiers: [
+        { continuation: false, identifier: pathname, url: null },
+      ],
       userId: "user-1",
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenLastCalledWith({
       claimToken: "00000000-0000-0000-0000-000000000001",
+      continuationIdentifiers: [],
       id: "deletion-1",
       unresolvedIdentifiers: [pathname],
       userId: "user-1",
@@ -199,12 +237,17 @@ describe("blob deletion outbox", () => {
     expect(mocks.claimPendingBlobDeletion).toHaveBeenLastCalledWith({
       id: "deletion-1",
       resolvedIdentifiers: [
-        { identifier: pathname, url: `https://blob.test/${pathname}` },
+        {
+          continuation: false,
+          identifier: pathname,
+          url: `https://blob.test/${pathname}`,
+        },
       ],
       userId: "user-1",
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenLastCalledWith({
       claimToken: "00000000-0000-0000-0000-000000000001",
+      continuationIdentifiers: [],
       id: "deletion-1",
       unresolvedIdentifiers: [],
       userId: "user-1",
@@ -344,7 +387,7 @@ describe("blob deletion outbox", () => {
     const userId = "user-1";
     const ownedUrl = `https://blob.test/uploads/${userId}/image.png`;
     mocks.list.mockResolvedValue({
-      blobs: [{ url: ownedUrl }],
+      blobs: [{ pathname: `uploads/${userId}/image.png`, url: ownedUrl }],
       cursor: null,
       hasMore: false,
     });
@@ -377,20 +420,14 @@ describe("blob deletion outbox", () => {
         id: historyId,
       },
     ]);
-    mocks.list.mockResolvedValue({
-      blobs: [],
-      cursor: null,
-      hasMore: false,
-    });
-
     await expect(resumePendingDataErasures()).resolves.toBe(2);
 
     expect(mocks.deleteUserById).toHaveBeenCalledWith({
-      blobUrls: [],
+      blobUrls: [`uploads/${accountId}/`],
       id: accountId,
     });
     expect(mocks.deleteAllChatsByUserId).toHaveBeenCalledWith({
-      blobUrls: [],
+      blobUrls: [`uploads/${historyId}/`],
       chatDeletionGeneration: 2,
       userId: historyId,
     });
@@ -406,7 +443,7 @@ describe("blob deletion outbox", () => {
         id: userId,
       },
     ]);
-    mocks.list.mockRejectedValue(new Error("blob unavailable"));
+    mocks.deleteUserById.mockRejectedValue(new Error("database unavailable"));
 
     await expect(resumePendingDataErasures()).resolves.toBe(0);
 
@@ -414,6 +451,24 @@ describe("blob deletion outbox", () => {
       accountDeletion: true,
       id: userId,
     });
-    expect(mocks.deleteUserById).not.toHaveBeenCalled();
+    expect(mocks.deleteUserById).toHaveBeenCalledOnce();
+  });
+
+  test("an independent worker resumes individually marked chat erasure", async () => {
+    const userId = "00000000-0000-0000-0000-000000000040";
+    const chatId = "00000000-0000-0000-0000-000000000041";
+    const blobUrl = `https://blob.test/uploads/${userId}/chat.png`;
+    mocks.getPendingChatErasures.mockResolvedValue([
+      { deletingAt: new Date(), id: chatId, userId },
+    ]);
+    mocks.getAttachmentUrlsByChatId.mockResolvedValue([blobUrl]);
+
+    await expect(resumePendingChatErasures()).resolves.toBe(1);
+
+    expect(mocks.deleteChatById).toHaveBeenCalledWith({
+      blobUrls: [blobUrl],
+      id: chatId,
+      userId,
+    });
   });
 });

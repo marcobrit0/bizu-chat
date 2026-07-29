@@ -41,6 +41,7 @@ export type User = InferSelectModel<typeof user>;
 export const blobDeletion = pgTable(
   "BlobDeletion",
   {
+    attempts: integer("attempts").notNull().default(0),
     claimedAt: timestamp("claimedAt", { withTimezone: true }),
     claimToken: uuid("claimToken"),
     createdAt: timestamp("createdAt", { withTimezone: true })
