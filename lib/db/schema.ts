@@ -42,6 +42,7 @@ export const blobDeletion = pgTable(
   "BlobDeletion",
   {
     claimedAt: timestamp("claimedAt", { withTimezone: true }),
+    claimToken: uuid("claimToken"),
     createdAt: timestamp("createdAt", { withTimezone: true })
       .notNull()
       .defaultNow(),

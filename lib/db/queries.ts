@@ -48,6 +48,7 @@ const client = postgres(process.env.POSTGRES_URL ?? "", {
   max_lifetime: 60 * 30,
 });
 const db = drizzle(client);
+const DATA_ERASURE_RETRY_MS = 15 * 60 * 1000;
 
 export async function getUser(email: string): Promise<User[]> {
   try {
@@ -70,6 +71,67 @@ export async function getUserById({ id }: { id: string }) {
       .where(eq(user.id, id));
 
     return selectedUser;
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function getPendingDataErasures() {
+  try {
+    const now = new Date();
+
+    return await db
+      .select({
+        chatDeletionGeneration: user.chatDeletionGeneration,
+        chatsDeletingAt: user.chatsDeletingAt,
+        deletingAt: user.deletingAt,
+        id: user.id,
+      })
+      .from(user)
+      .where(
+        or(
+          and(isNotNull(user.deletingAt), lte(user.deletingAt, now)),
+          and(
+            isNull(user.deletingAt),
+            isNotNull(user.chatsDeletingAt),
+            lte(user.chatsDeletingAt, now)
+          )
+        )
+      )
+      .orderBy(asc(sql`COALESCE(${user.deletingAt}, ${user.chatsDeletingAt})`))
+      .limit(100);
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function deferPendingDataErasure({
+  accountDeletion,
+  id,
+}: {
+  accountDeletion: boolean;
+  id: string;
+}) {
+  try {
+    const retryAt = new Date(Date.now() + DATA_ERASURE_RETRY_MS);
+
+    if (accountDeletion) {
+      return await db
+        .update(user)
+        .set({ deletingAt: retryAt })
+        .where(and(eq(user.id, id), isNotNull(user.deletingAt)));
+    }
+
+    return await db
+      .update(user)
+      .set({ chatsDeletingAt: retryAt })
+      .where(
+        and(
+          eq(user.id, id),
+          isNull(user.deletingAt),
+          isNotNull(user.chatsDeletingAt)
+        )
+      );
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
@@ -1080,6 +1142,8 @@ export async function claimPendingBlobDeletion({
   userId: string;
 }) {
   try {
+    const claimToken = generateUUID();
+
     return await db.transaction(async (transaction) => {
       await transaction.execute(
         sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
@@ -1129,15 +1193,34 @@ export async function claimPendingBlobDeletion({
             .update(blobDeletion)
             .set({
               claimedAt: new Date(),
+              claimToken,
               readyAt: new Date(Date.now() + BLOB_DELETION_LEASE_MS),
               urls: claimedIdentifiers,
             })
-            .where(eq(blobDeletion.id, id));
+            .where(
+              and(
+                eq(blobDeletion.id, id),
+                eq(blobDeletion.userId, userId),
+                lte(blobDeletion.readyAt, new Date())
+              )
+            );
         } else {
-          await transaction.delete(blobDeletion).where(eq(blobDeletion.id, id));
+          await transaction
+            .delete(blobDeletion)
+            .where(
+              and(
+                eq(blobDeletion.id, id),
+                eq(blobDeletion.userId, userId),
+                lte(blobDeletion.readyAt, new Date())
+              )
+            );
         }
 
-        return { deletableUrls, unresolvedIdentifiers };
+        return {
+          claimToken: claimedIdentifiers.length > 0 ? claimToken : null,
+          deletableUrls,
+          unresolvedIdentifiers,
+        };
       }
 
       return null;
@@ -1148,10 +1231,12 @@ export async function claimPendingBlobDeletion({
 }
 
 export async function completePendingBlobDeletion({
+  claimToken,
   id,
   unresolvedIdentifiers,
   userId,
 }: {
+  claimToken: string;
   id: string;
   unresolvedIdentifiers: string[];
   userId: string;
@@ -1167,15 +1252,28 @@ export async function completePendingBlobDeletion({
           .update(blobDeletion)
           .set({
             claimedAt: null,
+            claimToken: null,
             readyAt: new Date(Date.now() + UNRESOLVED_BLOB_RETRY_MS),
             urls: unresolvedIdentifiers,
           })
-          .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)));
+          .where(
+            and(
+              eq(blobDeletion.id, id),
+              eq(blobDeletion.userId, userId),
+              eq(blobDeletion.claimToken, claimToken)
+            )
+          );
       }
 
       return await transaction
         .delete(blobDeletion)
-        .where(and(eq(blobDeletion.id, id), eq(blobDeletion.userId, userId)));
+        .where(
+          and(
+            eq(blobDeletion.id, id),
+            eq(blobDeletion.userId, userId),
+            eq(blobDeletion.claimToken, claimToken)
+          )
+        );
     });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });

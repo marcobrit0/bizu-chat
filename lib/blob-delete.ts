@@ -4,7 +4,11 @@ import { del, list } from "@vercel/blob";
 import {
   claimPendingBlobDeletion,
   completePendingBlobDeletion,
+  deferPendingDataErasure,
+  deleteAllChatsByUserId,
+  deleteUserById,
   getPendingBlobDeletions,
+  getPendingDataErasures,
 } from "@/lib/db/queries";
 
 const userBlobPrefix = (userId: string) => `uploads/${userId}/`;
@@ -138,7 +142,7 @@ const drainBlobDeletions = async (
             userId,
           });
 
-          if (claim) {
+          if (claim?.claimToken) {
             await processInBatches(
               claim.deletableUrls,
               BLOB_DELETE_BATCH_SIZE,
@@ -150,6 +154,7 @@ const drainBlobDeletions = async (
             );
 
             await completePendingBlobDeletion({
+              claimToken: claim.claimToken,
               id,
               unresolvedIdentifiers: claim.unresolvedIdentifiers,
               userId,
@@ -202,3 +207,58 @@ const drainAllReadyBlobDeletions = async (
 
 export const drainAllPendingBlobDeletions = async () =>
   await drainAllReadyBlobDeletions(0);
+
+const resumeDataErasures = async (
+  pendingErasures: Awaited<ReturnType<typeof getPendingDataErasures>>
+): Promise<number> => {
+  const batch = pendingErasures.slice(0, BLOB_ROW_CONCURRENCY);
+
+  if (batch.length > 0) {
+    const resumed = await Promise.all(
+      batch.map(
+        async ({ chatDeletionGeneration, chatsDeletingAt, deletingAt, id }) => {
+          try {
+            const blobUrls = await getAllUserBlobUrls(id);
+
+            if (deletingAt) {
+              await deleteUserById({ blobUrls, id });
+              return 1;
+            }
+
+            if (chatsDeletingAt) {
+              await deleteAllChatsByUserId({
+                blobUrls,
+                chatDeletionGeneration,
+                userId: id,
+              });
+              return 1;
+            }
+          } catch {
+            try {
+              await deferPendingDataErasure({
+                accountDeletion: Boolean(deletingAt),
+                id,
+              });
+            } catch {
+              return 0;
+            }
+
+            return 0;
+          }
+
+          return 0;
+        }
+      )
+    );
+
+    return (
+      resumed.reduce<number>((total, count) => total + count, 0) +
+      (await resumeDataErasures(pendingErasures.slice(BLOB_ROW_CONCURRENCY)))
+    );
+  }
+
+  return 0;
+};
+
+export const resumePendingDataErasures = async () =>
+  await resumeDataErasures(await getPendingDataErasures());

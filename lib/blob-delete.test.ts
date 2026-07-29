@@ -3,8 +3,12 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   claimPendingBlobDeletion: vi.fn(),
   completePendingBlobDeletion: vi.fn(),
+  deferPendingDataErasure: vi.fn(),
   del: vi.fn(),
+  deleteAllChatsByUserId: vi.fn(),
+  deleteUserById: vi.fn(),
   getPendingBlobDeletions: vi.fn(),
+  getPendingDataErasures: vi.fn(),
   list: vi.fn(),
 }));
 
@@ -16,7 +20,11 @@ vi.mock("@vercel/blob", () => ({
 vi.mock("@/lib/db/queries", () => ({
   claimPendingBlobDeletion: mocks.claimPendingBlobDeletion,
   completePendingBlobDeletion: mocks.completePendingBlobDeletion,
+  deferPendingDataErasure: mocks.deferPendingDataErasure,
+  deleteAllChatsByUserId: mocks.deleteAllChatsByUserId,
+  deleteUserById: mocks.deleteUserById,
   getPendingBlobDeletions: mocks.getPendingBlobDeletions,
+  getPendingDataErasures: mocks.getPendingDataErasures,
 }));
 
 import {
@@ -25,6 +33,7 @@ import {
   drainPendingBlobDeletions,
   drainPendingBlobDeletionsBestEffort,
   getOwnedUserBlobUrls,
+  resumePendingDataErasures,
 } from "./blob-delete";
 
 describe("blob deletion outbox", () => {
@@ -36,6 +45,7 @@ describe("blob deletion outbox", () => {
       }: {
         resolvedIdentifiers: { identifier: string; url: string | null }[];
       }) => ({
+        claimToken: "00000000-0000-0000-0000-000000000001",
         deletableUrls: resolvedIdentifiers.flatMap(({ url }) =>
           url ? [url] : []
         ),
@@ -92,6 +102,7 @@ describe("blob deletion outbox", () => {
       userId: "user-1",
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
       id: "deletion-1",
       unresolvedIdentifiers: [],
       userId: "user-1",
@@ -136,6 +147,7 @@ describe("blob deletion outbox", () => {
       userId: "user-1",
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
       id: "deletion-1",
       unresolvedIdentifiers: [],
       userId: "user-1",
@@ -173,6 +185,7 @@ describe("blob deletion outbox", () => {
       userId: "user-1",
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenLastCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
       id: "deletion-1",
       unresolvedIdentifiers: [pathname],
       userId: "user-1",
@@ -191,6 +204,7 @@ describe("blob deletion outbox", () => {
       userId: "user-1",
     });
     expect(mocks.completePendingBlobDeletion).toHaveBeenLastCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
       id: "deletion-1",
       unresolvedIdentifiers: [],
       userId: "user-1",
@@ -344,5 +358,62 @@ describe("blob deletion outbox", () => {
         "https://blob.test/uploads/user-2/private.png",
       ])
     ).resolves.toBe(false);
+  });
+
+  test("an independent worker resumes durable account and history erasure markers", async () => {
+    const accountId = "00000000-0000-0000-0000-000000000010";
+    const historyId = "00000000-0000-0000-0000-000000000020";
+    mocks.getPendingDataErasures.mockResolvedValue([
+      {
+        chatDeletionGeneration: 1,
+        chatsDeletingAt: null,
+        deletingAt: new Date(),
+        id: accountId,
+      },
+      {
+        chatDeletionGeneration: 2,
+        chatsDeletingAt: new Date(),
+        deletingAt: null,
+        id: historyId,
+      },
+    ]);
+    mocks.list.mockResolvedValue({
+      blobs: [],
+      cursor: null,
+      hasMore: false,
+    });
+
+    await expect(resumePendingDataErasures()).resolves.toBe(2);
+
+    expect(mocks.deleteUserById).toHaveBeenCalledWith({
+      blobUrls: [],
+      id: accountId,
+    });
+    expect(mocks.deleteAllChatsByUserId).toHaveBeenCalledWith({
+      blobUrls: [],
+      chatDeletionGeneration: 2,
+      userId: historyId,
+    });
+  });
+
+  test("a failed erasure is deferred without blocking the worker", async () => {
+    const userId = "00000000-0000-0000-0000-000000000030";
+    mocks.getPendingDataErasures.mockResolvedValue([
+      {
+        chatDeletionGeneration: 1,
+        chatsDeletingAt: null,
+        deletingAt: new Date(),
+        id: userId,
+      },
+    ]);
+    mocks.list.mockRejectedValue(new Error("blob unavailable"));
+
+    await expect(resumePendingDataErasures()).resolves.toBe(0);
+
+    expect(mocks.deferPendingDataErasure).toHaveBeenCalledWith({
+      accountDeletion: true,
+      id: userId,
+    });
+    expect(mocks.deleteUserById).not.toHaveBeenCalled();
   });
 });

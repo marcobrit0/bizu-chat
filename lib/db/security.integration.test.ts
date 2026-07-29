@@ -394,6 +394,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     });
 
     expect(claim).toEqual({
+      claimToken: null,
       deletableUrls: [],
       unresolvedIdentifiers: [],
     });
@@ -518,13 +519,13 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       VALUES (${deletionId}, ${now}, ${sql.json([blobUrl])}, ${userId})
     `;
 
-    await expect(
-      claimPendingBlobDeletion({
-        id: deletionId,
-        resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
-        userId,
-      })
-    ).resolves.toEqual({
+    const firstClaim = await claimPendingBlobDeletion({
+      id: deletionId,
+      resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
+      userId,
+    });
+    expect(firstClaim).toEqual({
+      claimToken: expect.any(String),
       deletableUrls: [blobUrl],
       unresolvedIdentifiers: [],
     });
@@ -533,6 +534,17 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       SET "readyAt" = now() - interval '1 minute'
       WHERE "id" = ${deletionId}
     `;
+    const secondClaim = await claimPendingBlobDeletion({
+      id: deletionId,
+      resolvedIdentifiers: [{ identifier: blobUrl, url: blobUrl }],
+      userId,
+    });
+    expect(secondClaim).toEqual({
+      claimToken: expect.any(String),
+      deletableUrls: [blobUrl],
+      unresolvedIdentifiers: [],
+    });
+    expect(secondClaim?.claimToken).not.toBe(firstClaim?.claimToken);
 
     await expect(
       saveMessages({
@@ -552,6 +564,20 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     ).rejects.toThrow();
 
     await completePendingBlobDeletion({
+      claimToken: firstClaim?.claimToken ?? "",
+      id: deletionId,
+      unresolvedIdentifiers: [],
+      userId,
+    });
+    const [fencedDeletion] = await sql`
+      SELECT "claimToken"
+      FROM "BlobDeletion"
+      WHERE "id" = ${deletionId}
+    `;
+    expect(fencedDeletion?.claimToken).toBe(secondClaim?.claimToken);
+
+    await completePendingBlobDeletion({
+      claimToken: secondClaim?.claimToken ?? "",
       id: deletionId,
       unresolvedIdentifiers: [],
       userId,
