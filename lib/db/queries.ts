@@ -19,6 +19,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
+import { extractMessageAttachmentUrls } from "@/lib/message-attachments";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
 import {
@@ -44,18 +45,6 @@ const client = postgres(process.env.POSTGRES_URL ?? "", {
   max_lifetime: 60 * 30,
 });
 const db = drizzle(client);
-
-const extractAttachmentUrls = (attachments: unknown) =>
-  Array.isArray(attachments)
-    ? attachments.flatMap((attachment) =>
-        typeof attachment === "object" &&
-        attachment !== null &&
-        "url" in attachment &&
-        typeof attachment.url === "string"
-          ? [attachment.url]
-          : []
-      )
-    : [];
 
 export async function getUser(email: string): Promise<User[]> {
   try {
@@ -149,9 +138,12 @@ export async function saveChat({
         });
       }
 
-      return [];
+      throw new ChatbotError("forbidden:chat");
     });
   } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
     throw new ChatbotError("bad_request:database", {
       cause: error,
     });
@@ -173,13 +165,16 @@ export async function deleteChatById({
         sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
       );
       const otherRows = await transaction
-        .select({ attachments: message.attachments })
+        .select({
+          attachments: message.attachments,
+          parts: message.parts,
+        })
         .from(message)
         .innerJoin(chat, eq(message.chatId, chat.id))
         .where(and(eq(chat.userId, userId), ne(chat.id, id)));
       const referencedElsewhere = new Set(
-        otherRows.flatMap(({ attachments }) =>
-          extractAttachmentUrls(attachments)
+        otherRows.flatMap(({ attachments, parts }) =>
+          extractMessageAttachmentUrls(attachments, parts)
         )
       );
       const unsharedBlobUrls = blobUrls.filter(
@@ -342,6 +337,48 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
+export async function assertChatWritable({
+  chatId,
+  userId,
+}: {
+  chatId: string;
+  userId: string;
+}) {
+  try {
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [writableChat] = await transaction
+        .select({ id: chat.id })
+        .from(chat)
+        .innerJoin(user, eq(chat.userId, user.id))
+        .where(
+          and(
+            eq(chat.id, chatId),
+            eq(chat.userId, userId),
+            isNull(chat.deletingAt),
+            isNull(user.deletingAt),
+            isNull(user.chatsDeletingAt)
+          )
+        );
+
+      if (writableChat) {
+        return writableChat;
+      }
+
+      throw new ChatbotError("forbidden:chat");
+    });
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
+    throw new ChatbotError("bad_request:database", {
+      cause: error,
+    });
+  }
+}
+
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {
   try {
     return await db.transaction(async (transaction) => {
@@ -371,9 +408,12 @@ export async function saveMessages({ messages }: { messages: DBMessage[] }) {
         return await transaction.insert(message).values(messages);
       }
 
-      return [];
+      throw new ChatbotError("forbidden:chat");
     });
   } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
     throw new ChatbotError("bad_request:database", {
       cause: error,
     });
@@ -643,12 +683,15 @@ export async function getAttachmentUrlsByChatId({
 }) {
   try {
     const rows = await db
-      .select({ attachments: message.attachments })
+      .select({
+        attachments: message.attachments,
+        parts: message.parts,
+      })
       .from(message)
       .where(eq(message.chatId, chatId));
 
-    return rows.flatMap(({ attachments }) =>
-      extractAttachmentUrls(attachments)
+    return rows.flatMap(({ attachments, parts }) =>
+      extractMessageAttachmentUrls(attachments, parts)
     );
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
@@ -796,7 +839,10 @@ export async function queueBlobDeletion({
   userId: string;
 }) {
   try {
-    return await db.insert(blobDeletion).values({ urls, userId });
+    return await db
+      .insert(blobDeletion)
+      .values({ urls, userId })
+      .returning({ id: blobDeletion.id });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

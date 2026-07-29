@@ -33,6 +33,7 @@ import {
 } from "@/lib/blob-delete";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
+  assertChatWritable,
   createStreamId,
   deleteChatById,
   getAttachmentUrlsByChatId,
@@ -137,6 +138,8 @@ export async function POST(request: Request) {
       });
       titlePromise = generateTitleFromUserMessage({ message });
     }
+
+    await assertChatWritable({ chatId: id, userId: session.user.id });
 
     let uiMessages: ChatMessage[];
 
@@ -271,6 +274,8 @@ export async function POST(request: Request) {
           hasModelActivity = true;
           clearHealthCheckTimer();
         };
+
+        await assertChatWritable({ chatId: id, userId: session.user.id });
 
         const result = streamText({
           activeTools:

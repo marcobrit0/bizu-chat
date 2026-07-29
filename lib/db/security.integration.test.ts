@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
 import { afterAll, describe, expect, test } from "vitest";
+import { extractMessageAttachmentUrls } from "@/lib/message-attachments";
 
 const testDatabaseUrl = process.env.TEST_POSTGRES_URL;
 const integrationDatabaseUrl =
@@ -200,16 +201,16 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
           ${firstChatId},
           ${now},
           'user',
-          '[]',
-          ${sql.json([{ url: sharedUrl }])}
+          ${sql.json([{ type: "file", url: sharedUrl }])},
+          '[]'
         ),
         (
           ${randomUUID()},
           ${secondChatId},
           ${now},
           'user',
-          '[]',
-          ${sql.json([{ url: sharedUrl }])}
+          ${sql.json([{ type: "file", url: sharedUrl }])},
+          '[]'
         )
     `;
 
@@ -223,21 +224,14 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
         )
       `;
       const otherRows = await transaction`
-        SELECT "attachments"
+        SELECT "attachments", "parts"
         FROM "Message_v2"
         INNER JOIN "Chat" ON "Message_v2"."chatId" = "Chat"."id"
         WHERE "Chat"."userId" = ${userId}
           AND "Chat"."id" <> ${chatId}
       `;
-      const referencedElsewhere = otherRows.some(({ attachments }) =>
-        Array.isArray(attachments)
-          ? attachments.some(
-              (attachment) =>
-                typeof attachment === "object" &&
-                attachment !== null &&
-                attachment.url === sharedUrl
-            )
-          : false
+      const referencedElsewhere = otherRows.some(({ attachments, parts }) =>
+        extractMessageAttachmentUrls(attachments, parts).includes(sharedUrl)
       );
 
       if (!referencedElsewhere) {

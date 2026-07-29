@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -5,7 +6,11 @@ import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
 import { drainPendingBlobDeletionsBestEffort } from "@/lib/blob-delete";
 import { buildBlobKey } from "@/lib/blob-path";
-import { getUserById, queueBlobDeletion } from "@/lib/db/queries";
+import {
+  deletePendingBlobDeletion,
+  getUserById,
+  queueBlobDeletion,
+} from "@/lib/db/queries";
 
 const FileSchema = z.object({
   file: z
@@ -59,16 +64,20 @@ export async function POST(request: Request) {
 
     const filename = (formData.get("file") as File).name;
     const fileBuffer = await file.arrayBuffer();
+    const pathname = buildBlobKey(
+      session.user.id,
+      `${randomUUID()}-${filename}`
+    );
+    const [deletionIntent] = await queueBlobDeletion({
+      urls: [pathname],
+      userId: session.user.id,
+    });
 
     try {
-      const data = await put(
-        buildBlobKey(session.user.id, filename),
-        fileBuffer,
-        {
-          access: "public",
-          addRandomSuffix: true,
-        }
-      );
+      const data = await put(pathname, fileBuffer, {
+        access: "public",
+        addRandomSuffix: false,
+      });
 
       const userAfterUpload = await getUserById({ id: session.user.id });
 
@@ -78,13 +87,11 @@ export async function POST(request: Request) {
         !userAfterUpload.chatsDeletingAt &&
         userAfterUpload.chatDeletionGeneration === initialChatDeletionGeneration
       ) {
+        await deletePendingBlobDeletion({ id: deletionIntent.id });
+
         return NextResponse.json(data);
       }
 
-      await queueBlobDeletion({
-        urls: [data.url],
-        userId: session.user.id,
-      });
       await drainPendingBlobDeletionsBestEffort(session.user.id);
 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
