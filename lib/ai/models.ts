@@ -1,6 +1,8 @@
 // Chinese-first model catalog for Bizu (Brazil).
 // All IDs are Vercel AI Gateway "creator/model" strings.
 
+import { isTestEnvironment } from "@/lib/constants";
+
 export const DEFAULT_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 
 // Cheap/fast model used to generate short chat titles from the first message.
@@ -70,6 +72,15 @@ export const chatModels: ChatModel[] = [
 export async function getCapabilities(): Promise<
   Record<string, ModelCapabilities>
 > {
+  if (isTestEnvironment) {
+    return Object.fromEntries(
+      chatModels.map(({ id }) => [
+        id,
+        { reasoning: false, tools: false, vision: false },
+      ])
+    );
+  }
+
   const results = await Promise.all(
     chatModels.map(async (model) => {
       try {

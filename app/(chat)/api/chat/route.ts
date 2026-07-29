@@ -27,13 +27,20 @@ import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
+import {
+  areOwnedUserBlobUrlsAvailable,
+  drainPendingBlobDeletionsBestEffort,
+} from "@/lib/blob-delete";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
+  assertChatWritable,
   createStreamId,
   deleteChatById,
+  getAttachmentUrlsByChatId,
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  markChatForDeletion,
   saveChat,
   saveMessages,
   updateChatTitleById,
@@ -132,6 +139,8 @@ export async function POST(request: Request) {
       titlePromise = generateTitleFromUserMessage({ message });
     }
 
+    await assertChatWritable({ chatId: id, userId: session.user.id });
+
     let uiMessages: ChatMessage[];
 
     if (isToolApprovalFlow && messages) {
@@ -191,6 +200,8 @@ export async function POST(request: Request) {
             role: "user",
           },
         ],
+        userId: session.user.id,
+        validateBlobUrls: areOwnedUserBlobUrlsAvailable,
       });
     }
 
@@ -265,6 +276,8 @@ export async function POST(request: Request) {
           hasModelActivity = true;
           clearHealthCheckTimer();
         };
+
+        await assertChatWritable({ chatId: id, userId: session.user.id });
 
         const result = streamText({
           activeTools:
@@ -355,8 +368,11 @@ export async function POST(request: Request) {
               );
               if (existingMsg) {
                 await updateMessage({
+                  chatId: id,
                   id: finishedMsg.id,
                   parts: finishedMsg.parts,
+                  userId: session.user.id,
+                  validateBlobUrls: areOwnedUserBlobUrlsAvailable,
                 });
                 return;
               }
@@ -372,6 +388,8 @@ export async function POST(request: Request) {
                     role: finishedMsg.role,
                   },
                 ],
+                userId: session.user.id,
+                validateBlobUrls: areOwnedUserBlobUrlsAvailable,
               });
             })
           );
@@ -385,6 +403,8 @@ export async function POST(request: Request) {
               parts: currentMessage.parts,
               role: currentMessage.role,
             })),
+            userId: session.user.id,
+            validateBlobUrls: areOwnedUserBlobUrlsAvailable,
           });
         }
       },
@@ -464,7 +484,14 @@ export async function DELETE(request: Request) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
-  const deletedChat = await deleteChatById({ id });
+  await markChatForDeletion({ id, userId: session.user.id });
+  const blobUrls = await getAttachmentUrlsByChatId({ chatId: id });
+  const deletedChat = await deleteChatById({
+    blobUrls,
+    id,
+    userId: session.user.id,
+  });
+  await drainPendingBlobDeletionsBestEffort(session.user.id);
 
   return Response.json(deletedChat, { status: 200 });
 }

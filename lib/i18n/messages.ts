@@ -153,6 +153,13 @@ export const messages = {
 
   userNav: {
     authChecking: "Verificando autenticação, tente de novo!",
+    deleteAccount: "Excluir conta e dados",
+    deleteAccountConfirm: "Excluir permanentemente",
+    deleteAccountDescription:
+      "Esta ação exclui permanentemente sua conta, chats, mensagens, documentos, sugestões e arquivos enviados.",
+    deleteAccountFailed:
+      "Não foi possível concluir a exclusão da conta. Tente novamente.",
+    deleteAccountTitle: "Excluir sua conta e todos os dados?",
     guest: "Convidado",
     loading: "Carregando...",
     loginAccount: "Entrar na sua conta",

@@ -78,5 +78,9 @@ export async function updateChatVisibility({
     throw new Error("Unauthorized");
   }
 
-  await updateChatVisibilityById({ chatId, visibility });
+  await updateChatVisibilityById({
+    chatId,
+    userId: session.user.id,
+    visibility,
+  });
 }

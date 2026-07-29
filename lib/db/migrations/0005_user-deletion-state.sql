@@ -1,0 +1,1 @@
+ALTER TABLE "User" ADD COLUMN "deletingAt" timestamp with time zone;

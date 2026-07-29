@@ -31,8 +31,9 @@ Copy [`.env.example`](.env.example):
 |----------|---------|
 | `AUTH_SECRET` | NextAuth secret (`openssl rand -base64 32`) |
 | `AI_GATEWAY_API_KEY` | Required **off** Vercel; on Vercel, OIDC is automatic |
-| `POSTGRES_URL` | Neon / Postgres connection string |
+| `POSTGRES_URL` | Pooled Neon / Postgres runtime connection string |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob |
+| `CRON_SECRET` | Secret used by Vercel to authenticate blob-deletion retries |
 | `REDIS_URL` | Redis for resumable streams (optional locally) |
 
 ## Local setup

@@ -1,0 +1,22 @@
+import { auth } from "@/app/(auth)/auth";
+import {
+  drainPendingBlobDeletionsBestEffort,
+  getUserBlobDeletionPrefix,
+} from "@/lib/blob-delete";
+import { deleteUserById, markUserForDeletion } from "@/lib/db/queries";
+import { ChatbotError } from "@/lib/errors";
+
+export async function DELETE() {
+  const session = await auth();
+
+  if (session?.user) {
+    await markUserForDeletion({ id: session.user.id });
+    const blobUrls = [getUserBlobDeletionPrefix(session.user.id)];
+    await deleteUserById({ blobUrls, id: session.user.id });
+    await drainPendingBlobDeletionsBestEffort(session.user.id);
+
+    return new Response(null, { status: 204 });
+  }
+
+  return new ChatbotError("unauthorized:auth").toResponse();
+}

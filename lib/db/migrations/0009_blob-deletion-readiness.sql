@@ -1,0 +1,2 @@
+ALTER TABLE "BlobDeletion" ADD COLUMN "readyAt" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+CREATE INDEX "BlobDeletion_readyAt_createdAt_idx" ON "BlobDeletion" USING btree ("readyAt","createdAt");

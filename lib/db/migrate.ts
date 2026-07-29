@@ -15,7 +15,12 @@ const runMigrate = async () => {
     process.exit(1);
   }
 
-  const connection = postgres(process.env.POSTGRES_URL, { max: 1 });
+  const connection = postgres(process.env.POSTGRES_URL, {
+    connect_timeout: 10,
+    idle_timeout: 20,
+    max: 1,
+    max_lifetime: 60 * 30,
+  });
   const db = drizzle(connection);
 
   console.log("Running migrations...");
