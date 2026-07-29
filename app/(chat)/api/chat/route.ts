@@ -28,7 +28,7 @@ import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import {
-  drainPendingBlobDeletions,
+  drainPendingBlobDeletionsBestEffort,
   getOwnedUserBlobUrls,
 } from "@/lib/blob-delete";
 import { isProductionEnvironment } from "@/lib/constants";
@@ -464,7 +464,6 @@ export async function DELETE(request: Request) {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
-  await drainPendingBlobDeletions(session.user.id);
   const chat = await getChatById({ id });
 
   if (chat?.userId !== session.user.id) {
@@ -479,7 +478,7 @@ export async function DELETE(request: Request) {
     id,
     userId: session.user.id,
   });
-  await drainPendingBlobDeletions(session.user.id);
+  await drainPendingBlobDeletionsBestEffort(session.user.id);
 
   return Response.json(deletedChat, { status: 200 });
 }

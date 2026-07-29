@@ -1,6 +1,6 @@
 import { auth } from "@/app/(auth)/auth";
 import {
-  drainPendingBlobDeletions,
+  drainPendingBlobDeletionsBestEffort,
   getAllUserBlobUrls,
 } from "@/lib/blob-delete";
 import { deleteUserById, markUserForDeletion } from "@/lib/db/queries";
@@ -11,10 +11,9 @@ export async function DELETE() {
 
   if (session?.user) {
     await markUserForDeletion({ id: session.user.id });
-    await drainPendingBlobDeletions(session.user.id);
     const blobUrls = await getAllUserBlobUrls(session.user.id);
     await deleteUserById({ blobUrls, id: session.user.id });
-    await drainPendingBlobDeletions(session.user.id);
+    await drainPendingBlobDeletionsBestEffort(session.user.id);
 
     return new Response(null, { status: 204 });
   }

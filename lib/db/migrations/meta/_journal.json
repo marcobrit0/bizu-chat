@@ -57,6 +57,13 @@
       "when": 1785315691273,
       "tag": "0007_chat-history-deletion-state",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785317048899,
+      "tag": "0008_chat-deletion-generation",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
-import { drainPendingBlobDeletions } from "@/lib/blob-delete";
+import { drainPendingBlobDeletionsBestEffort } from "@/lib/blob-delete";
 import { buildBlobKey } from "@/lib/blob-path";
 import { getUserById, queueBlobDeletion } from "@/lib/db/queries";
 
@@ -23,6 +23,8 @@ export async function POST(request: Request) {
   const currentUser = session?.user
     ? await getUserById({ id: session.user.id })
     : null;
+  const initialChatDeletionGeneration =
+    currentUser?.chatDeletionGeneration ?? null;
 
   if (
     !session?.user ||
@@ -73,7 +75,8 @@ export async function POST(request: Request) {
       if (
         userAfterUpload &&
         !userAfterUpload.deletingAt &&
-        !userAfterUpload.chatsDeletingAt
+        !userAfterUpload.chatsDeletingAt &&
+        userAfterUpload.chatDeletionGeneration === initialChatDeletionGeneration
       ) {
         return NextResponse.json(data);
       }
@@ -82,7 +85,7 @@ export async function POST(request: Request) {
         urls: [data.url],
         userId: session.user.id,
       });
-      await drainPendingBlobDeletions(session.user.id);
+      await drainPendingBlobDeletionsBestEffort(session.user.id);
 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     } catch {

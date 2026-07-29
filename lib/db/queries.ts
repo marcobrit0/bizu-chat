@@ -69,6 +69,7 @@ export async function getUserById({ id }: { id: string }) {
   try {
     const [selectedUser] = await db
       .select({
+        chatDeletionGeneration: user.chatDeletionGeneration,
         chatsDeletingAt: user.chatsDeletingAt,
         deletingAt: user.deletingAt,
         id: user.id,
@@ -457,18 +458,35 @@ export async function saveDocument({
   userId: string;
 }) {
   try {
-    return await db
-      .insert(document)
-      .values({
-        content,
-        createdAt: new Date(),
-        id,
-        kind,
-        title,
-        userId,
-      })
-      .returning();
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [writableUser] = await transaction
+        .select({ id: user.id })
+        .from(user)
+        .where(and(eq(user.id, userId), isNull(user.deletingAt)));
+
+      if (writableUser) {
+        return await transaction
+          .insert(document)
+          .values({
+            content,
+            createdAt: new Date(),
+            id,
+            kind,
+            title,
+            userId,
+          })
+          .returning();
+      }
+
+      throw new ChatbotError("forbidden:document");
+    });
   } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
     throw new ChatbotError("bad_request:database", {
       cause: error,
     });
@@ -478,28 +496,47 @@ export async function saveDocument({
 export async function updateDocumentContent({
   id,
   content,
+  userId,
 }: {
   id: string;
   content: string;
+  userId: string;
 }) {
   try {
-    const docs = await db
-      .select()
-      .from(document)
-      .where(eq(document.id, id))
-      .orderBy(desc(document.createdAt))
-      .limit(1);
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}::text, 0))`
+      );
+      const [latest] = await transaction
+        .select({ createdAt: document.createdAt })
+        .from(document)
+        .innerJoin(user, eq(document.userId, user.id))
+        .where(
+          and(
+            eq(document.id, id),
+            eq(document.userId, userId),
+            isNull(user.deletingAt)
+          )
+        )
+        .orderBy(desc(document.createdAt))
+        .limit(1);
 
-    const [latest] = docs;
-    if (!latest) {
-      throw new ChatbotError("not_found:database", "Document not found");
-    }
+      if (latest) {
+        return await transaction
+          .update(document)
+          .set({ content })
+          .where(
+            and(
+              eq(document.id, id),
+              eq(document.createdAt, latest.createdAt),
+              eq(document.userId, userId)
+            )
+          )
+          .returning();
+      }
 
-    return await db
-      .update(document)
-      .set({ content })
-      .where(and(eq(document.id, id), eq(document.createdAt, latest.createdAt)))
-      .returning();
+      throw new ChatbotError("forbidden:document");
+    });
   } catch (error) {
     if (error instanceof ChatbotError) {
       throw error;
@@ -653,7 +690,10 @@ export async function markAllChatsForDeletion({ userId }: { userId: string }) {
       );
       await transaction
         .update(user)
-        .set({ chatsDeletingAt: new Date() })
+        .set({
+          chatDeletionGeneration: sql`${user.chatDeletionGeneration} + 1`,
+          chatsDeletingAt: new Date(),
+        })
         .where(
           and(
             eq(user.id, userId),
@@ -731,13 +771,18 @@ export async function deleteUserById({
 
 export async function markUserForDeletion({ id }: { id: string }) {
   try {
-    const [markedUser] = await db
-      .update(user)
-      .set({ deletingAt: new Date() })
-      .where(and(eq(user.id, id), isNull(user.deletingAt)))
-      .returning({ id: user.id });
+    return await db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${id}::text, 0))`
+      );
+      const [markedUser] = await transaction
+        .update(user)
+        .set({ deletingAt: new Date() })
+        .where(and(eq(user.id, id), isNull(user.deletingAt)))
+        .returning({ id: user.id });
 
-    return markedUser;
+      return markedUser;
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

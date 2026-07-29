@@ -20,6 +20,7 @@ vi.mock("@/lib/db/queries", () => ({
 import {
   drainAllPendingBlobDeletions,
   drainPendingBlobDeletions,
+  drainPendingBlobDeletionsBestEffort,
   getOwnedUserBlobUrls,
 } from "./blob-delete";
 
@@ -81,6 +82,23 @@ describe("blob deletion outbox", () => {
 
     await expect(drainPendingBlobDeletions("user-1")).rejects.toThrow(
       "blob unavailable"
+    );
+    expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
+  });
+
+  test("does not fail committed erasure when immediate blob deletion fails", async () => {
+    mocks.getPendingBlobDeletions.mockResolvedValue([
+      {
+        createdAt: new Date(),
+        id: "deletion-1",
+        urls: ["https://blob.test/uploads/user-1/a.png"],
+        userId: "user-1",
+      },
+    ]);
+    mocks.del.mockRejectedValue(new Error("blob unavailable"));
+
+    await expect(drainPendingBlobDeletionsBestEffort("user-1")).resolves.toBe(
+      0
     );
     expect(mocks.deletePendingBlobDeletion).not.toHaveBeenCalled();
   });

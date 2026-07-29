@@ -4,6 +4,7 @@ import {
   check,
   foreignKey,
   index,
+  integer,
   json,
   pgTable,
   primaryKey,
@@ -15,6 +16,9 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("User", {
+  chatDeletionGeneration: integer("chatDeletionGeneration")
+    .notNull()
+    .default(0),
   chatsDeletingAt: timestamp("chatsDeletingAt", { withTimezone: true }),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .notNull()

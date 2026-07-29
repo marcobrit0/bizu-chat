@@ -92,7 +92,11 @@ export async function POST(request: Request) {
   }
 
   if (isManualEdit && documents.length > 0) {
-    const result = await updateDocumentContent({ content, id });
+    const result = await updateDocumentContent({
+      content,
+      id,
+      userId: session.user.id,
+    });
     return Response.json(result, { status: 200 });
   }
 

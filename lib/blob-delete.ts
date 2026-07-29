@@ -60,6 +60,14 @@ export const drainPendingBlobDeletions = async (userId: string) => {
   return await drainBlobDeletions(pendingDeletions);
 };
 
+export const drainPendingBlobDeletionsBestEffort = async (userId: string) => {
+  try {
+    return await drainPendingBlobDeletions(userId);
+  } catch {
+    return 0;
+  }
+};
+
 export const drainAllPendingBlobDeletions = async () => {
   const pendingDeletions = await getPendingBlobDeletions();
 

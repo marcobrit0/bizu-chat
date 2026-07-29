@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/app/(auth)/auth";
 import {
-  drainPendingBlobDeletions,
+  drainPendingBlobDeletionsBestEffort,
   getAllUserBlobUrls,
 } from "@/lib/blob-delete";
 import {
@@ -51,14 +51,13 @@ export async function DELETE() {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
-  await drainPendingBlobDeletions(session.user.id);
   await markAllChatsForDeletion({ userId: session.user.id });
   const blobUrls = await getAllUserBlobUrls(session.user.id);
   const result = await deleteAllChatsByUserId({
     blobUrls,
     userId: session.user.id,
   });
-  await drainPendingBlobDeletions(session.user.id);
+  await drainPendingBlobDeletionsBestEffort(session.user.id);
 
   return Response.json(result, { status: 200 });
 }
