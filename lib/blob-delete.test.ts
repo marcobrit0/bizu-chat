@@ -262,13 +262,20 @@ describe("blob deletion outbox", () => {
   });
 
   test("an independent worker drains every ready outbox page", async () => {
+    let activeDeletes = 0;
+    let maximumActiveDeletes = 0;
     const deletion = (index: number) => ({
       createdAt: new Date(),
       id: `deletion-${index}`,
       urls: [`https://blob.test/uploads/user-${index}/image.png`],
       userId: `user-${index}`,
     });
-    mocks.del.mockResolvedValue(undefined);
+    mocks.del.mockImplementation(async () => {
+      activeDeletes += 1;
+      maximumActiveDeletes = Math.max(maximumActiveDeletes, activeDeletes);
+      await Promise.resolve();
+      activeDeletes -= 1;
+    });
     mocks.getPendingBlobDeletions
       .mockResolvedValueOnce(
         Array.from({ length: 100 }, (_, index) => deletion(index))
@@ -280,6 +287,43 @@ describe("blob deletion outbox", () => {
 
     expect(mocks.getPendingBlobDeletions).toHaveBeenCalledTimes(3);
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledTimes(101);
+    expect(maximumActiveDeletes).toBe(5);
+  });
+
+  test("an independent worker caps each invocation", async () => {
+    const readyBatch = Array.from({ length: 100 }, (_, index) => ({
+      createdAt: new Date(),
+      id: `deletion-${index}`,
+      urls: [`https://blob.test/uploads/user-${index}/image.png`],
+      userId: `user-${index}`,
+    }));
+    mocks.getPendingBlobDeletions.mockResolvedValue(readyBatch);
+    mocks.claimPendingBlobDeletion.mockResolvedValue(null);
+
+    await expect(drainAllPendingBlobDeletions()).resolves.toBe(1000);
+
+    expect(mocks.getPendingBlobDeletions).toHaveBeenCalledTimes(10);
+  });
+
+  test("rejects a forged cross-tenant deletion row", async () => {
+    const victimUrl = "https://blob.test/uploads/user-2/private.png";
+    mocks.getPendingBlobDeletions.mockResolvedValue([
+      {
+        createdAt: new Date(),
+        id: "deletion-1",
+        urls: [victimUrl],
+        userId: "user-1",
+      },
+    ]);
+
+    await drainPendingBlobDeletions("user-1");
+
+    expect(mocks.claimPendingBlobDeletion).toHaveBeenCalledWith({
+      id: "deletion-1",
+      resolvedIdentifiers: [],
+      userId: "user-1",
+    });
+    expect(mocks.del).not.toHaveBeenCalled();
   });
 
   test("accepts only Blob URLs owned by the message author", async () => {
