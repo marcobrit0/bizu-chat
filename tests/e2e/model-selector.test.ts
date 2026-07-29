@@ -14,14 +14,14 @@ test.describe("Model Selector", () => {
     const modelButton = page.getByTestId("model-selector");
     await modelButton.click();
 
-    await expect(page.getByPlaceholder("Search models...")).toBeVisible();
+    await expect(page.getByRole("combobox")).toBeVisible();
   });
 
   test("can search for models", async ({ page }) => {
     const modelButton = page.getByTestId("model-selector");
     await modelButton.click();
 
-    const searchInput = page.getByPlaceholder("Search models...");
+    const searchInput = page.getByRole("combobox");
     await searchInput.fill("DeepSeek");
 
     await expect(
@@ -33,18 +33,18 @@ test.describe("Model Selector", () => {
     const modelButton = page.getByTestId("model-selector");
     await modelButton.click();
 
-    await expect(page.getByPlaceholder("Search models...")).toBeVisible();
+    await expect(page.getByRole("combobox")).toBeVisible();
 
     await page.keyboard.press("Escape");
 
-    await expect(page.getByPlaceholder("Search models...")).not.toBeVisible();
+    await expect(page.getByRole("combobox")).not.toBeVisible();
   });
 
   test("shows available models", async ({ page }) => {
     const modelButton = page.getByTestId("model-selector");
     await modelButton.click();
 
-    const availableModels = page.getByRole("group", { name: "Available" });
+    const availableModels = page.getByRole("group", { name: "Disponível" });
     await expect(availableModels).toBeVisible();
     await expect(
       availableModels.getByRole("option", { name: /DeepSeek V3\.2/ })
@@ -60,7 +60,7 @@ test.describe("Model Selector", () => {
 
     await page.getByRole("option", { name: /DeepSeek V3\.2/ }).click();
 
-    await expect(page.getByPlaceholder("Search models...")).not.toBeVisible();
+    await expect(page.getByRole("combobox")).not.toBeVisible();
     await expect(modelButton).toContainText("DeepSeek V3.2");
   });
 });
