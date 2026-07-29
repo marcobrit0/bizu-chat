@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   claimPendingBlobDeletion: vi.fn(),
   completePendingBlobDeletion: vi.fn(),
+  deferPendingBlobDeletion: vi.fn(),
   deferPendingChatErasure: vi.fn(),
   deferPendingDataErasure: vi.fn(),
   del: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock("@vercel/blob", () => ({
 vi.mock("@/lib/db/queries", () => ({
   claimPendingBlobDeletion: mocks.claimPendingBlobDeletion,
   completePendingBlobDeletion: mocks.completePendingBlobDeletion,
+  deferPendingBlobDeletion: mocks.deferPendingBlobDeletion,
   deferPendingChatErasure: mocks.deferPendingChatErasure,
   deferPendingDataErasure: mocks.deferPendingDataErasure,
   deleteAllChatsByUserId: mocks.deleteAllChatsByUserId,
@@ -335,11 +337,14 @@ describe("blob deletion outbox", () => {
     ]);
     mocks.del.mockRejectedValue(new Error("blob unavailable"));
 
-    await expect(drainPendingBlobDeletions("user-1")).rejects.toThrow(
-      "blob unavailable"
-    );
+    await expect(drainPendingBlobDeletions("user-1")).resolves.toBe(1);
     expect(mocks.claimPendingBlobDeletion).toHaveBeenCalledOnce();
     expect(mocks.completePendingBlobDeletion).not.toHaveBeenCalled();
+    expect(mocks.deferPendingBlobDeletion).toHaveBeenCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
+      id: "deletion-1",
+      userId: "user-1",
+    });
   });
 
   test("does not fail committed erasure when immediate blob deletion fails", async () => {
@@ -354,7 +359,7 @@ describe("blob deletion outbox", () => {
     mocks.del.mockRejectedValue(new Error("blob unavailable"));
 
     await expect(drainPendingBlobDeletionsBestEffort("user-1")).resolves.toBe(
-      0
+      1
     );
     expect(mocks.claimPendingBlobDeletion).toHaveBeenCalledOnce();
     expect(mocks.completePendingBlobDeletion).not.toHaveBeenCalled();
@@ -375,9 +380,7 @@ describe("blob deletion outbox", () => {
       .mockRejectedValueOnce(new Error("blob unavailable"))
       .mockResolvedValueOnce(undefined);
 
-    await expect(drainPendingBlobDeletions("user-1")).rejects.toThrow(
-      "blob unavailable"
-    );
+    await expect(drainPendingBlobDeletions("user-1")).resolves.toBe(1);
     await expect(drainAllPendingBlobDeletions()).resolves.toBe(1);
 
     expect(mocks.getPendingBlobDeletions).toHaveBeenNthCalledWith(1, {
@@ -386,6 +389,44 @@ describe("blob deletion outbox", () => {
     expect(mocks.getPendingBlobDeletions).toHaveBeenNthCalledWith(2);
     expect(mocks.claimPendingBlobDeletion).toHaveBeenCalledTimes(2);
     expect(mocks.completePendingBlobDeletion).toHaveBeenCalledOnce();
+  });
+
+  test("one provider failure does not prevent later outbox rows", async () => {
+    const failedUrl = "https://blob.test/uploads/user-1/failed.png";
+    const successfulUrl = "https://blob.test/uploads/user-2/successful.png";
+    mocks.getPendingBlobDeletions
+      .mockResolvedValueOnce([
+        {
+          createdAt: new Date(),
+          id: "deletion-1",
+          urls: [failedUrl],
+          userId: "user-1",
+        },
+        {
+          createdAt: new Date(),
+          id: "deletion-2",
+          urls: [successfulUrl],
+          userId: "user-2",
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    mocks.del.mockImplementation(([url]: string[]) => {
+      if (url === failedUrl) {
+        throw new Error("blob unavailable");
+      }
+    });
+
+    await expect(drainAllPendingBlobDeletions()).resolves.toBe(2);
+
+    expect(mocks.completePendingBlobDeletion).toHaveBeenCalledOnce();
+    expect(mocks.completePendingBlobDeletion).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "deletion-2", userId: "user-2" })
+    );
+    expect(mocks.deferPendingBlobDeletion).toHaveBeenCalledWith({
+      claimToken: "00000000-0000-0000-0000-000000000001",
+      id: "deletion-1",
+      userId: "user-1",
+    });
   });
 
   test("an independent worker drains every ready outbox page", async () => {

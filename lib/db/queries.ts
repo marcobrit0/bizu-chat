@@ -1170,6 +1170,36 @@ export async function getPendingBlobDeletions({
   }
 }
 
+export async function deferPendingBlobDeletion({
+  claimToken,
+  id,
+  userId,
+}: {
+  claimToken: string | null;
+  id: string;
+  userId: string;
+}) {
+  try {
+    return await db
+      .update(blobDeletion)
+      .set({ readyAt: new Date(Date.now() + DATA_ERASURE_RETRY_MS) })
+      .where(
+        and(
+          eq(blobDeletion.id, id),
+          eq(blobDeletion.userId, userId),
+          claimToken
+            ? eq(blobDeletion.claimToken, claimToken)
+            : and(
+                isNull(blobDeletion.claimToken),
+                lte(blobDeletion.readyAt, new Date())
+              )
+        )
+      );
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
 const BLOB_DELETION_LEASE_MS = 5 * 60 * 1000;
 const UNRESOLVED_BLOB_RETRY_MS = 15 * 60 * 1000;
 

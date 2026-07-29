@@ -4,6 +4,7 @@ import { del, list } from "@vercel/blob";
 import {
   claimPendingBlobDeletion,
   completePendingBlobDeletion,
+  deferPendingBlobDeletion,
   deferPendingChatErasure,
   deferPendingDataErasure,
   deleteAllChatsByUserId,
@@ -208,42 +209,52 @@ export const areOwnedUserBlobUrlsAvailable = async (
 const drainBlobDeletions = async (
   pendingDeletions: Awaited<ReturnType<typeof getPendingBlobDeletions>>
 ) => {
-  await processInBatches(
-    pendingDeletions,
-    BLOB_ROW_CONCURRENCY,
-    async (batch) => {
-      await Promise.all(
-        batch.map(async ({ cursor, id, urls, userId }) => {
-          const identifiersToResolve = urls.slice(
-            0,
-            MAX_BLOB_IDENTIFIERS_PER_CLAIM
-          );
-          const remainingIdentifiers = urls
-            .slice(MAX_BLOB_IDENTIFIERS_PER_CLAIM)
-            .filter((identifier) =>
-              isOwnedBlobIdentifier(userId, {
-                identifier,
-                url: identifier.startsWith("https://") ? identifier : null,
-              })
-            );
-          const resolution = await resolveBlobIdentifiers(
-            userId,
-            identifiersToResolve,
-            cursor ?? undefined
-          );
-          const resolvedIdentifiers = resolution.resolvedIdentifiers.filter(
-            (identifier) => isOwnedBlobIdentifier(userId, identifier)
-          );
-          const claim = await claimPendingBlobDeletion({
-            id,
-            ...(remainingIdentifiers.length > 0
-              ? { remainingIdentifiers }
-              : {}),
-            resolvedIdentifiers,
-            userId,
-          });
+  const processBlobDeletion = async ({
+    cursor,
+    id,
+    urls,
+    userId,
+  }: (typeof pendingDeletions)[number]) => {
+    const deferBestEffort = async (claimToken: string | null) => {
+      try {
+        await deferPendingBlobDeletion({ claimToken, id, userId });
+      } catch {
+        // The durable row remains available for a later cron invocation.
+      }
+    };
 
-          if (claim?.claimToken) {
+    try {
+      const identifiersToResolve = urls.slice(
+        0,
+        MAX_BLOB_IDENTIFIERS_PER_CLAIM
+      );
+      const remainingIdentifiers = urls
+        .slice(MAX_BLOB_IDENTIFIERS_PER_CLAIM)
+        .filter((identifier) =>
+          isOwnedBlobIdentifier(userId, {
+            identifier,
+            url: identifier.startsWith("https://") ? identifier : null,
+          })
+        );
+      const resolution = await resolveBlobIdentifiers(
+        userId,
+        identifiersToResolve,
+        cursor ?? undefined
+      );
+      const resolvedIdentifiers = resolution.resolvedIdentifiers.filter(
+        (identifier) => isOwnedBlobIdentifier(userId, identifier)
+      );
+
+      try {
+        const claim = await claimPendingBlobDeletion({
+          id,
+          ...(remainingIdentifiers.length > 0 ? { remainingIdentifiers } : {}),
+          resolvedIdentifiers,
+          userId,
+        });
+
+        if (claim?.claimToken) {
+          try {
             await processInBatches(
               claim.deletableUrls,
               BLOB_DELETE_BATCH_SIZE,
@@ -267,9 +278,23 @@ const drainBlobDeletions = async (
               unresolvedIdentifiers: claim.unresolvedIdentifiers,
               userId,
             });
+          } catch {
+            await deferBestEffort(claim.claimToken);
           }
-        })
-      );
+        }
+      } catch {
+        await deferBestEffort(null);
+      }
+    } catch {
+      await deferBestEffort(null);
+    }
+  };
+
+  await processInBatches(
+    pendingDeletions,
+    BLOB_ROW_CONCURRENCY,
+    async (batch) => {
+      await Promise.all(batch.map(processBlobDeletion));
     }
   );
 
