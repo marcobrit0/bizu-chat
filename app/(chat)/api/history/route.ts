@@ -1,9 +1,6 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import {
-  drainPendingBlobDeletionsBestEffort,
-  getUserBlobDeletionPrefix,
-} from "@/lib/blob-delete";
+import { drainPendingBlobDeletionsBestEffort } from "@/lib/blob-delete";
 import {
   deleteAllChatsByUserId,
   getChatsByUserId,
@@ -56,9 +53,7 @@ export async function DELETE() {
   });
 
   if (chatDeletionGeneration !== null) {
-    const blobUrls = [getUserBlobDeletionPrefix(session.user.id)];
     const result = await deleteAllChatsByUserId({
-      blobUrls,
       chatDeletionGeneration,
       userId: session.user.id,
     });

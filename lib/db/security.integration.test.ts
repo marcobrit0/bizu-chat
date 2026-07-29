@@ -290,6 +290,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     const userId = randomUUID();
     const oldChatId = randomUUID();
     const newChatId = randomUUID();
+    const oldBlobUrl = `https://blob.test/uploads/${userId}/old.png`;
     const now = new Date();
 
     await sql`
@@ -300,10 +301,21 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       INSERT INTO "Chat" ("id", "createdAt", "title", "userId")
       VALUES (${oldChatId}, ${now}, 'Old chat', ${userId})
     `;
+    await sql`
+      INSERT INTO "Message_v2"
+        ("id", "chatId", "createdAt", "role", "parts", "attachments")
+      VALUES (
+        ${randomUUID()},
+        ${oldChatId},
+        ${now},
+        'user',
+        ${sql.json([{ type: "file", url: oldBlobUrl }])},
+        '[]'
+      )
+    `;
 
     const chatDeletionGeneration = await markAllChatsForDeletion({ userId });
     await deleteAllChatsByUserId({
-      blobUrls: [],
       chatDeletionGeneration: chatDeletionGeneration ?? 0,
       userId,
     });
@@ -314,7 +326,6 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       visibility: "private",
     });
     await deleteAllChatsByUserId({
-      blobUrls: [],
       chatDeletionGeneration: chatDeletionGeneration ?? 0,
       userId,
     });
@@ -324,7 +335,13 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       FROM "Chat"
       WHERE "userId" = ${userId}
     `;
+    const deletionRows = await sql`
+      SELECT "urls"
+      FROM "BlobDeletion"
+      WHERE "userId" = ${userId}
+    `;
     expect(remainingChats).toEqual([{ id: newChatId }]);
+    expect(deletionRows).toEqual([{ urls: [oldBlobUrl] }]);
 
     await sql`DELETE FROM "User" WHERE "id" = ${userId}`;
   });
@@ -496,7 +513,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     await sql`DELETE FROM "User" WHERE "id" IN (${ownerId}, ${otherUserId})`;
   });
 
-  test("an expired deletion lease still blocks blob reattachment", async () => {
+  test("an expired prefix deletion lease blocks child URL reattachment", async () => {
     process.env.POSTGRES_URL = integrationDatabaseUrl;
     const {
       claimPendingBlobDeletion,
@@ -505,6 +522,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     } = await import("./queries");
     const userId = randomUUID();
     const chatId = randomUUID();
+    const blobPrefix = `uploads/${userId}/`;
     const blobUrl = `https://blob.test/uploads/${userId}/claimed.png`;
     const deletionId = randomUUID();
     const now = new Date();
@@ -519,13 +537,13 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     `;
     await sql`
       INSERT INTO "BlobDeletion" ("id", "readyAt", "urls", "userId")
-      VALUES (${deletionId}, ${now}, ${sql.json([blobUrl])}, ${userId})
+      VALUES (${deletionId}, ${now}, ${sql.json([blobPrefix])}, ${userId})
     `;
 
     const firstClaim = await claimPendingBlobDeletion({
       id: deletionId,
       resolvedIdentifiers: [
-        { continuation: false, identifier: blobUrl, url: blobUrl },
+        { continuation: false, identifier: blobPrefix, url: blobUrl },
       ],
       userId,
     });
@@ -543,7 +561,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     const secondClaim = await claimPendingBlobDeletion({
       id: deletionId,
       resolvedIdentifiers: [
-        { continuation: false, identifier: blobUrl, url: blobUrl },
+        { continuation: false, identifier: blobPrefix, url: blobUrl },
       ],
       userId,
     });

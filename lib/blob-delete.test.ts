@@ -538,7 +538,6 @@ describe("blob deletion outbox", () => {
       id: accountId,
     });
     expect(mocks.deleteAllChatsByUserId).toHaveBeenCalledWith({
-      blobUrls: [`uploads/${historyId}/`],
       chatDeletionGeneration: 2,
       userId: historyId,
     });

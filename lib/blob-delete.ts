@@ -360,7 +360,6 @@ const resumeDataErasures = async (
 
             if (chatsDeletingAt) {
               await deleteAllChatsByUserId({
-                blobUrls,
                 chatDeletionGeneration,
                 userId: id,
               });

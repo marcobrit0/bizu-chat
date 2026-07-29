@@ -50,6 +50,21 @@ const client = postgres(process.env.POSTGRES_URL ?? "", {
 const db = drizzle(client);
 const DATA_ERASURE_RETRY_MS = 15 * 60 * 1000;
 const MAX_UNRESOLVED_BLOB_ATTEMPTS = 3;
+const userBlobPrefix = (userId: string) => `uploads/${userId}/`;
+
+const isPendingBlobUrl = ({
+  identifier,
+  url,
+  userId,
+}: {
+  identifier: string;
+  url: string;
+  userId: string;
+}) =>
+  identifier === url ||
+  (identifier === userBlobPrefix(userId) &&
+    URL.canParse(url) &&
+    new URL(url).pathname.startsWith(`/${identifier}`));
 
 export async function getUser(email: string): Promise<User[]> {
   try {
@@ -305,11 +320,9 @@ export async function deleteChatById({
 }
 
 export async function deleteAllChatsByUserId({
-  blobUrls,
   chatDeletionGeneration,
   userId,
 }: {
-  blobUrls: string[];
   chatDeletionGeneration: number;
   userId: string;
 }) {
@@ -331,6 +344,21 @@ export async function deleteAllChatsByUserId({
         );
 
       if (activeDeletion) {
+        const messageRows = await transaction
+          .select({
+            attachments: message.attachments,
+            parts: message.parts,
+          })
+          .from(message)
+          .innerJoin(chat, eq(message.chatId, chat.id))
+          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)));
+        const blobUrls = [
+          ...new Set(
+            messageRows.flatMap(({ attachments, parts }) =>
+              extractMessageAttachmentUrls(attachments, parts)
+            )
+          ),
+        ];
         const deletedChats = await transaction
           .delete(chat)
           .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
@@ -555,9 +583,11 @@ export async function saveMessages({
             isNotNull(blobDeletion.claimedAt)
           )
         );
-      const pendingUrls = new Set(pendingRows.flatMap(({ urls }) => urls));
+      const pendingIdentifiers = pendingRows.flatMap(({ urls }) => urls);
       const referencesPendingBlob = attachmentUrls.some((url) =>
-        pendingUrls.has(url)
+        pendingIdentifiers.some((identifier) =>
+          isPendingBlobUrl({ identifier, url, userId })
+        )
       );
 
       if (writableChat && blobsAvailable && !referencesPendingBlob) {
@@ -621,9 +651,11 @@ export async function updateMessage({
             isNotNull(blobDeletion.claimedAt)
           )
         );
-      const pendingUrls = new Set(pendingRows.flatMap(({ urls }) => urls));
+      const pendingIdentifiers = pendingRows.flatMap(({ urls }) => urls);
       const referencesPendingBlob = attachmentUrls.some((url) =>
-        pendingUrls.has(url)
+        pendingIdentifiers.some((identifier) =>
+          isPendingBlobUrl({ identifier, url, userId })
+        )
       );
 
       if (writableMessage && blobsAvailable && !referencesPendingBlob) {
