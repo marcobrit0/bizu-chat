@@ -529,6 +529,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     const {
       deleteDocumentsByIdAfterTimestamp,
       getDocumentsById,
+      getSuggestionsByDocumentId,
       saveDocument,
     } = await import("./queries");
     const ownerId = randomUUID();
@@ -541,13 +542,34 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
         (${ownerId}, ${`document-owner-${ownerId}@example.test`}),
         (${otherUserId}, ${`document-other-${otherUserId}@example.test`})
     `;
-    await saveDocument({
+    const [ownerDocument] = await saveDocument({
       content: "owner content",
       id: documentId,
       kind: "text",
       title: "Owner document",
       userId: ownerId,
     });
+    await sql`
+      INSERT INTO "Suggestion"
+        (
+          "id",
+          "createdAt",
+          "documentCreatedAt",
+          "documentId",
+          "originalText",
+          "suggestedText",
+          "userId"
+        )
+      VALUES (
+        ${randomUUID()},
+        now(),
+        ${ownerDocument.createdAt},
+        ${documentId},
+        'private original',
+        'private suggestion',
+        ${ownerId}
+      )
+    `;
 
     await expect(
       saveDocument({
@@ -561,6 +583,12 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
     await expect(
       getDocumentsById({ id: documentId, userId: otherUserId })
     ).resolves.toEqual([]);
+    await expect(
+      getSuggestionsByDocumentId({ documentId, userId: otherUserId })
+    ).resolves.toEqual([]);
+    await expect(
+      getSuggestionsByDocumentId({ documentId, userId: ownerId })
+    ).resolves.toHaveLength(1);
     await expect(
       deleteDocumentsByIdAfterTimestamp({
         id: documentId,
@@ -774,6 +802,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       VALUES (${userId}, ${`missing-${userId}@example.test`})
     `;
     const [intent] = await queueBlobDeletion({
+      readyAt: new Date(Date.now() - 1000),
       urls: [pathname],
       userId,
     });
@@ -803,7 +832,7 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
         expect(pendingIntent?.attempts).toBe(expectedAttempt);
         await sql`
           UPDATE "BlobDeletion"
-          SET "readyAt" = now()
+          SET "readyAt" = now() - interval '1 second'
           WHERE "id" = ${intent.id}
         `;
         await exhaustIntent(expectedAttempt + 1);

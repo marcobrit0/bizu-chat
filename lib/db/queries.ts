@@ -939,14 +939,21 @@ export async function saveSuggestions({
 
 export async function getSuggestionsByDocumentId({
   documentId,
+  userId,
 }: {
   documentId: string;
+  userId: string;
 }) {
   try {
     return await db
       .select()
       .from(suggestion)
-      .where(eq(suggestion.documentId, documentId));
+      .where(
+        and(
+          eq(suggestion.documentId, documentId),
+          eq(suggestion.userId, userId)
+        )
+      );
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

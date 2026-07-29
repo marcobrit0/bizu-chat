@@ -21,16 +21,11 @@ export async function GET(request: Request) {
 
   const suggestions = await getSuggestionsByDocumentId({
     documentId,
+    userId: session.user.id,
   });
 
-  const [suggestion] = suggestions;
-
-  if (!suggestion) {
+  if (suggestions.length === 0) {
     return Response.json([], { status: 200 });
-  }
-
-  if (suggestion.userId !== session.user.id) {
-    return new ChatbotError("forbidden:api").toResponse();
   }
 
   return Response.json(suggestions, { status: 200 });
