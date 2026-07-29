@@ -354,20 +354,18 @@ export async function deleteAllChatsByUserId({
         );
 
       if (activeDeletion) {
-        const selectedChats = await transaction
-          .select({ id: chat.id })
-          .from(chat)
-          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
-          .orderBy(asc(chat.createdAt), asc(chat.id))
-          .limit(DATA_ERASURE_BATCH_SIZE);
-        const chatIds = selectedChats.map(({ id }) => id);
         const messageRows = await transaction
           .select({
             attachments: message.attachments,
+            id: message.id,
             parts: message.parts,
           })
           .from(message)
-          .where(inArray(message.chatId, chatIds));
+          .innerJoin(chat, eq(message.chatId, chat.id))
+          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
+          .orderBy(asc(message.createdAt), asc(message.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const messageIds = messageRows.map(({ id }) => id);
         const blobUrls = [
           ...new Set(
             messageRows.flatMap(({ attachments, parts }) =>
@@ -375,16 +373,51 @@ export async function deleteAllChatsByUserId({
             )
           ),
         ];
-        const deletedChats = await transaction
-          .delete(chat)
-          .where(inArray(chat.id, chatIds))
-          .returning();
 
-        if (deletedChats.length > 0 && blobUrls.length > 0) {
+        if (messageIds.length > 0) {
+          await transaction
+            .delete(message)
+            .where(inArray(message.id, messageIds));
+        }
+
+        if (blobUrls.length > 0) {
           await transaction
             .insert(blobDeletion)
             .values({ urls: blobUrls, userId });
         }
+
+        if (messageIds.length === DATA_ERASURE_BATCH_SIZE) {
+          return { complete: false, deletedCount: 0 };
+        }
+
+        const selectedStreams = await transaction
+          .select({ id: stream.id })
+          .from(stream)
+          .innerJoin(chat, eq(stream.chatId, chat.id))
+          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
+          .orderBy(asc(stream.createdAt), asc(stream.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const streamIds = selectedStreams.map(({ id }) => id);
+
+        if (streamIds.length > 0) {
+          await transaction.delete(stream).where(inArray(stream.id, streamIds));
+        }
+
+        if (streamIds.length === DATA_ERASURE_BATCH_SIZE) {
+          return { complete: false, deletedCount: 0 };
+        }
+
+        const selectedChats = await transaction
+          .select({ id: chat.id })
+          .from(chat)
+          .where(and(eq(chat.userId, userId), isNotNull(chat.deletingAt)))
+          .orderBy(asc(chat.createdAt), asc(chat.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const chatIds = selectedChats.map(({ id }) => id);
+        const deletedChats = await transaction
+          .delete(chat)
+          .where(inArray(chat.id, chatIds))
+          .returning();
 
         const [remainingChat] = await transaction
           .select({ id: chat.id })
@@ -1113,20 +1146,18 @@ export async function deleteUserById({
         .where(and(eq(user.id, id), isNotNull(user.deletingAt)));
 
       if (activeDeletion) {
-        const selectedChats = await transaction
-          .select({ id: chat.id })
-          .from(chat)
-          .where(eq(chat.userId, id))
-          .orderBy(asc(chat.createdAt), asc(chat.id))
-          .limit(DATA_ERASURE_BATCH_SIZE);
-        const chatIds = selectedChats.map(({ id: chatId }) => chatId);
         const messageRows = await transaction
           .select({
             attachments: message.attachments,
+            id: message.id,
             parts: message.parts,
           })
           .from(message)
-          .where(inArray(message.chatId, chatIds));
+          .innerJoin(chat, eq(message.chatId, chat.id))
+          .where(eq(chat.userId, id))
+          .orderBy(asc(message.createdAt), asc(message.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const messageIds = messageRows.map(({ id: messageId }) => messageId);
         const attachmentUrls = [
           ...new Set(
             messageRows.flatMap(({ attachments, parts }) =>
@@ -1135,14 +1166,49 @@ export async function deleteUserById({
           ),
         ];
 
-        if (chatIds.length > 0) {
-          await transaction.delete(chat).where(inArray(chat.id, chatIds));
+        if (messageIds.length > 0) {
+          await transaction
+            .delete(message)
+            .where(inArray(message.id, messageIds));
         }
 
         if (attachmentUrls.length > 0) {
           await transaction
             .insert(blobDeletion)
             .values({ urls: attachmentUrls, userId: id });
+        }
+
+        if (messageIds.length === DATA_ERASURE_BATCH_SIZE) {
+          return { complete: false };
+        }
+
+        const selectedStreams = await transaction
+          .select({ id: stream.id })
+          .from(stream)
+          .innerJoin(chat, eq(stream.chatId, chat.id))
+          .where(eq(chat.userId, id))
+          .orderBy(asc(stream.createdAt), asc(stream.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const streamIds = selectedStreams.map(({ id: streamId }) => streamId);
+
+        if (streamIds.length > 0) {
+          await transaction.delete(stream).where(inArray(stream.id, streamIds));
+        }
+
+        if (streamIds.length === DATA_ERASURE_BATCH_SIZE) {
+          return { complete: false };
+        }
+
+        const selectedChats = await transaction
+          .select({ id: chat.id })
+          .from(chat)
+          .where(eq(chat.userId, id))
+          .orderBy(asc(chat.createdAt), asc(chat.id))
+          .limit(DATA_ERASURE_BATCH_SIZE);
+        const chatIds = selectedChats.map(({ id: chatId }) => chatId);
+
+        if (chatIds.length > 0) {
+          await transaction.delete(chat).where(inArray(chat.id, chatIds));
         }
 
         const selectedDocumentOwners = await transaction

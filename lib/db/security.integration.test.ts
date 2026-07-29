@@ -695,14 +695,32 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       FROM "Chat"
       WHERE "userId" = ${userId}
     `;
+    const [remainingMessagesAfterFirstBatch] = await sql`
+      SELECT count(*)::integer AS "count"
+      FROM "Message_v2"
+      INNER JOIN "Chat" ON "Message_v2"."chatId" = "Chat"."id"
+      WHERE "Chat"."userId" = ${userId}
+    `;
     const [firstOutbox] = await sql`
-      SELECT json_array_length("urls") AS "urlCount"
+      SELECT max(json_array_length("urls")) AS "urlCount"
       FROM "BlobDeletion"
       WHERE "userId" = ${userId}
     `;
     expect(pendingUser?.deletingAt).toBeInstanceOf(Date);
-    expect(remainingAfterFirstBatch?.count).toBe(1);
+    expect(remainingAfterFirstBatch?.count).toBe(101);
+    expect(remainingMessagesAfterFirstBatch?.count).toBe(1);
     expect(firstOutbox?.urlCount).toBe(100);
+
+    await expect(
+      deleteUserById({ blobUrls: [blobPrefix], id: userId })
+    ).resolves.toEqual({ complete: false });
+
+    const [remainingAfterSecondBatch] = await sql`
+      SELECT count(*)::integer AS "count"
+      FROM "Chat"
+      WHERE "userId" = ${userId}
+    `;
+    expect(remainingAfterSecondBatch?.count).toBe(1);
 
     await expect(
       deleteUserById({ blobUrls: [blobPrefix], id: userId })
