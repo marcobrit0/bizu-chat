@@ -9,6 +9,7 @@ import {
   gt,
   gte,
   lt,
+  ne,
   or,
   type SQL,
 } from "drizzle-orm";
@@ -19,6 +20,7 @@ import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
 import {
+  blobDeletion,
   type Chat,
   chat,
   type DBMessage,
@@ -41,9 +43,34 @@ const client = postgres(process.env.POSTGRES_URL ?? "", {
 });
 const db = drizzle(client);
 
+const extractAttachmentUrls = (attachments: unknown) =>
+  Array.isArray(attachments)
+    ? attachments.flatMap((attachment) =>
+        typeof attachment === "object" &&
+        attachment !== null &&
+        "url" in attachment &&
+        typeof attachment.url === "string"
+          ? [attachment.url]
+          : []
+      )
+    : [];
+
 export async function getUser(email: string): Promise<User[]> {
   try {
     return await db.select().from(user).where(eq(user.email, email));
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function getUserById({ id }: { id: string }) {
+  try {
+    const [selectedUser] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, id));
+
+    return selectedUser;
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
@@ -104,26 +131,57 @@ export async function saveChat({
   }
 }
 
-export async function deleteChatById({ id }: { id: string }) {
+export async function deleteChatById({
+  blobUrls,
+  id,
+  userId,
+}: {
+  blobUrls: string[];
+  id: string;
+  userId: string;
+}) {
   try {
-    const [chatsDeleted] = await db
-      .delete(chat)
-      .where(eq(chat.id, id))
-      .returning();
-    return chatsDeleted;
+    return await db.transaction(async (transaction) => {
+      const [deletedChat] = await transaction
+        .delete(chat)
+        .where(and(eq(chat.id, id), eq(chat.userId, userId)))
+        .returning();
+
+      if (deletedChat && blobUrls.length > 0) {
+        await transaction
+          .insert(blobDeletion)
+          .values({ urls: blobUrls, userId });
+      }
+
+      return deletedChat;
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
 }
 
-export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
+export async function deleteAllChatsByUserId({
+  blobUrls,
+  userId,
+}: {
+  blobUrls: string[];
+  userId: string;
+}) {
   try {
-    const deletedChats = await db
-      .delete(chat)
-      .where(eq(chat.userId, userId))
-      .returning();
+    return await db.transaction(async (transaction) => {
+      const deletedChats = await transaction
+        .delete(chat)
+        .where(eq(chat.userId, userId))
+        .returning();
 
-    return { deletedCount: deletedChats.length };
+      if (deletedChats.length > 0 && blobUrls.length > 0) {
+        await transaction
+          .insert(blobDeletion)
+          .values({ urls: blobUrls, userId });
+      }
+
+      return { deletedCount: deletedChats.length };
+    });
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }
@@ -475,16 +533,29 @@ export async function getAttachmentUrlsByChatId({
       .where(eq(message.chatId, chatId));
 
     return rows.flatMap(({ attachments }) =>
-      Array.isArray(attachments)
-        ? attachments.flatMap((attachment) =>
-            typeof attachment === "object" &&
-            attachment !== null &&
-            "url" in attachment &&
-            typeof attachment.url === "string"
-              ? [attachment.url]
-              : []
-          )
-        : []
+      extractAttachmentUrls(attachments)
+    );
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function getAttachmentUrlsByOtherChats({
+  chatId,
+  userId,
+}: {
+  chatId: string;
+  userId: string;
+}) {
+  try {
+    const rows = await db
+      .select({ attachments: message.attachments })
+      .from(message)
+      .innerJoin(chat, eq(message.chatId, chat.id))
+      .where(and(eq(chat.userId, userId), ne(chat.id, chatId)));
+
+    return rows.flatMap(({ attachments }) =>
+      extractAttachmentUrls(attachments)
     );
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
@@ -509,14 +580,48 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   }
 }
 
-export async function deleteUserById({ id }: { id: string }) {
+export async function deleteUserById({
+  blobUrls,
+  id,
+}: {
+  blobUrls: string[];
+  id: string;
+}) {
   try {
-    const [deletedUser] = await db
-      .delete(user)
-      .where(eq(user.id, id))
-      .returning({ id: user.id });
+    return await db.transaction(async (transaction) => {
+      const [deletedUser] = await transaction
+        .delete(user)
+        .where(eq(user.id, id))
+        .returning({ id: user.id });
 
-    return deletedUser;
+      if (deletedUser && blobUrls.length > 0) {
+        await transaction
+          .insert(blobDeletion)
+          .values({ urls: blobUrls, userId: id });
+      }
+
+      return deletedUser;
+    });
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function getPendingBlobDeletions({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(blobDeletion)
+      .where(eq(blobDeletion.userId, userId))
+      .orderBy(asc(blobDeletion.createdAt));
+  } catch (error) {
+    throw new ChatbotError("bad_request:database", { cause: error });
+  }
+}
+
+export async function deletePendingBlobDeletion({ id }: { id: string }) {
+  try {
+    return await db.delete(blobDeletion).where(eq(blobDeletion.id, id));
   } catch (error) {
     throw new ChatbotError("bad_request:database", { cause: error });
   }

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
 import { buildBlobKey } from "@/lib/blob-path";
+import { getUserById } from "@/lib/db/queries";
 
 const FileSchema = z.object({
   file: z
@@ -18,8 +19,11 @@ const FileSchema = z.object({
 
 export async function POST(request: Request) {
   const session = await auth();
+  const currentUser = session?.user
+    ? await getUserById({ id: session.user.id })
+    : null;
 
-  if (!session) {
+  if (!session?.user || !currentUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

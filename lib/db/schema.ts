@@ -32,6 +32,26 @@ export const user = pgTable("User", {
 
 export type User = InferSelectModel<typeof user>;
 
+export const blobDeletion = pgTable(
+  "BlobDeletion",
+  {
+    createdAt: timestamp("createdAt", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    urls: json("urls").$type<string[]>().notNull(),
+    userId: uuid("userId").notNull(),
+  },
+  (table) => ({
+    userCreatedAtIdx: index("BlobDeletion_userId_createdAt_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+  })
+);
+
+export type BlobDeletion = InferSelectModel<typeof blobDeletion>;
+
 export const chat = pgTable(
   "Chat",
   {

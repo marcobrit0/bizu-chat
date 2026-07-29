@@ -27,12 +27,16 @@ import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
-import { deleteUserBlobUrls } from "@/lib/blob-delete";
+import {
+  drainPendingBlobDeletions,
+  getOwnedUserBlobUrls,
+} from "@/lib/blob-delete";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
   createStreamId,
   deleteChatById,
   getAttachmentUrlsByChatId,
+  getAttachmentUrlsByOtherChats,
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
@@ -460,15 +464,34 @@ export async function DELETE(request: Request) {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
+  await drainPendingBlobDeletions(session.user.id);
   const chat = await getChatById({ id });
 
   if (chat?.userId !== session.user.id) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
-  const attachmentUrls = await getAttachmentUrlsByChatId({ chatId: id });
-  await deleteUserBlobUrls(session.user.id, attachmentUrls);
-  const deletedChat = await deleteChatById({ id });
+  const [attachmentUrls, otherAttachmentUrls] = await Promise.all([
+    getAttachmentUrlsByChatId({ chatId: id }),
+    getAttachmentUrlsByOtherChats({
+      chatId: id,
+      userId: session.user.id,
+    }),
+  ]);
+  const referencedElsewhere = new Set(otherAttachmentUrls);
+  const unsharedAttachmentUrls = attachmentUrls.filter(
+    (url) => !referencedElsewhere.has(url)
+  );
+  const blobUrls = await getOwnedUserBlobUrls(
+    session.user.id,
+    unsharedAttachmentUrls
+  );
+  const deletedChat = await deleteChatById({
+    blobUrls,
+    id,
+    userId: session.user.id,
+  });
+  await drainPendingBlobDeletions(session.user.id);
 
   return Response.json(deletedChat, { status: 200 });
 }

@@ -1,6 +1,10 @@
 import "server-only";
 
 import { del, list } from "@vercel/blob";
+import {
+  deletePendingBlobDeletion,
+  getPendingBlobDeletions,
+} from "@/lib/db/queries";
 
 const userBlobPrefix = (userId: string) => `uploads/${userId}/`;
 
@@ -22,23 +26,28 @@ const listUserBlobUrls = async (
   return urls;
 };
 
-export const deleteAllUserBlobs = async (userId: string) => {
-  const urls = await listUserBlobUrls(userId);
+export const getAllUserBlobUrls = listUserBlobUrls;
 
-  if (urls.length > 0) {
-    await del(urls);
-  }
-};
-
-export const deleteUserBlobUrls = async (
+export const getOwnedUserBlobUrls = async (
   userId: string,
   requestedUrls: string[]
 ) => {
   const requested = new Set(requestedUrls);
   const ownedUrls = await listUserBlobUrls(userId);
-  const urls = ownedUrls.filter((url) => requested.has(url));
 
-  if (urls.length > 0) {
-    await del(urls);
-  }
+  return ownedUrls.filter((url) => requested.has(url));
+};
+
+export const drainPendingBlobDeletions = async (userId: string) => {
+  const pendingDeletions = await getPendingBlobDeletions({ userId });
+
+  await Promise.all(
+    pendingDeletions.map(async ({ id, urls }) => {
+      if (urls.length > 0) {
+        await del(urls);
+      }
+
+      await deletePendingBlobDeletion({ id });
+    })
+  );
 };

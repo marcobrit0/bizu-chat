@@ -131,6 +131,15 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
       votes: "0",
     });
 
+    const blobDeletionId = randomUUID();
+    await sql`
+      INSERT INTO "BlobDeletion" ("id", "urls", "userId")
+      VALUES (
+        ${blobDeletionId},
+        ${sql.json(["https://example.test/pending-blob"])},
+        ${ownerId}
+      )
+    `;
     await sql`DELETE FROM "User" WHERE "id" = ${ownerId}`;
 
     const [accountChildren] = await sql`
@@ -138,13 +147,17 @@ describe.skipIf(!testDatabaseUrl)("database security invariants", () => {
         (SELECT count(*) FROM "Document" WHERE "userId" = ${ownerId})
           AS documents,
         (SELECT count(*) FROM "Suggestion" WHERE "userId" = ${ownerId})
-          AS suggestions
+          AS suggestions,
+        (SELECT count(*) FROM "BlobDeletion" WHERE "userId" = ${ownerId})
+          AS pending_blob_deletions
     `;
     expect(accountChildren).toMatchObject({
       documents: "0",
+      pending_blob_deletions: "1",
       suggestions: "0",
     });
 
+    await sql`DELETE FROM "BlobDeletion" WHERE "id" = ${blobDeletionId}`;
     await sql`DELETE FROM "User" WHERE "id" = ${otherUserId}`;
   });
 });
